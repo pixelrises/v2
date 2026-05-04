@@ -35,3 +35,4 @@ vite-dev.pid
 *.sw?
 
 .vercel
+supabase/.temp/
