@@ -1,0 +1,74 @@
+name: Generator nightly audit wrapper
+
+on:
+  schedule:
+    # Europe/Paris midnight is 22:00 UTC in summer and 23:00 UTC in winter.
+    - cron: "0 22 * * *"
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: generator-nightly-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Product Lab site-builder dry-run
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Guard midnight Europe/Paris
+        id: guard
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Manual run requested."
+            exit 0
+          fi
+
+          paris_hour="$(TZ=Europe/Paris date +%H)"
+          if [ "$paris_hour" = "00" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Running at midnight Europe/Paris."
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping because Europe/Paris hour is $paris_hour, not 00."
+          fi
+
+      - name: Checkout
+        if: steps.guard.outputs.run == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: steps.guard.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.guard.outputs.run == 'true'
+        run: npm ci
+
+      - name: Run Product Lab site-builder dry-run
+        if: steps.guard.outputs.run == 'true'
+        run: npm run product-lab:daily -- --theme site-builder --dry-run
+        env:
+          PRODUCT_LAB_MAX_PATCHES: "2"
+          PRODUCT_LAB_DRY_RUN: "true"
+
+      - name: Upload Product Lab report
+        if: always() && steps.guard.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-lab-site-builder-dry-run
+          path: |
+            reports/product-lab/daily/*.md
+            product-lab/backlog.md
+            product-lab/state/product-scores.json
+          if-no-files-found: error

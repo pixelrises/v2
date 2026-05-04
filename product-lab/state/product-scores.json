@@ -1,0 +1,83 @@
+{
+  "date": "2026-05-05",
+  "week": "2026-W19",
+  "scores": {
+    "Product Quality Score": {
+      "note": 82,
+      "reason": "Base V2 solide avec opportunites d'iteration ciblee.",
+      "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
+      "bestImprovement": "Maintenir une roadmap Product Lab priorisee par impact/risque.",
+      "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
+    },
+    "UX Score": {
+      "note": 72,
+      "reason": "Base utile mais encore trop dependante de mocks ou d'etats incomplets.",
+      "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
+      "bestImprovement": "Renforcer empty states, microcopy et actions rapides par theme hebdomadaire.",
+      "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
+    },
+    "Conversion Score": {
+      "note": 76,
+      "reason": "Base V2 solide avec opportunites d'iteration ciblee.",
+      "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
+      "bestImprovement": "Auditer CTA, objections et preuves dans les builders.",
+      "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
+    },
+    "Design Score": {
+      "note": 77,
+      "reason": "Identite noir/or coherente dans les modules audites.",
+      "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
+      "bestImprovement": "Verifier coherence noir/or, spacing et lisibilite mobile.",
+      "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
+    },
+    "AI System Score": {
+      "note": 78,
+      "reason": "Pipeline Gateway/Supabase detecte, reste a durcir en CI.",
+      "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
+      "bestImprovement": "Durcir fallback Gateway, normalisation et logs sans secrets.",
+      "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
+    },
+    "Site Builder Score": {
+      "note": 79,
+      "reason": "Base V2 solide avec opportunites d'iteration ciblee.",
+      "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
+      "bestImprovement": "Ameliorer le brief et les presets niche/conversion.",
+      "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
+    },
+    "Agent Builder Score": {
+      "note": 72,
+      "reason": "Base utile mais encore trop dependante de mocks ou d'etats incomplets.",
+      "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
+      "bestImprovement": "Renforcer permissions et chat de test.",
+      "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
+    },
+    "Game Builder Score": {
+      "note": 69,
+      "reason": "Base utile mais encore trop dependante de mocks ou d'etats incomplets.",
+      "mainProblem": "Le statut beta doit rester tres clair dans chaque sortie.",
+      "bestImprovement": "Ameliorer checklists et snippets beta par plateforme.",
+      "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
+    },
+    "Integration Score": {
+      "note": 70,
+      "reason": "Base utile mais encore trop dependante de mocks ou d'etats incomplets.",
+      "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
+      "bestImprovement": "Clarifier statuts mock/reel et connecteurs demandes.",
+      "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
+    },
+    "Analytics Score": {
+      "note": 68,
+      "reason": "Base utile mais encore trop dependante de mocks ou d'etats incomplets.",
+      "mainProblem": "Les insights reels restent encore partiellement mockes.",
+      "bestImprovement": "Brancher plus de donnees reelles au dashboard.",
+      "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
+    },
+    "Code Health Score": {
+      "note": 76,
+      "reason": "Scripts et workflows principaux sont coherents.",
+      "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
+      "bestImprovement": "Corriger workflows, tests et imports avant PR.",
+      "nextAction": "Executer lint, tests et build avant toute PR."
+    }
+  }
+}

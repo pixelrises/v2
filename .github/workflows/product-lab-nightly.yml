@@ -1,0 +1,207 @@
+name: Pixelrises Continuous Product Lab
+
+on:
+  schedule:
+    # Europe/Paris midnight is 22:00 UTC in summer and 23:00 UTC in winter.
+    - cron: "0 22 * * *"
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: pixelrises-product-lab
+  cancel-in-progress: false
+
+jobs:
+  product-lab:
+    name: Daily Product Lab
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Guard midnight Europe/Paris
+        id: guard
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Manual run requested."
+            exit 0
+          fi
+
+          paris_hour="$(TZ=Europe/Paris date +%H)"
+          if [ "$paris_hour" = "00" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Running at midnight Europe/Paris."
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping because Europe/Paris hour is $paris_hour, not 00."
+          fi
+
+      - name: Checkout
+        if: steps.guard.outputs.run == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: steps.guard.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.guard.outputs.run == 'true'
+        run: npm ci
+
+      - name: Run Product Lab
+        if: steps.guard.outputs.run == 'true'
+        env:
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+          PRODUCT_LAB_MAX_PATCHES: "2"
+          PRODUCT_LAB_APPLY_SAFE_FIXES: ${{ vars.PRODUCT_LAB_APPROVED_AUTOFIX == 'true' && 'true' || 'false' }}
+        shell: bash
+        run: |
+          if [ "${{ vars.PRODUCT_LAB_APPROVED_AUTOFIX }}" = "true" ]; then
+            npm run product-lab:daily
+          else
+            npm run product-lab:daily -- --dry-run
+          fi
+
+      - name: Lint
+        id: lint
+        if: steps.guard.outputs.run == 'true'
+        continue-on-error: true
+        run: npm run lint
+
+      - name: Test
+        id: test
+        if: steps.guard.outputs.run == 'true'
+        continue-on-error: true
+        run: npm run test
+
+      - name: Build
+        id: build
+        if: steps.guard.outputs.run == 'true'
+        continue-on-error: true
+        run: npm run build
+
+      - name: Check validation status
+        id: validation
+        if: steps.guard.outputs.run == 'true'
+        shell: bash
+        run: |
+          if [ "${{ steps.lint.outcome }}" = "success" ] && [ "${{ steps.test.outcome }}" = "success" ] && [ "${{ steps.build.outcome }}" = "success" ]; then
+            echo "checks_passed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "checks_passed=false" >> "$GITHUB_OUTPUT"
+            echo "At least one validation command failed. No Product Lab PR will be created."
+          fi
+
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare Product Lab branch name
+        id: branch
+        if: steps.guard.outputs.run == 'true'
+        shell: bash
+        run: |
+          paris_date="$(TZ=Europe/Paris date +%F)"
+          paris_day="$(TZ=Europe/Paris date +%u)"
+          case "$paris_day" in
+            1) theme="dashboard" ;;
+            2) theme="site-builder" ;;
+            3) theme="agent-builder" ;;
+            4) theme="game-builder" ;;
+            5) theme="multi-ai" ;;
+            6) theme="templates-integrations" ;;
+            *) theme="audit-roadmap" ;;
+          esac
+          echo "name=${paris_date}-${theme}" >> "$GITHUB_OUTPUT"
+
+      - name: Write validation failure report
+        if: >
+          steps.guard.outputs.run == 'true' &&
+          steps.validation.outputs.checks_passed == 'false'
+        shell: bash
+        run: |
+          mkdir -p reports/product-lab/daily product-lab
+          paris_date="$(TZ=Europe/Paris date +%F)"
+          failure_report="reports/product-lab/daily/daily-${paris_date}-validation-failure.md"
+          cat > "$failure_report" <<'EOF'
+          # Pixelrises V2 - Product Lab Validation Failure
+
+          ## Resume
+          Le Product Lab a detecte un echec de validation. Aucune PR automatique ne sera creee.
+
+          ## Tests lances
+          - lint
+          - test
+          - build
+
+          ## Resultat
+          Au moins une commande a echoue. Voir les logs GitHub Actions pour le detail exact.
+
+          ## Priorite critique
+          Corriger la commande en echec avant toute PR Product Lab.
+          EOF
+          cat >> product-lab/backlog.md <<'EOF'
+
+          ## Critique - Validation CI
+
+          - **Corriger validation Product Lab en echec**
+            - Module: CI / Product Lab
+            - Impact: Eleve
+            - Risque: Faible
+            - Difficulte: A determiner
+            - Priorite: Critique
+            - Statut: A corriger
+            - Source inspiration: Linear / Vercel
+            - Decision: human_validation
+          EOF
+
+      - name: Upload Product Lab report
+        if: always() && steps.guard.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-lab-report
+          path: |
+            reports/product-lab/daily/*.md
+            reports/product-lab/weekly/*.md
+            product-lab/backlog.md
+            product-lab/state/product-scores.json
+          if-no-files-found: warn
+
+      - name: Create Product Lab PR
+        if: >
+          steps.guard.outputs.run == 'true' &&
+          steps.validation.outputs.checks_passed == 'true' &&
+          steps.validation.outputs.has_changes == 'true' &&
+          vars.PRODUCT_LAB_APPROVED_AUTOFIX == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: product-lab/${{ steps.branch.outputs.name }}
+          title: "Product Lab: daily safe improvements"
+          commit-message: "chore(product-lab): daily safe improvements"
+          body: |
+            ## Pixelrises Continuous Product Lab
+
+            Safe improvements generated by the Product Lab.
+
+            - Lint: ${{ steps.lint.outcome }}
+            - Tests: ${{ steps.test.outcome }}
+            - Build: ${{ steps.build.outcome }}
+
+            No automatic merge. Human review required.
+          labels: product-lab, automation, safe-improvement
+
+      - name: Fail if validation failed
+        if: >
+          steps.guard.outputs.run == 'true' &&
+          steps.validation.outputs.checks_passed == 'false'
+        run: exit 1

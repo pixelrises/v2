@@ -1,0 +1,28 @@
+User-agent: *
+Allow: /
+
+# Bloquer les pages techniques et privées
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /auth
+Disallow: /auth/callback
+Disallow: /preview/
+Disallow: /payment-success
+Disallow: /payment-verification
+Disallow: /api/
+
+# Autoriser les crawlers IA pour la visibilité publique
+User-agent: GPTBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://pixelrises.fr/sitemap.xml
+Host: pixelrises.fr
