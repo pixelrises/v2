@@ -25,6 +25,15 @@ Ce backlog est maintenu par le Product Lab. Les changements sensibles restent en
   - Statut: A cadrer
   - Source inspiration: Shopify Admin / Base44
   - Decision: auto_safe
+- **Aligner chaque patch sur la vision idee vers projet concret**
+  - Module: Product Vision
+  - Impact: Eleve (30/30)
+  - Risque: Faible
+  - Difficulte: Faible
+  - Priorite: Important
+  - Statut: En continu
+  - Source inspiration: Lovable / Base44 / Linear
+  - Decision: auto_safe
 - **Durcir la securite des actions agents**
   - Module: Agent Builder
   - Impact: Eleve (24/30)

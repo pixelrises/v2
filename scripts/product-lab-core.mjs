@@ -5,6 +5,20 @@ import { execFileSync } from "node:child_process";
 export const PRODUCT_LAB_NAME = "Pixelrises Continuous Product Lab";
 export const DEFAULT_MAX_PATCHES = 2;
 
+export const productVision = {
+  promise: "Pixelrises transforme une idee en projet digital concret.",
+  principles: [
+    "premium noir/or",
+    "business-first",
+    "conversion-first",
+    "simple pour debutants",
+    "puissant pour utilisateurs avances",
+    "site + agent IA + jeu + integrations + analytics",
+  ],
+  protectedOutcome:
+    "Chaque patch doit aider l'utilisateur a creer, ameliorer, publier, connecter ou analyser un projet V2.",
+};
+
 export const scoreKeys = [
   "Product Quality Score",
   "UX Score",
@@ -451,6 +465,18 @@ export const runExpertAgents = (audit, scores) => {
   });
 
   findings.push({
+    title: "Aligner chaque patch sur la vision idee vers projet concret",
+    module: "Product Vision",
+    impact: "Eleve",
+    risk: "Faible",
+    difficulty: "Faible",
+    priority: "Important",
+    status: "En continu",
+    inspiration: "Lovable / Base44 / Linear",
+    description: "Verifier que chaque amelioration renforce la promesse Pixelrises: creer, ameliorer, publier, connecter ou analyser.",
+  });
+
+  findings.push({
     title: "Durcir la securite des actions agents",
     module: "Agent Builder",
     impact: "Eleve",
@@ -566,6 +592,11 @@ export const renderDailyReport = (result) => {
     result.dryRun
       ? "Premier run en dry-run: audit, scoring, backlog et recommandations uniquement. Aucun patch produit automatique applique."
       : "Run Product Lab avec garde-fous actifs.",
+    "",
+    "## Vision Pixelrises protegee",
+    `- Promesse: ${productVision.promise}`,
+    `- Resultat protege: ${productVision.protectedOutcome}`,
+    `- Principes: ${productVision.principles.join(", ")}`,
     "",
     "## Scores du jour",
     renderScoreTable(result.scores),

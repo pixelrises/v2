@@ -9,6 +9,7 @@ import {
   Smartphone,
   Sparkles,
   Tablet,
+  Target,
 } from "lucide-react";
 import SEOHead from "@/components/SEOHead";
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +107,12 @@ const promptPresets = [
   },
 ];
 
+const visionCheckpoints = [
+  "Comprendre ton idée et ton objectif business",
+  "Créer une présence premium orientée conversion",
+  "Préparer la prochaine action : publier, améliorer ou connecter",
+];
+
 const SiteBuilder = () => {
   const [brief, setBrief] = useState({
     businessName: "Atelier Nova",
@@ -124,7 +131,9 @@ const SiteBuilder = () => {
   const [siteProject, setSiteProject] = useState<NormalizedSiteProject>(defaultSite);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationSource, setGenerationSource] = useState<BackendGenerationSource | "frontend-mock">("frontend-mock");
-  const [generationMessage, setGenerationMessage] = useState("Mode dev pret. Le backend est utilise si la fonction Supabase est disponible.");
+  const [generationMessage, setGenerationMessage] = useState(
+    "Pixelrises AI utilise le meilleur pipeline disponible et garde un fallback stable si le backend est indisponible.",
+  );
 
   const quality = useMemo(() => validateSiteProject(siteProject), [siteProject]);
 
@@ -272,7 +281,7 @@ const SiteBuilder = () => {
   return (
     <V2PageShell
       title="Site Builder V2"
-      description="Prompt, analyse business, structure, site premium et amelioration ciblee. Ce builder est la base propre de la V2."
+      description="Pixelrises comprend ton idée, structure ton offre, crée une présence professionnelle et prépare les prochaines actions pour développer ton business."
     >
       <SEOHead title="Site Builder V2 | Pixelrises" description="Site Builder V2 Pixelrises." noIndex />
 
@@ -312,8 +321,8 @@ const SiteBuilder = () => {
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Pixelrises AI</p>
-                  <p className="mt-1 text-xs text-white/45">Tape ton idee ici, la preview se met a jour.</p>
-                  <h2 className="text-lg font-semibold">Decris ton site</h2>
+                  <p className="mt-1 text-xs text-white/45">Décris ton idée, Pixelrises la transforme en base business.</p>
+                  <h2 className="text-lg font-semibold">Créer une présence pro</h2>
                 </div>
               </div>
               <Badge className="shrink-0 border-[#F5C542]/20 bg-[#F5C542]/10 text-[#F5C542]">{mode}</Badge>
@@ -353,15 +362,30 @@ const SiteBuilder = () => {
                   className="w-full rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766] disabled:opacity-70 sm:w-auto"
                 >
                   {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  {isGenerating ? "Generation..." : "Generer"}
+                  {isGenerating ? "Création..." : "Créer la preview"}
                 </Button>
               </div>
             </div>
 
             <p className="mt-3 text-xs leading-5 text-white/42">
-              Astuce : Ctrl + Entree genere directement. Les parametres business restent en arriere-plan pour garder
+              Astuce : Ctrl + Entrée génère directement. Les paramètres business restent en arrière-plan pour garder
               l'interface simple.
             </p>
+
+            <div className="mt-4 rounded-[22px] border border-[#F5C542]/15 bg-[#F5C542]/[0.06] p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#F5C542]">
+                <Target className="h-4 w-4" />
+                Vision Pixelrises
+              </div>
+              <div className="mt-3 space-y-2">
+                {visionCheckpoints.map((checkpoint) => (
+                  <div key={checkpoint} className="flex gap-2 text-xs leading-5 text-white/58">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#F5C542]" />
+                    <span>{checkpoint}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="mt-4 grid gap-3">
