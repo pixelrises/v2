@@ -170,6 +170,15 @@ const readFile = (root, relativePath) => {
     : "";
 };
 
+const writeFileIfChanged = (root, relativePath, content) => {
+  const absolutePath = path.join(root, relativePath);
+  const previous = fs.existsSync(absolutePath) ? fs.readFileSync(absolutePath, "utf8") : "";
+  if (previous === content) return false;
+  fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+  fs.writeFileSync(absolutePath, content, "utf8");
+  return true;
+};
+
 const walkFiles = (root, relativePath, extensions, maxFiles = 400) => {
   const base = path.join(root, relativePath);
   const files = [];
@@ -588,7 +597,11 @@ export const renderDailyReport = (result) => {
     result.modifiedFiles.length ? result.modifiedFiles.map((file) => `- ${file}`).join("\n") : "- Aucun fichier produit modifie.",
     "",
     "## Tests lances",
-    result.checks.length ? result.checks.map((check) => `- ${check.name}: ${check.status}`).join("\n") : "- Aucun test lance pendant ce dry-run. Le workflow CI lance lint, tests et build apres le Product Lab.",
+    result.checks.length
+      ? result.checks.map((check) => `- ${check.name}: ${check.status}`).join("\n")
+      : result.dryRun
+        ? "- Aucun test lance pendant ce dry-run. Le workflow CI lance lint, tests et build apres le Product Lab."
+        : "- Aucun test lance par le Product Lab local. Les validations doivent etre lancees apres le run safe.",
     "",
     "## Resultat des tests",
     result.checks.length
@@ -698,8 +711,10 @@ export const runProductLab = ({
     process.env.PRODUCT_LAB_APPLY_SAFE_FIXES === "true" &&
     fs.existsSync(approvalFile) &&
     maxPatches > 0;
-  const appliedImprovements = canApplyPatches ? [] : [];
-  const modifiedFiles = [];
+  const safeFindings = findings.filter((finding) => finding.decision === "auto_safe");
+  const patchResult = canApplyPatches ? applySafeImprovements(root, safeFindings, maxPatches, theme) : { appliedImprovements: [], modifiedFiles: [] };
+  const appliedImprovements = patchResult.appliedImprovements;
+  const modifiedFiles = patchResult.modifiedFiles;
 
   const result = {
     action,
@@ -742,5 +757,78 @@ export const runProductLab = ({
     reportPath: path.join("reports", "product-lab", "daily", `daily-${dateLabel}.md`).replace(/\\/g, "/"),
     weeklyReportPath: path.join("reports", "product-lab", "weekly", `weekly-${week}.md`).replace(/\\/g, "/"),
     backlogPath: "product-lab/backlog.md",
+  };
+};
+
+export const applySafeImprovements = (root, safeFindings, maxPatches, theme) => {
+  const appliedImprovements = [];
+  const modifiedFiles = [];
+  const remaining = () => appliedImprovements.length < maxPatches;
+
+  const applyDocPatch = (relativePath, heading, lines, label) => {
+    if (!remaining()) return;
+    const current = readFile(root, relativePath);
+    if (current.includes(heading)) return;
+    const next = `${current.trimEnd()}\n\n${heading}\n\n${lines.join("\n")}\n`;
+    if (writeFileIfChanged(root, relativePath, next)) {
+      appliedImprovements.push(label);
+      modifiedFiles.push(relativePath);
+    }
+  };
+
+  if (safeFindings.some((finding) => finding.title.includes("dashboard"))) {
+    applyDocPatch(
+      "product-lab/backlog.md",
+      "## Product Lab Auto-Safe Notes - Dashboard",
+      [
+        "- Renforcer les empty states du dashboard avec une prochaine action claire.",
+        "- Garder la lecture des donnees reelles Supabase prioritaire avant les nouveaux widgets.",
+      ],
+      "Ajout d'une note dashboard auto-safe dans le backlog Product Lab.",
+    );
+  }
+
+  if (safeFindings.some((finding) => finding.title.includes("Site Builder")) || theme.id === "site-builder") {
+    applyDocPatch(
+      "docs/product-lab-site-builder-safe-improvements.md",
+      "# Product Lab - Site Builder Safe Improvements",
+      [
+        "Objectif: ameliorer progressivement le flow idee -> preview -> amelioration sans casser le builder.",
+        "",
+        "Safe improvements autorises:",
+        "- clarifier la microcopy du prompt principal",
+        "- renforcer les empty states de preview",
+        "- ajouter des actions rapides non destructives",
+        "- ameliorer les presets niche/conversion",
+        "- ajouter des tests unitaires simples autour du rendu mock",
+        "",
+        "Validation humaine requise:",
+        "- changement de pipeline IA reel",
+        "- modification Supabase sensible",
+        "- suppression de routes ou refonte complete du builder",
+      ],
+      "Creation d'une fiche safe improvements pour le Site Builder.",
+    );
+  }
+
+  if (safeFindings.some((finding) => finding.title.includes("Game Builder"))) {
+    applyDocPatch(
+      "docs/product-lab-game-builder-beta-guardrails.md",
+      "# Product Lab - Game Builder Beta Guardrails",
+      [
+        "Le Game Builder reste beta.",
+        "",
+        "A garantir dans chaque iteration:",
+        "- generer blueprint, snippets, assets et checklist",
+        "- ne jamais promettre une publication automatique Roblox, Minecraft ou Fortnite",
+        "- garder les avertissements plateforme visibles",
+      ],
+      "Creation d'une fiche de garde-fous beta pour le Game Builder.",
+    );
+  }
+
+  return {
+    appliedImprovements,
+    modifiedFiles: [...new Set(modifiedFiles)],
   };
 };

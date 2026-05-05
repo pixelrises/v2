@@ -164,4 +164,38 @@ describe("Pixelrises Product Lab core", () => {
     expect(result.weeklyReportPath).toBe("reports/product-lab/weekly/weekly-2026-W19.md");
     expect(fs.existsSync(path.join(root, result.weeklyReportPath))).toBe(true);
   });
+
+  it("applies at most two approved safe improvements outside dry-run", () => {
+    const root = createTempProject();
+    const previousApply = process.env.PRODUCT_LAB_APPLY_SAFE_FIXES;
+    const previousMaxPatches = process.env.PRODUCT_LAB_MAX_PATCHES;
+    process.env.PRODUCT_LAB_APPLY_SAFE_FIXES = "true";
+    process.env.PRODUCT_LAB_MAX_PATCHES = "2";
+    fs.mkdirSync(path.join(root, "product-lab/state"), { recursive: true });
+    fs.writeFileSync(path.join(root, "product-lab/state/first-dry-run-approved.json"), '{"approved":true}', "utf8");
+
+    const result = runProductLab({
+      root,
+      action: "daily",
+      dryRun: false,
+      forcedTheme: "site-builder",
+      date: new Date("2026-05-05T10:00:00.000Z"),
+    });
+
+    if (previousApply === undefined) {
+      delete process.env.PRODUCT_LAB_APPLY_SAFE_FIXES;
+    } else {
+      process.env.PRODUCT_LAB_APPLY_SAFE_FIXES = previousApply;
+    }
+
+    if (previousMaxPatches === undefined) {
+      delete process.env.PRODUCT_LAB_MAX_PATCHES;
+    } else {
+      process.env.PRODUCT_LAB_MAX_PATCHES = previousMaxPatches;
+    }
+
+    expect(result.appliedImprovements.length).toBeGreaterThan(0);
+    expect(result.appliedImprovements.length).toBeLessThanOrEqual(2);
+    expect(result.modifiedFiles.every((file) => file.startsWith("docs/") || file.startsWith("product-lab/"))).toBe(true);
+  });
 });

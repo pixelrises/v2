@@ -1,0 +1,7 @@
+{
+  "approved": true,
+  "approvedAt": "2026-05-05",
+  "scope": "auto_safe_only",
+  "maxPatches": 2,
+  "notes": "Autorise uniquement les ameliorations Product Lab auto_safe. Les changements sensibles restent en validation humaine."
+}
