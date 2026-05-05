@@ -19,6 +19,39 @@ export const productVision = {
     "Chaque patch doit aider l'utilisateur a creer, ameliorer, publier, connecter ou analyser un projet V2.",
 };
 
+export const benchmarkModules = [
+  {
+    module: "Dashboard",
+    inspiration: "Shopify Admin / Linear / Base44",
+    target: "Un cockpit decisionnel qui montre l'etat du business, la prochaine action et les signaux reels.",
+  },
+  {
+    module: "Site Builder",
+    inspiration: "Lovable / v0 / Vercel",
+    target: "Un flow idee -> plan -> preview -> amelioration fluide, premium et oriente conversion.",
+  },
+  {
+    module: "Agent Builder",
+    inspiration: "Delos / Base44",
+    target: "Un studio d'agents simple, puissant, avec permissions claires et actions validables.",
+  },
+  {
+    module: "Game Builder",
+    inspiration: "Roblox Creator Hub / Minecraft Creator / UEFN",
+    target: "Un generateur beta de blueprints, snippets, assets et checklists sans promesse de publication automatique.",
+  },
+  {
+    module: "Multi-IA / Systeme",
+    inspiration: "Vercel AI Gateway / 21st.dev",
+    target: "Un orchestrateur modulaire, normalise, teste, avec fallback et couts controles.",
+  },
+  {
+    module: "Integrations / Templates",
+    inspiration: "21st.dev / Mobbin / Vercel",
+    target: "Des registries clairs, honnetes, reutilisables et adaptes aux projets business.",
+  },
+];
+
 export const scoreKeys = [
   "Product Quality Score",
   "UX Score",
@@ -579,6 +612,12 @@ export const renderScoreTable = (scores) => {
   ].join("\n");
 };
 
+export const renderBenchmarkTable = () => [
+  "| Module | Inspiration adaptee | Niveau cible Pixelrises |",
+  "| --- | --- | --- |",
+  ...benchmarkModules.map((item) => `| ${item.module} | ${item.inspiration} | ${item.target} |`),
+].join("\n");
+
 export const renderDailyReport = (result) => {
   const autoSafe = result.findings.filter((finding) => finding.decision === "auto_safe");
   const human = result.findings.filter((finding) => finding.decision === "human_validation");
@@ -598,6 +637,9 @@ export const renderDailyReport = (result) => {
     `- Resultat protege: ${productVision.protectedOutcome}`,
     `- Principes: ${productVision.principles.join(", ")}`,
     "",
+    "## Benchmark niveau inspirations",
+    renderBenchmarkTable(),
+    "",
     "## Scores du jour",
     renderScoreTable(result.scores),
     "",
@@ -616,7 +658,9 @@ export const renderDailyReport = (result) => {
     "## Ameliorations appliquees automatiquement",
     result.appliedImprovements.length
       ? result.appliedImprovements.map((item) => `- ${item}`).join("\n")
-      : "- Aucune. Dry-run obligatoire ou validation auto-fix absente.",
+      : result.dryRun
+        ? "- Aucune. Dry-run obligatoire ou validation auto-fix absente."
+        : "- Aucune nouvelle modification auto_safe appliquee sur ce run.",
     "",
     "## Ameliorations necessitant validation humaine",
     human.length ? human.map((finding) => `- ${finding.title} (${finding.module})`).join("\n") : "- Aucune decision sensible detectee dans ce run.",
@@ -637,17 +681,23 @@ export const renderDailyReport = (result) => {
     "## Resultat des tests",
     result.checks.length
       ? result.checks.map((check) => `- ${check.name}: ${check.summary}`).join("\n")
-      : "- Non applicable pour ce dry-run local.",
+      : result.dryRun
+        ? "- Non applicable pour ce dry-run local."
+        : "- A lancer juste apres le run safe avant tout push ou PR.",
     "",
     "## Risques restants",
     result.risks.map((risk) => `- ${risk}`).join("\n"),
     "",
     "## Priorites du lendemain",
     `- ${result.theme.tomorrow}`,
-    "- Valider le rapport dry-run avant d'autoriser les patches automatiques.",
+    result.dryRun
+      ? "- Valider le rapport dry-run avant d'autoriser les patches automatiques."
+      : "- Continuer avec 2 patches auto_safe maximum et validation humaine des changements sensibles.",
     "",
     "## Conclusion",
-    "Le Product Lab est pret a fonctionner comme systeme d'audit et de roadmap. Les patches automatiques restent verrouilles jusqu'a validation humaine du premier rapport.",
+    result.dryRun
+      ? "Le Product Lab est pret a fonctionner comme systeme d'audit et de roadmap. Les patches automatiques restent verrouilles jusqu'a validation humaine du premier rapport."
+      : "Le Product Lab ameliore la V2 avec des garde-fous actifs, en restant aligne sur la vision Pixelrises et les benchmarks produits adaptes.",
     "",
   ].join("\n");
 };
@@ -730,7 +780,9 @@ export const runProductLab = ({
   const scores = scoreProduct(audit);
   const { agentReports, findings } = runExpertAgents(audit, scores);
   const risks = [
-    "Patches automatiques verrouilles tant que le premier dry-run n'est pas valide.",
+    dryRun
+      ? "Patches automatiques verrouilles tant que le premier dry-run n'est pas valide."
+      : "Patches automatiques limites aux changements auto_safe et a PRODUCT_LAB_MAX_PATCHES.",
     "Aucune PR automatique ne doit etre creee si lint, tests ou build echouent.",
     "Les changements sensibles restent en validation humaine.",
   ];
@@ -809,13 +861,23 @@ export const applySafeImprovements = (root, safeFindings, maxPatches, theme) => 
 
   if (safeFindings.some((finding) => finding.title.includes("dashboard"))) {
     applyDocPatch(
-      "product-lab/backlog.md",
-      "## Product Lab Auto-Safe Notes - Dashboard",
+      "docs/product-lab-dashboard-benchmark.md",
+      "# Product Lab - Dashboard Benchmark",
       [
-        "- Renforcer les empty states du dashboard avec une prochaine action claire.",
-        "- Garder la lecture des donnees reelles Supabase prioritaire avant les nouveaux widgets.",
+        "Objectif: rapprocher le dashboard Pixelrises V2 d'un vrai cockpit SaaS decisionnel.",
+        "",
+        "References adaptees:",
+        "- Shopify Admin: controle clair, statuts utiles, actions visibles",
+        "- Linear: priorites lisibles, densite maitrisee, navigation calme",
+        "- Base44: Plan / Build / Improve, backend-ready, analytics et integrations",
+        "",
+        "Safe improvements autorises:",
+        "- clarifier la prochaine action principale",
+        "- ameliorer empty states, loading states et error states",
+        "- renforcer la lecture des projets V2 reels",
+        "- rendre les signaux analytics plus utiles sans inventer de donnees connectees",
       ],
-      "Ajout d'une note dashboard auto-safe dans le backlog Product Lab.",
+      "Creation d'une fiche benchmark dashboard.",
     );
   }
 
@@ -855,6 +917,22 @@ export const applySafeImprovements = (root, safeFindings, maxPatches, theme) => 
         "- garder les avertissements plateforme visibles",
       ],
       "Creation d'une fiche de garde-fous beta pour le Game Builder.",
+    );
+  }
+
+  if (safeFindings.some((finding) => finding.module === "Product Vision")) {
+    applyDocPatch(
+      "docs/product-lab-benchmark-targets.md",
+      "# Product Lab - Benchmark Targets",
+      [
+        "Le Product Lab doit ameliorer toute la V2 sans copier les plateformes d'inspiration.",
+        "",
+        renderBenchmarkTable(),
+        "",
+        "Regle centrale:",
+        productVision.protectedOutcome,
+      ],
+      "Creation de la matrice benchmark V2.",
     );
   }
 

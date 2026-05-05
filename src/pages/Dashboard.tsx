@@ -236,6 +236,37 @@ const creationStatusLabel = {
   configure: "À configurer",
 };
 
+const launchPathSteps = [
+  {
+    title: "Créer",
+    description: "Transformer une idée en site, agent IA ou blueprint de jeu.",
+    helper: "Point d'entrée",
+    href: "/create",
+    icon: Sparkles,
+  },
+  {
+    title: "Améliorer",
+    description: "Prioriser CTA, SEO, design, offre et structure avec les agents.",
+    helper: "Qualité & conversion",
+    href: "/agents",
+    icon: Target,
+  },
+  {
+    title: "Connecter",
+    description: "Brancher analytics, domaine, webhooks et outils business quand ils sont prêts.",
+    helper: "Écosystème",
+    href: "/integrations",
+    icon: Zap,
+  },
+  {
+    title: "Analyser",
+    description: "Lire les signaux, comprendre ce qui manque et décider la prochaine action.",
+    helper: "Pilotage",
+    href: "/analytics",
+    icon: BarChart3,
+  },
+];
+
 const calculateScore = (dimensions: BusinessScoreDimension[], sites: GeneratedSite[]) => {
   const average =
     dimensions.reduce((total, dimension) => total + dimension.score, 0) / dimensions.length;
@@ -662,6 +693,56 @@ const Dashboard = () => {
             </div>
           );
         })}
+      </section>
+
+      <section className="mt-6 rounded-[32px] border border-[#F5C542]/15 bg-[radial-gradient(circle_at_top_left,rgba(245,197,66,0.12),transparent_32%),rgba(255,255,255,0.035)] p-5 sm:p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Chemin Pixelrises</p>
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight">De l'idée au projet digital concret</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-white/58">
+              Le dashboard doit toujours répondre à une question simple : quelle action rend le projet plus crédible,
+              plus connecté ou plus prêt à lancer ?
+            </p>
+          </div>
+          <Button asChild className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
+            <Link to="/create">
+              Continuer la création
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {launchPathSteps.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <Link
+                key={step.title}
+                to={step.href}
+                className="group rounded-[24px] border border-white/[0.08] bg-black/20 p-4 transition hover:-translate-y-1 hover:border-[#F5C542]/30"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F5C542]/10 text-[#F5C542]">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <span className="rounded-full border border-white/[0.08] px-2.5 py-1 text-xs text-white/38">
+                    0{index + 1}
+                  </span>
+                </div>
+                <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-[#F5C542]">
+                  {step.helper}
+                </p>
+                <h3 className="mt-2 text-lg font-semibold">{step.title}</h3>
+                <p className="mt-2 min-h-[72px] text-sm leading-6 text-white/54">{step.description}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#F5C542]">
+                  Ouvrir
+                  <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </section>
 
       <section className="mt-6 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">

@@ -148,6 +148,9 @@ describe("Pixelrises Product Lab core", () => {
     expect(report).toContain("## Scores du jour");
     expect(report).toContain("## Vision Pixelrises protegee");
     expect(report).toContain("Pixelrises transforme une idee en projet digital concret");
+    expect(report).toContain("## Benchmark niveau inspirations");
+    expect(report).toContain("Dashboard");
+    expect(report).toContain("Site Builder");
     expect(report).toContain("## Agents experts consultes");
     expect(report).toContain("## Ameliorations necessitant validation humaine");
     expect(report).toContain("## Risques restants");
