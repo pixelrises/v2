@@ -10,7 +10,7 @@
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "UX Score": {
-      "note": 74,
+      "note": 72,
       "reason": "Base utile mais encore trop dependante de mocks ou d'etats incomplets.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Renforcer empty states, microcopy et actions rapides par theme hebdomadaire.",
@@ -38,7 +38,7 @@
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "Site Builder Score": {
-      "note": 76,
+      "note": 79,
       "reason": "Base V2 solide avec opportunites d'iteration ciblee.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Ameliorer le brief et les presets niche/conversion.",
