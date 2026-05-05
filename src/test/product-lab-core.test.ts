@@ -132,6 +132,7 @@ describe("Pixelrises Product Lab core", () => {
     expect(result.dryRun).toBe(true);
     expect(fs.existsSync(path.join(root, "reports/product-lab/daily/daily-2026-05-05.md"))).toBe(true);
     expect(fs.existsSync(path.join(root, "product-lab/backlog.md"))).toBe(true);
+    expect(fs.existsSync(path.join(root, "public/product-lab-review.json"))).toBe(true);
   });
 
   it("renders a report with mandatory sections", () => {

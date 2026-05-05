@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-05-05T23:51:22.232Z",
+  "sourceRun": {
+    "date": "2026-05-06",
+    "week": "2026-W19",
+    "theme": "Agent Builder / Agents IA",
+    "reportPath": "reports/product-lab/daily/daily-2026-05-06.md"
+  },
+  "summary": {
+    "total": 1,
+    "maxAutoSafePatches": 2,
+    "sensitiveChangesRequireApproval": true
+  },
+  "items": [
+    {
+      "id": "2026-05-06-agent-builder-agent-builder-1",
+      "title": "Durcir la securite des actions agents",
+      "module": "Agent Builder",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Moyen",
+      "difficulty": "Moyenne",
+      "status": "Propose",
+      "inspiration": "Delos / Base44",
+      "decision": "human_validation",
+      "description": "Toute action sensible agent doit rester validable et visible.",
+      "scoreImpact": 24,
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-06.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement."
+    }
+  ]
+}

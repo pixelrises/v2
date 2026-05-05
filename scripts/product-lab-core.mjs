@@ -740,6 +740,43 @@ export const renderWeeklyReport = (result) => [
   "",
 ].join("\n");
 
+export const buildProductLabReviewQueue = (result) => {
+  const reportPath = path.join("reports", "product-lab", "daily", `daily-${result.date}.md`).replace(/\\/g, "/");
+  const humanValidationItems = result.findings.filter((finding) => finding.decision === "human_validation");
+
+  return {
+    generatedAt: new Date().toISOString(),
+    sourceRun: {
+      date: result.date,
+      week: result.week,
+      theme: result.theme.label,
+      reportPath,
+    },
+    summary: {
+      total: humanValidationItems.length,
+      maxAutoSafePatches: result.maxPatches,
+      sensitiveChangesRequireApproval: true,
+    },
+    items: humanValidationItems.map((finding, index) => ({
+      id: `${result.date}-${result.theme.id}-${finding.module.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${index + 1}`,
+      title: finding.title,
+      module: finding.module,
+      priority: finding.priority,
+      impact: finding.impact,
+      risk: finding.risk,
+      difficulty: finding.difficulty,
+      status: finding.status,
+      inspiration: finding.inspiration,
+      decision: finding.decision,
+      description: finding.description,
+      scoreImpact: finding.scoreImpact,
+      sourceReport: reportPath,
+      automationPolicy:
+        "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+    })),
+  };
+};
+
 export const runChecks = (root) => {
   const commands = [
     { name: "lint", args: ["run", "lint"] },
@@ -821,17 +858,21 @@ export const runProductLab = ({
   const dailyDir = path.join(root, "reports", "product-lab", "daily");
   const weeklyDir = path.join(root, "reports", "product-lab", "weekly");
   const stateDir = path.join(root, "product-lab", "state");
+  const publicDir = path.join(root, "public");
   fs.mkdirSync(dailyDir, { recursive: true });
   fs.mkdirSync(weeklyDir, { recursive: true });
   fs.mkdirSync(stateDir, { recursive: true });
+  fs.mkdirSync(publicDir, { recursive: true });
 
   const backlog = renderBacklog(findings);
   const dailyReport = renderDailyReport(result);
   const weeklyReport = renderWeeklyReport(result);
+  const reviewQueue = buildProductLabReviewQueue(result);
 
   fs.writeFileSync(path.join(root, "product-lab", "backlog.md"), backlog, "utf8");
   fs.writeFileSync(path.join(stateDir, "product-scores.json"), JSON.stringify({ date: dateLabel, week, scores }, null, 2), "utf8");
   fs.writeFileSync(path.join(dailyDir, `daily-${dateLabel}.md`), dailyReport, "utf8");
+  fs.writeFileSync(path.join(publicDir, "product-lab-review.json"), JSON.stringify(reviewQueue, null, 2), "utf8");
 
   if (action === "weekly" || theme.id === "audit-roadmap") {
     fs.writeFileSync(path.join(weeklyDir, `weekly-${week}.md`), weeklyReport, "utf8");

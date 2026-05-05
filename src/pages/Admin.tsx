@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  CheckCircle2,
+  ClipboardCheck,
   CreditCard,
+  FileText,
   Globe,
   Loader2,
   MessageSquare,
@@ -10,6 +13,7 @@ import {
   TrendingUp,
   Users,
   Wand2,
+  XCircle,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,8 +25,20 @@ import { buildAuthRoute, getCurrentRelativeUrl } from "@/lib/auth-redirect";
 import { tryBootstrapAdmin } from "@/lib/admin-bootstrap";
 import { sanitizeTextDeep } from "@/lib/text-sanitize";
 import { resolvePublishedSiteUrl } from "@/lib/published-site";
+import {
+  exportProductLabDecisions,
+  fallbackProductLabReviewQueue,
+  getProductLabReviewStats,
+  loadProductLabReviewQueue,
+  mergeProductLabReviewItems,
+  readProductLabDecisions,
+  writeProductLabDecision,
+  type ProductLabDecisionMap,
+  type ProductLabDecisionStatus,
+  type ProductLabReviewQueue,
+} from "@/modules/product-lab/product-lab-review";
 
-type Tab = "overview" | "users" | "credits" | "sites" | "payments" | "leads";
+type Tab = "overview" | "users" | "credits" | "sites" | "payments" | "leads" | "product-lab";
 
 interface UserRow {
   user_id: string;
@@ -224,6 +240,10 @@ const Admin = () => {
   const [creditInput, setCreditInput] = useState<Record<string, string>>({});
   const [monthlyGrantLoading, setMonthlyGrantLoading] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [productLabQueue, setProductLabQueue] = useState<ProductLabReviewQueue | null>(null);
+  const [productLabLoading, setProductLabLoading] = useState(true);
+  const [productLabDecisions, setProductLabDecisions] = useState<ProductLabDecisionMap>(() => readProductLabDecisions());
+  const [productLabNotes, setProductLabNotes] = useState<Record<string, string>>({});
 
   const loadAdminData = useCallback(async () => {
     const [profilesRes, creditsRes, sitesRes, rolesRes, leadsRes, eventsRes, creditTransactionsRes] =
@@ -327,6 +347,13 @@ const Admin = () => {
     setCreditTransactions(sanitizeTextDeep(parsedTransactions));
   }, []);
 
+  const loadProductLabQueue = useCallback(async () => {
+    setProductLabLoading(true);
+    const queue = await loadProductLabReviewQueue();
+    setProductLabQueue(sanitizeTextDeep(queue));
+    setProductLabLoading(false);
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       const sessionResult = await resolveWithTimeout(supabase.auth.getSession(), 2000);
@@ -388,9 +415,13 @@ const Admin = () => {
     void init();
   }, [loadAdminData, navigate]);
 
+  useEffect(() => {
+    void loadProductLabQueue();
+  }, [loadProductLabQueue]);
+
   const refreshAdminData = async () => {
     setRefreshing(true);
-    await loadAdminData();
+    await Promise.all([loadAdminData(), loadProductLabQueue()]);
     setRefreshing(false);
     toast({
       title: "Admin actualisé",
@@ -669,6 +700,44 @@ const Admin = () => {
   const filteredTransactions = creditTransactions.filter((entry) =>
     `${entry.display_name || ""} ${entry.source_type || ""} ${entry.user_id}`.toLowerCase().includes(search.toLowerCase()),
   );
+  const productLabReviewItems = useMemo(
+    () => mergeProductLabReviewItems(productLabQueue ?? { ...fallbackProductLabReviewQueue, items: [] }, productLabDecisions),
+    [productLabDecisions, productLabQueue],
+  );
+  const productLabReviewStats = useMemo(() => getProductLabReviewStats(productLabReviewItems), [productLabReviewItems]);
+
+  const updateProductLabDecision = (
+    itemId: string,
+    status: ProductLabDecisionStatus,
+    fallbackNote: string,
+  ) => {
+    const note = productLabNotes[itemId]?.trim() || fallbackNote;
+    const nextDecisions = writeProductLabDecision(productLabDecisions, itemId, status, note);
+    setProductLabDecisions(nextDecisions);
+    setProductLabNotes((previous) => ({ ...previous, [itemId]: note }));
+    toast({
+      title: "Decision Product Lab enregistree",
+      description: "La validation est gardee cote admin. Le Product Lab ne l'applique pas sans garde-fou.",
+    });
+  };
+
+  const copyProductLabDecisions = async () => {
+    const payload = exportProductLabDecisions(productLabDecisions);
+
+    try {
+      await navigator.clipboard.writeText(payload);
+      toast({
+        title: "Decisions copiees",
+        description: "Le JSON peut etre partage ou branche plus tard a Supabase.",
+      });
+    } catch {
+      toast({
+        title: "Copie impossible",
+        description: "Votre navigateur bloque l'acces au presse-papiers.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -685,6 +754,7 @@ const Admin = () => {
     { key: "sites", label: "Sites", icon: Globe },
     { key: "payments", label: "Paiements", icon: CreditCard },
     { key: "leads", label: "Leads", icon: MessageSquare },
+    { key: "product-lab", label: "Product Lab", icon: ClipboardCheck },
   ];
 
   const tableWrap =
@@ -756,7 +826,7 @@ const Admin = () => {
           </div>
         </div>
 
-        <div className="premium-shell-muted mb-6 grid gap-1 p-1.5 sm:grid-cols-2 xl:grid-cols-6">
+        <div className="premium-shell-muted mb-6 grid gap-1 p-1.5 sm:grid-cols-2 xl:grid-cols-7">
           {tabs.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -770,7 +840,7 @@ const Admin = () => {
           ))}
         </div>
 
-        {tab !== "overview" && (
+        {tab !== "overview" && tab !== "product-lab" && (
           <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -1143,6 +1213,166 @@ const Admin = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {tab === "product-lab" && (
+          <div className="space-y-6">
+            <div className="premium-shell-muted p-5 sm:p-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+                    Validation humaine
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold">Product Lab Review Center</h2>
+                  <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
+                    Les changements sensibles proposes par l'automatisation arrivent ici. Vous pouvez valider,
+                    refuser ou demander une reprise sans que le Product Lab applique directement une action risquee.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
+                  <Button variant="outline" className="w-full sm:w-auto" onClick={() => void loadProductLabQueue()}>
+                    <FileText className="h-4 w-4" />
+                    Recharger
+                  </Button>
+                  <Button className="w-full sm:w-auto" onClick={() => void copyProductLabDecisions()}>
+                    <ClipboardCheck className="h-4 w-4" />
+                    Exporter decisions
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                {[
+                  { label: "A trancher", value: productLabReviewStats.pending, accent: "text-amber-300" },
+                  { label: "Validees", value: productLabReviewStats.approved, accent: "text-green-300" },
+                  { label: "Refusees", value: productLabReviewStats.rejected, accent: "text-red-300" },
+                  { label: "A revoir", value: productLabReviewStats.needsReview, accent: "text-blue-300" },
+                  { label: "Total", value: productLabReviewStats.total, accent: "text-primary" },
+                ].map((entry) => (
+                  <div key={entry.label} className="signal-list-card">
+                    <p className={`text-2xl font-bold ${entry.accent}`}>{entry.value}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.16em] text-muted-foreground">{entry.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-muted-foreground">
+                <p>
+                  Source automation : {productLabQueue?.sourceRun.theme || "Product Lab"} - rapport{" "}
+                  {productLabQueue?.sourceRun.reportPath || "non charge"}.
+                </p>
+                <p className="mt-1">
+                  Regle : une validation ici prepare la decision. Les changements auth, paiement, Supabase sensible,
+                  provider IA, production ou suppression majeure restent bloques sans action humaine explicite.
+                </p>
+              </div>
+            </div>
+
+            {productLabLoading ? (
+              <div className="premium-shell-muted flex items-center gap-3 p-5 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                Chargement des decisions Product Lab...
+              </div>
+            ) : productLabReviewItems.length > 0 ? (
+              <div className="grid gap-4">
+                {productLabReviewItems.map((item) => {
+                  const decisionLabel =
+                    item.localDecision.status === "approved"
+                      ? "Validee"
+                      : item.localDecision.status === "rejected"
+                        ? "Refusee"
+                        : item.localDecision.status === "needs_review"
+                          ? "A revoir"
+                          : "En attente";
+                  const decisionClass =
+                    item.localDecision.status === "approved"
+                      ? "border-green-400/20 bg-green-400/10 text-green-200"
+                      : item.localDecision.status === "rejected"
+                        ? "border-red-400/20 bg-red-400/10 text-red-200"
+                        : item.localDecision.status === "needs_review"
+                          ? "border-blue-400/20 bg-blue-400/10 text-blue-200"
+                          : "border-amber-400/20 bg-amber-400/10 text-amber-200";
+
+                  return (
+                    <article key={item.id} className="rounded-[28px] border border-white/10 bg-card/85 p-5 shadow-[0_20px_60px_-35px_rgba(0,0,0,0.55)]">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary">
+                              {item.module}
+                            </span>
+                            <span className={`rounded-full border px-3 py-1 text-xs ${decisionClass}`}>
+                              {decisionLabel}
+                            </span>
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-muted-foreground">
+                              {item.priority}
+                            </span>
+                          </div>
+                          <h3 className="mt-4 text-xl font-semibold">{item.title}</h3>
+                          <p className="mt-2 max-w-4xl text-sm leading-7 text-muted-foreground">{item.description}</p>
+                        </div>
+                        <div className="grid min-w-[220px] gap-2 rounded-2xl border border-white/10 bg-black/20 p-4 text-xs text-muted-foreground">
+                          <p>Impact : {item.impact}</p>
+                          <p>Risque : {item.risk}</p>
+                          <p>Difficulte : {item.difficulty}</p>
+                          <p>Inspiration : {item.inspiration}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Garde-fou automation</p>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.automationPolicy}</p>
+                      </div>
+
+                      <div className="mt-4 grid gap-3">
+                        <textarea
+                          value={productLabNotes[item.id] ?? item.localDecision.note}
+                          onChange={(event) =>
+                            setProductLabNotes((previous) => ({ ...previous, [item.id]: event.target.value }))
+                          }
+                          placeholder="Note admin : pourquoi valider, refuser ou demander une reprise ?"
+                          className="min-h-[90px] rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/50"
+                        />
+                        <div className="grid gap-2 sm:grid-cols-3">
+                          <Button
+                            className="bg-green-500/90 text-white hover:bg-green-500"
+                            onClick={() =>
+                              updateProductLabDecision(item.id, "approved", "Valide cote admin. A appliquer uniquement via garde-fous Product Lab.")
+                            }
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Valider
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="border-blue-400/20 bg-blue-400/[0.06] text-blue-100 hover:bg-blue-400/[0.12]"
+                            onClick={() =>
+                              updateProductLabDecision(item.id, "needs_review", "A revoir avant implementation.")
+                            }
+                          >
+                            <Wand2 className="h-4 w-4" />
+                            A revoir
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="border-red-400/20 bg-red-400/[0.06] text-red-100 hover:bg-red-400/[0.12]"
+                            onClick={() => updateProductLabDecision(item.id, "rejected", "Refuse cote admin.")}
+                          >
+                            <XCircle className="h-4 w-4" />
+                            Refuser
+                          </Button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="premium-shell-muted p-6 text-sm leading-7 text-muted-foreground">
+                Aucun changement sensible en attente. Le Product Lab peut continuer les patches auto_safe limites a 2.
+              </div>
+            )}
           </div>
         )}
 
