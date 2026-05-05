@@ -201,6 +201,10 @@ describe("Pixelrises Product Lab core", () => {
 
     expect(result.appliedImprovements.length).toBeGreaterThan(0);
     expect(result.appliedImprovements.length).toBeLessThanOrEqual(2);
-    expect(result.modifiedFiles.every((file) => file.startsWith("docs/") || file.startsWith("product-lab/"))).toBe(true);
+    expect(
+      result.modifiedFiles.every(
+        (file) => file.startsWith("docs/") || file.startsWith("product-lab/") || file.startsWith("reports/"),
+      ),
+    ).toBe(true);
   });
 });

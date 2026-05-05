@@ -795,7 +795,9 @@ export const runProductLab = ({
     fs.existsSync(approvalFile) &&
     maxPatches > 0;
   const safeFindings = findings.filter((finding) => finding.decision === "auto_safe");
-  const patchResult = canApplyPatches ? applySafeImprovements(root, safeFindings, maxPatches, theme) : { appliedImprovements: [], modifiedFiles: [] };
+  const patchResult = canApplyPatches
+    ? applySafeImprovements(root, safeFindings, maxPatches, theme, dateLabel)
+    : { appliedImprovements: [], modifiedFiles: [] };
   const appliedImprovements = patchResult.appliedImprovements;
   const modifiedFiles = patchResult.modifiedFiles;
 
@@ -843,7 +845,48 @@ export const runProductLab = ({
   };
 };
 
-export const applySafeImprovements = (root, safeFindings, maxPatches, theme) => {
+export const buildDailyImprovementLines = (theme, safeFindings) => {
+  const moduleTarget = benchmarkModules.find((item) => item.module.toLowerCase().includes(theme.id.split("-")[0]));
+  const themeModuleById = {
+    dashboard: "Dashboard",
+    "site-builder": "Site Builder",
+    "agent-builder": "Agent Builder",
+    "game-builder": "Game Builder",
+    "multi-ai": "Multi-IA",
+    "templates-integrations": "Integrations",
+    "audit-roadmap": "Code",
+  };
+  const themeModule = themeModuleById[theme.id] ?? theme.label;
+  const relevantFindings = safeFindings.filter(
+    (finding) => finding.module === themeModule || finding.module === "Product Vision",
+  );
+  const proposals = relevantFindings.slice(0, 3).map((finding) => `- ${finding.title}: ${finding.description}`);
+
+  return [
+    `Theme: ${theme.label}`,
+    `Vision: ${productVision.promise}`,
+    "",
+    "Objectif auto-safe du jour:",
+    moduleTarget
+      ? `- ${moduleTarget.target}`
+      : "- Ameliorer un module V2 sans casser les routes, la logique IA, Supabase ou l'experience utilisateur.",
+    "",
+    "Patches autorises automatiquement:",
+    "- microcopy, labels, empty/loading/error states",
+    "- documentation de decisions produit",
+    "- tests simples, prompts, registries et garde-fous non destructifs",
+    "",
+    "Propositions retenues:",
+    ...(proposals.length
+      ? proposals
+      : [`- Renforcer ${theme.label} avec un petit patch visible, testable et non destructif.`]),
+    "",
+    "Validation humaine obligatoire:",
+    "- auth, paiement, credits, Supabase sensible, provider IA principal, suppression de routes/fichiers, refonte majeure, publication jeux.",
+  ];
+};
+
+export const applySafeImprovements = (root, safeFindings, maxPatches, theme, dateLabel = "daily") => {
   const appliedImprovements = [];
   const modifiedFiles = [];
   const remaining = () => appliedImprovements.length < maxPatches;
@@ -933,6 +976,15 @@ export const applySafeImprovements = (root, safeFindings, maxPatches, theme) => 
         productVision.protectedOutcome,
       ],
       "Creation de la matrice benchmark V2.",
+    );
+  }
+
+  if (remaining()) {
+    applyDocPatch(
+      `reports/product-lab/improvements/improvement-${dateLabel}-${theme.id}.md`,
+      `# Product Lab - Auto Safe Improvement - ${dateLabel} - ${theme.label}`,
+      buildDailyImprovementLines(theme, safeFindings),
+      `Creation d'une note d'amelioration auto-safe ${theme.label}.`,
     );
   }
 
