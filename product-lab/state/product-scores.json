@@ -1,5 +1,5 @@
 {
-  "date": "2026-05-06",
+  "date": "2026-05-07",
   "week": "2026-W19",
   "scores": {
     "Product Quality Score": {
@@ -45,14 +45,14 @@
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "Agent Builder Score": {
-      "note": 75,
-      "reason": "Base V2 solide avec opportunites d'iteration ciblee.",
+      "note": 72,
+      "reason": "Base utile mais encore trop dependante de mocks ou d'etats incomplets.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Renforcer permissions et chat de test.",
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "Game Builder Score": {
-      "note": 69,
+      "note": 72,
       "reason": "Base utile mais encore trop dependante de mocks ou d'etats incomplets.",
       "mainProblem": "Le statut beta doit rester tres clair dans chaque sortie.",
       "bestImprovement": "Ameliorer checklists et snippets beta par plateforme.",

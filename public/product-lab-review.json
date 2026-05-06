@@ -1,16 +1,16 @@
 {
-  "generatedAt": "2026-05-06T21:48:09.065Z",
+  "generatedAt": "2026-05-06T22:54:37.967Z",
   "sourceRun": {
-    "date": "2026-05-06",
+    "date": "2026-05-07",
     "week": "2026-W19",
-    "theme": "Agent Builder / Agents IA",
-    "reportPath": "reports/product-lab/daily/daily-2026-05-06.md"
+    "theme": "Game Builder",
+    "reportPath": "reports/product-lab/daily/daily-2026-05-07.md"
   },
   "summary": {
     "total": 5,
     "maxAutoSafePatches": 2,
     "sensitiveChangesRequireApproval": true,
-    "dailySummary": "Theme Agent Builder / Agents IA: 5 proposition(s) a valider, modifier ou refuser avant application.",
+    "dailySummary": "Theme Game Builder: 5 proposition(s) a valider, modifier ou refuser avant application.",
     "averageScore": 74,
     "lowestScore": {
       "name": "Analytics Score",
@@ -19,7 +19,7 @@
   },
   "items": [
     {
-      "id": "agent-builder-dashboard-renforcer-le-dashboard-avec-donnees-v2-reelles",
+      "id": "game-builder-dashboard-renforcer-le-dashboard-avec-donnees-v2-reelles",
       "title": "Renforcer le dashboard avec donnees V2 reelles",
       "module": "Dashboard",
       "simpleSummary": "Dashboard: Augmenter les insights reels Supabase sans supprimer les empty states. Impact eleve, risque moyen.",
@@ -32,7 +32,7 @@
       "decision": "auto_safe",
       "description": "Augmenter les insights reels Supabase sans supprimer les empty states.",
       "scoreImpact": 24,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-06.md",
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-07.md",
       "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "src/pages/Dashboard.tsx",
@@ -42,7 +42,7 @@
       "afterState": "Le dashboard donne une prochaine action plus claire, avec moins de friction et plus de valeur percue."
     },
     {
-      "id": "agent-builder-site-builder-ameliorer-le-flow-site-builder-preview",
+      "id": "game-builder-site-builder-ameliorer-le-flow-site-builder-preview",
       "title": "Ameliorer le flow Site Builder preview",
       "module": "Site Builder",
       "simpleSummary": "Site Builder: Rendre le chemin idee -> preview -> amelioration plus fluide avec microcopy et actions rapides. Impact eleve, risque faible.",
@@ -55,7 +55,7 @@
       "decision": "auto_safe",
       "description": "Rendre le chemin idee -> preview -> amelioration plus fluide avec microcopy et actions rapides.",
       "scoreImpact": 30,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-06.md",
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-07.md",
       "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "src/pages/SiteBuilder.tsx",
@@ -66,7 +66,7 @@
       "afterState": "L'utilisateur comprend mieux quoi faire et comment ameliorer son projet sans casser le rendu."
     },
     {
-      "id": "agent-builder-product-vision-aligner-chaque-patch-sur-la-vision-idee-vers-projet-concret",
+      "id": "game-builder-product-vision-aligner-chaque-patch-sur-la-vision-idee-vers-projet-concret",
       "title": "Aligner chaque patch sur la vision idee vers projet concret",
       "module": "Product Vision",
       "simpleSummary": "Product Vision: Verifier que chaque amelioration renforce la promesse Pixelrises: creer, ameliorer, publier, connecter ou analyser. Impact eleve, risque faible.",
@@ -79,7 +79,7 @@
       "decision": "auto_safe",
       "description": "Verifier que chaque amelioration renforce la promesse Pixelrises: creer, ameliorer, publier, connecter ou analyser.",
       "scoreImpact": 30,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-06.md",
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-07.md",
       "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "docs/product-lab-benchmark-targets.md",
@@ -89,7 +89,7 @@
       "afterState": "Le Product Lab pourra agir au prochain run uniquement si la decision admin l'autorise."
     },
     {
-      "id": "agent-builder-agent-builder-durcir-la-securite-des-actions-agents",
+      "id": "game-builder-agent-builder-durcir-la-securite-des-actions-agents",
       "title": "Durcir la securite des actions agents",
       "module": "Agent Builder",
       "simpleSummary": "Agent Builder: Toute action sensible agent doit rester validable et visible. Impact eleve, risque moyen.",
@@ -102,7 +102,7 @@
       "decision": "human_validation",
       "description": "Toute action sensible agent doit rester validable et visible.",
       "scoreImpact": 24,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-06.md",
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-07.md",
       "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "src/pages/AgentBuilder.tsx",
@@ -113,7 +113,7 @@
       "afterState": "Chaque permission ou action sensible est explicite avant que le Product Lab puisse appliquer un patch."
     },
     {
-      "id": "agent-builder-game-builder-conserver-le-game-builder-en-beta-explicite",
+      "id": "game-builder-game-builder-conserver-le-game-builder-en-beta-explicite",
       "title": "Conserver le Game Builder en beta explicite",
       "module": "Game Builder",
       "simpleSummary": "Game Builder: Les rapports doivent traquer toute promesse de publication automatique. Impact moyen, risque faible.",
@@ -126,7 +126,7 @@
       "decision": "auto_safe",
       "description": "Les rapports doivent traquer toute promesse de publication automatique.",
       "scoreImpact": 18,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-06.md",
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-07.md",
       "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "src/pages/GameBuilder.tsx",
