@@ -254,4 +254,24 @@ describe("Pixelrises Product Lab core", () => {
 
     expect(decision?.itemId).toBe("2026-05-06-agent-builder-agent-builder-1");
   });
+
+  it("removes the first dry-run proposal after human approval", () => {
+    const root = createTempProject();
+    fs.mkdirSync(path.join(root, "product-lab/state"), { recursive: true });
+    fs.writeFileSync(path.join(root, "product-lab/state/first-dry-run-approved.json"), '{"approved":true}', "utf8");
+
+    runProductLab({
+      root,
+      action: "daily",
+      dryRun: false,
+      forcedTheme: "agent-builder",
+      date: new Date("2026-05-06T10:00:00.000Z"),
+    });
+
+    const backlog = fs.readFileSync(path.join(root, "product-lab/backlog.md"), "utf8");
+    const reviewQueue = fs.readFileSync(path.join(root, "public/product-lab-review.json"), "utf8");
+
+    expect(backlog).not.toContain("Verrouiller le premier Product Lab en dry-run");
+    expect(reviewQueue).not.toContain("Verrouiller le premier Product Lab en dry-run");
+  });
 });

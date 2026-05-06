@@ -375,6 +375,7 @@ export const auditProject = (root, theme) => {
   const hasStorageAdapter = runtimeContent.includes("ProjectStorageAdapter") || exists(root, "src/modules/storage/project-storage-adapter.ts");
   const hasQualityGate = runtimeContent.includes("Quality Gate") || runtimeContent.includes("qualityGate") || runtimeContent.includes("validateSiteProject");
   const hasProductLabScripts = Object.keys(scripts).some((key) => key.startsWith("product-lab"));
+  const firstDryRunApproved = exists(root, "product-lab/state/first-dry-run-approved.json");
 
   return {
     packageScripts: scripts,
@@ -393,6 +394,7 @@ export const auditProject = (root, theme) => {
     hasGithubWorkflowDir: exists(root, ".github/workflows"),
     hasReportsDir: exists(root, "reports/product-lab"),
     hasBacklog: exists(root, "product-lab/backlog.md"),
+    firstDryRunApproved,
     currentTheme: theme,
   };
 };
@@ -482,17 +484,19 @@ const buildNextAction = (key, audit) => {
 export const runExpertAgents = (audit, scores) => {
   const findings = [];
 
-  findings.push({
-    title: "Verrouiller le premier Product Lab en dry-run",
-    module: "Product Lab",
-    impact: "Eleve",
-    risk: "Faible",
-    difficulty: "Faible",
-    priority: "Critique",
-    status: "A faire",
-    inspiration: "Linear / Base44",
-    description: "Le premier run doit prouver la qualite de l'audit avant tout patch automatique.",
-  });
+  if (!audit.firstDryRunApproved) {
+    findings.push({
+      title: "Verrouiller le premier Product Lab en dry-run",
+      module: "Product Lab",
+      impact: "Eleve",
+      risk: "Faible",
+      difficulty: "Faible",
+      priority: "Critique",
+      status: "A faire",
+      inspiration: "Linear / Base44",
+      description: "Le premier run doit prouver la qualite de l'audit avant tout patch automatique.",
+    });
+  }
 
   if (audit.hasExistingBrokenWorkflow) {
     findings.push({

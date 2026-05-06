@@ -4,15 +4,7 @@ Ce backlog est maintenu par le Product Lab. Les changements sensibles restent en
 
 ## Critique
 
-- **Verrouiller le premier Product Lab en dry-run**
-  - Module: Product Lab
-  - Impact: Eleve (30/30)
-  - Risque: Faible
-  - Difficulte: Faible
-  - Priorite: Critique
-  - Statut: A faire
-  - Source inspiration: Linear / Base44
-  - Decision: auto_safe
+- Aucun item pour le moment.
 
 ## Important
 

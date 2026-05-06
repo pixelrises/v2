@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T00:15:23.788Z",
+  "generatedAt": "2026-05-06T21:48:09.065Z",
   "sourceRun": {
     "date": "2026-05-06",
     "week": "2026-W19",
@@ -7,10 +7,10 @@
     "reportPath": "reports/product-lab/daily/daily-2026-05-06.md"
   },
   "summary": {
-    "total": 1,
+    "total": 5,
     "maxAutoSafePatches": 2,
     "sensitiveChangesRequireApproval": true,
-    "dailySummary": "Theme Agent Builder / Agents IA: 1 decision(s) sensible(s) a trancher avant application automatique.",
+    "dailySummary": "Theme Agent Builder / Agents IA: 5 proposition(s) a valider, modifier ou refuser avant application.",
     "averageScore": 74,
     "lowestScore": {
       "name": "Analytics Score",
@@ -19,7 +19,77 @@
   },
   "items": [
     {
-      "id": "2026-05-06-agent-builder-agent-builder-1",
+      "id": "agent-builder-dashboard-renforcer-le-dashboard-avec-donnees-v2-reelles",
+      "title": "Renforcer le dashboard avec donnees V2 reelles",
+      "module": "Dashboard",
+      "simpleSummary": "Dashboard: Augmenter les insights reels Supabase sans supprimer les empty states. Impact eleve, risque moyen.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Moyen",
+      "difficulty": "Moyenne",
+      "status": "A cadrer",
+      "inspiration": "Shopify Admin / Base44",
+      "decision": "auto_safe",
+      "description": "Augmenter les insights reels Supabase sans supprimer les empty states.",
+      "scoreImpact": 24,
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-06.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/Dashboard.tsx",
+        "src/pages/Create.tsx"
+      ],
+      "beforeState": "Le dashboard contient deja la base V2, mais certains signaux restent mockes ou trop peu actionnables.",
+      "afterState": "Le dashboard donne une prochaine action plus claire, avec moins de friction et plus de valeur percue."
+    },
+    {
+      "id": "agent-builder-site-builder-ameliorer-le-flow-site-builder-preview",
+      "title": "Ameliorer le flow Site Builder preview",
+      "module": "Site Builder",
+      "simpleSummary": "Site Builder: Rendre le chemin idee -> preview -> amelioration plus fluide avec microcopy et actions rapides. Impact eleve, risque faible.",
+      "priority": "Amelioration",
+      "impact": "Eleve",
+      "risk": "Faible",
+      "difficulty": "Moyenne",
+      "status": "Propose",
+      "inspiration": "Lovable / v0",
+      "decision": "auto_safe",
+      "description": "Rendre le chemin idee -> preview -> amelioration plus fluide avec microcopy et actions rapides.",
+      "scoreImpact": 30,
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-06.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/SiteBuilder.tsx",
+        "src/modules/creation-engine",
+        "supabase/functions/ai-orchestrator/index.ts"
+      ],
+      "beforeState": "Le builder cree deja une experience V2, mais le chemin idee -> preview -> amelioration peut encore gagner en fluidite.",
+      "afterState": "L'utilisateur comprend mieux quoi faire et comment ameliorer son projet sans casser le rendu."
+    },
+    {
+      "id": "agent-builder-product-vision-aligner-chaque-patch-sur-la-vision-idee-vers-projet-concret",
+      "title": "Aligner chaque patch sur la vision idee vers projet concret",
+      "module": "Product Vision",
+      "simpleSummary": "Product Vision: Verifier que chaque amelioration renforce la promesse Pixelrises: creer, ameliorer, publier, connecter ou analyser. Impact eleve, risque faible.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Faible",
+      "difficulty": "Faible",
+      "status": "En continu",
+      "inspiration": "Lovable / Base44 / Linear",
+      "decision": "auto_safe",
+      "description": "Verifier que chaque amelioration renforce la promesse Pixelrises: creer, ameliorer, publier, connecter ou analyser.",
+      "scoreImpact": 30,
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-06.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "docs/product-lab-benchmark-targets.md",
+        "product-lab/backlog.md"
+      ],
+      "beforeState": "La V2 fonctionne, mais cette proposition touche une zone qui doit rester sous controle humain.",
+      "afterState": "Le Product Lab pourra agir au prochain run uniquement si la decision admin l'autorise."
+    },
+    {
+      "id": "agent-builder-agent-builder-durcir-la-securite-des-actions-agents",
       "title": "Durcir la securite des actions agents",
       "module": "Agent Builder",
       "simpleSummary": "Agent Builder: Toute action sensible agent doit rester validable et visible. Impact eleve, risque moyen.",
@@ -41,6 +111,30 @@
       ],
       "beforeState": "Les agents existent, mais les actions sensibles doivent rester encore plus visibles et validables.",
       "afterState": "Chaque permission ou action sensible est explicite avant que le Product Lab puisse appliquer un patch."
+    },
+    {
+      "id": "agent-builder-game-builder-conserver-le-game-builder-en-beta-explicite",
+      "title": "Conserver le Game Builder en beta explicite",
+      "module": "Game Builder",
+      "simpleSummary": "Game Builder: Les rapports doivent traquer toute promesse de publication automatique. Impact moyen, risque faible.",
+      "priority": "Amelioration",
+      "impact": "Moyen",
+      "risk": "Faible",
+      "difficulty": "Faible",
+      "status": "Propose",
+      "inspiration": "Roblox Creator Hub / UEFN",
+      "decision": "auto_safe",
+      "description": "Les rapports doivent traquer toute promesse de publication automatique.",
+      "scoreImpact": 18,
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-06.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/GameBuilder.tsx",
+        "src/pages/Games.tsx",
+        "src/modules/registries/index.ts"
+      ],
+      "beforeState": "Le Game Builder est en beta et doit continuer a cadrer clairement blueprint, snippets, assets et checklist.",
+      "afterState": "Le statut beta reste honnete et aucune publication automatique n'est suggeree."
     }
   ]
 }
