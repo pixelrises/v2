@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T23:51:22.232Z",
+  "generatedAt": "2026-05-06T00:15:23.788Z",
   "sourceRun": {
     "date": "2026-05-06",
     "week": "2026-W19",
@@ -9,13 +9,20 @@
   "summary": {
     "total": 1,
     "maxAutoSafePatches": 2,
-    "sensitiveChangesRequireApproval": true
+    "sensitiveChangesRequireApproval": true,
+    "dailySummary": "Theme Agent Builder / Agents IA: 1 decision(s) sensible(s) a trancher avant application automatique.",
+    "averageScore": 74,
+    "lowestScore": {
+      "name": "Analytics Score",
+      "note": 68
+    }
   },
   "items": [
     {
       "id": "2026-05-06-agent-builder-agent-builder-1",
       "title": "Durcir la securite des actions agents",
       "module": "Agent Builder",
+      "simpleSummary": "Agent Builder: Toute action sensible agent doit rester validable et visible. Impact eleve, risque moyen.",
       "priority": "Important",
       "impact": "Eleve",
       "risk": "Moyen",
@@ -26,7 +33,14 @@
       "description": "Toute action sensible agent doit rester validable et visible.",
       "scoreImpact": 24,
       "sourceReport": "reports/product-lab/daily/daily-2026-05-06.md",
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement."
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/AgentBuilder.tsx",
+        "src/pages/Agents.tsx",
+        "src/modules/registries/index.ts"
+      ],
+      "beforeState": "Les agents existent, mais les actions sensibles doivent rester encore plus visibles et validables.",
+      "afterState": "Chaque permission ou action sensible est explicite avant que le Product Lab puisse appliquer un patch."
     }
   ]
 }

@@ -31,11 +31,16 @@ import {
   getProductLabReviewStats,
   loadProductLabReviewQueue,
   mergeProductLabReviewItems,
+  persistProductLabDecisionToSupabase,
+  readProductLabDecisionsFromSupabase,
   readProductLabDecisions,
   writeProductLabDecision,
+  type ProductLabAutomationAction,
   type ProductLabDecisionMap,
   type ProductLabDecisionStatus,
+  type ProductLabRejectionMode,
   type ProductLabReviewQueue,
+  type ProductLabReviewItemWithDecision,
 } from "@/modules/product-lab/product-lab-review";
 
 type Tab = "overview" | "users" | "credits" | "sites" | "payments" | "leads" | "product-lab";
@@ -244,6 +249,9 @@ const Admin = () => {
   const [productLabLoading, setProductLabLoading] = useState(true);
   const [productLabDecisions, setProductLabDecisions] = useState<ProductLabDecisionMap>(() => readProductLabDecisions());
   const [productLabNotes, setProductLabNotes] = useState<Record<string, string>>({});
+  const [productLabCorrectionRequests, setProductLabCorrectionRequests] = useState<Record<string, string>>({});
+  const [productLabPersistence, setProductLabPersistence] = useState<"loading" | "supabase" | "localStorage">("loading");
+  const [productLabDecisionSaving, setProductLabDecisionSaving] = useState<string | null>(null);
 
   const loadAdminData = useCallback(async () => {
     const [profilesRes, creditsRes, sitesRes, rolesRes, leadsRes, eventsRes, creditTransactionsRes] =
@@ -354,6 +362,13 @@ const Admin = () => {
     setProductLabLoading(false);
   }, []);
 
+  const loadProductLabDecisionsState = useCallback(async () => {
+    setProductLabPersistence("loading");
+    const result = await readProductLabDecisionsFromSupabase();
+    setProductLabDecisions(sanitizeTextDeep(result.decisions));
+    setProductLabPersistence(result.persisted ? "supabase" : "localStorage");
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       const sessionResult = await resolveWithTimeout(supabase.auth.getSession(), 2000);
@@ -417,11 +432,12 @@ const Admin = () => {
 
   useEffect(() => {
     void loadProductLabQueue();
-  }, [loadProductLabQueue]);
+    void loadProductLabDecisionsState();
+  }, [loadProductLabDecisionsState, loadProductLabQueue]);
 
   const refreshAdminData = async () => {
     setRefreshing(true);
-    await Promise.all([loadAdminData(), loadProductLabQueue()]);
+    await Promise.all([loadAdminData(), loadProductLabQueue(), loadProductLabDecisionsState()]);
     setRefreshing(false);
     toast({
       title: "Admin actualisé",
@@ -706,19 +722,60 @@ const Admin = () => {
   );
   const productLabReviewStats = useMemo(() => getProductLabReviewStats(productLabReviewItems), [productLabReviewItems]);
 
-  const updateProductLabDecision = (
-    itemId: string,
+  const updateProductLabDecision = async (
+    item: ProductLabReviewItemWithDecision,
     status: ProductLabDecisionStatus,
     fallbackNote: string,
+    options: {
+      rejectionMode?: ProductLabRejectionMode;
+      automationAction?: ProductLabAutomationAction;
+    } = {},
   ) => {
+    const itemId = item.id;
     const note = productLabNotes[itemId]?.trim() || fallbackNote;
-    const nextDecisions = writeProductLabDecision(productLabDecisions, itemId, status, note);
+    const correctionRequest = productLabCorrectionRequests[itemId]?.trim() || "";
+    const nextDecisions = writeProductLabDecision(productLabDecisions, itemId, status, note, {
+      correctionRequest,
+      rejectionMode: options.rejectionMode,
+      automationAction: options.automationAction,
+    });
     setProductLabDecisions(nextDecisions);
     setProductLabNotes((previous) => ({ ...previous, [itemId]: note }));
-    toast({
-      title: "Decision Product Lab enregistree",
-      description: "La validation est gardee cote admin. Le Product Lab ne l'applique pas sans garde-fou.",
-    });
+    setProductLabCorrectionRequests((previous) => ({ ...previous, [itemId]: correctionRequest }));
+    setProductLabDecisionSaving(itemId);
+
+    const decision = nextDecisions[itemId];
+    const persistenceResult = productLabQueue
+      ? await persistProductLabDecisionToSupabase(decision, item, productLabQueue)
+      : { persisted: false };
+
+    if (persistenceResult.persisted) {
+      setProductLabPersistence("supabase");
+      setProductLabDecisions((previous) => ({
+        ...previous,
+        [itemId]: {
+          ...previous[itemId],
+          persisted: "supabase",
+        },
+      }));
+      toast({
+        title: "Decision Product Lab sauvegardee",
+        description:
+          status === "approved"
+            ? "Validation enregistree dans Supabase. Le prochain run peut l'utiliser comme autorisation."
+            : "Decision enregistree dans Supabase pour guider le prochain run Product Lab.",
+      });
+    } else {
+      setProductLabPersistence("localStorage");
+      toast({
+        title: "Decision gardee en local",
+        description:
+          persistenceResult.error ||
+          "Supabase n'est pas encore disponible pour cette table. Le fallback navigateur garde votre choix.",
+      });
+    }
+
+    setProductLabDecisionSaving(null);
   };
 
   const copyProductLabDecisions = async () => {
@@ -728,7 +785,7 @@ const Admin = () => {
       await navigator.clipboard.writeText(payload);
       toast({
         title: "Decisions copiees",
-        description: "Le JSON peut etre partage ou branche plus tard a Supabase.",
+        description: "Le JSON reprend vos validations, corrections demandees et actions automation.",
       });
     } catch {
       toast({
@@ -1226,9 +1283,29 @@ const Admin = () => {
                   </p>
                   <h2 className="mt-2 text-2xl font-bold">Product Lab Review Center</h2>
                   <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
-                    Les changements sensibles proposes par l'automatisation arrivent ici. Vous pouvez valider,
-                    refuser ou demander une reprise sans que le Product Lab applique directement une action risquee.
+                    Les changements sensibles proposes par l'automatisation arrivent ici avec resume, risque,
+                    fichiers concernes et avant/apres. Une validation autorise le Product Lab a agir au prochain run.
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs ${
+                        productLabPersistence === "supabase"
+                          ? "border-green-400/20 bg-green-400/10 text-green-200"
+                          : productLabPersistence === "loading"
+                            ? "border-amber-400/20 bg-amber-400/10 text-amber-200"
+                            : "border-blue-400/20 bg-blue-400/10 text-blue-200"
+                      }`}
+                    >
+                      {productLabPersistence === "supabase"
+                        ? "Sync Supabase active"
+                        : productLabPersistence === "loading"
+                          ? "Sync en verification"
+                          : "Fallback navigateur actif"}
+                    </span>
+                    <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary">
+                      Mode conseille: auto-safe + validation humaine
+                    </span>
+                  </div>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
                   <Button variant="outline" className="w-full sm:w-auto" onClick={() => void loadProductLabQueue()}>
@@ -1263,6 +1340,16 @@ const Admin = () => {
                   {productLabQueue?.sourceRun.reportPath || "non charge"}.
                 </p>
                 <p className="mt-1">
+                  Resume du jour : {productLabQueue?.summary.dailySummary || "Actions sensibles a valider avant application."}
+                </p>
+                <p className="mt-1">
+                  Score moyen : {productLabQueue?.summary.averageScore ?? "-"} / 100. Score a surveiller :{" "}
+                  {productLabQueue?.summary.lowestScore
+                    ? `${productLabQueue.summary.lowestScore.name} (${productLabQueue.summary.lowestScore.note}/100)`
+                    : "-"}
+                  .
+                </p>
+                <p className="mt-1">
                   Regle : une validation ici prepare la decision. Les changements auth, paiement, Supabase sensible,
                   provider IA, production ou suppression majeure restent bloques sans action humaine explicite.
                 </p>
@@ -1279,17 +1366,21 @@ const Admin = () => {
                 {productLabReviewItems.map((item) => {
                   const decisionLabel =
                     item.localDecision.status === "approved"
-                      ? "Validee"
+                      ? "Validee pour prochain run"
                       : item.localDecision.status === "rejected"
-                        ? "Refusee"
+                        ? item.localDecision.rejectionMode === "alternative"
+                          ? "Alternative demandee"
+                          : "Ignoree"
                         : item.localDecision.status === "needs_review"
                           ? "A revoir"
                           : "En attente";
                   const decisionClass =
                     item.localDecision.status === "approved"
                       ? "border-green-400/20 bg-green-400/10 text-green-200"
-                      : item.localDecision.status === "rejected"
+                      : item.localDecision.status === "rejected" && item.localDecision.rejectionMode !== "alternative"
                         ? "border-red-400/20 bg-red-400/10 text-red-200"
+                        : item.localDecision.status === "rejected" && item.localDecision.rejectionMode === "alternative"
+                          ? "border-blue-400/20 bg-blue-400/10 text-blue-200"
                         : item.localDecision.status === "needs_review"
                           ? "border-blue-400/20 bg-blue-400/10 text-blue-200"
                           : "border-amber-400/20 bg-amber-400/10 text-amber-200";
@@ -1310,13 +1401,47 @@ const Admin = () => {
                             </span>
                           </div>
                           <h3 className="mt-4 text-xl font-semibold">{item.title}</h3>
-                          <p className="mt-2 max-w-4xl text-sm leading-7 text-muted-foreground">{item.description}</p>
+                          <p className="mt-2 max-w-4xl text-sm leading-7 text-muted-foreground">
+                            {item.simpleSummary || item.description}
+                          </p>
                         </div>
                         <div className="grid min-w-[220px] gap-2 rounded-2xl border border-white/10 bg-black/20 p-4 text-xs text-muted-foreground">
                           <p>Impact : {item.impact}</p>
                           <p>Risque : {item.risk}</p>
                           <p>Difficulte : {item.difficulty}</p>
                           <p>Inspiration : {item.inspiration}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                        <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                            Fichiers concernes
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {(item.concernedFiles?.length ? item.concernedFiles : ["A preciser par le Product Lab"]).map(
+                              (file) => (
+                                <span
+                                  key={file}
+                                  className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-muted-foreground"
+                                >
+                                  {file}
+                                </span>
+                              ),
+                            )}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200">Avant</p>
+                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                            {item.beforeState || "Etat actuel a preciser avant implementation."}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-green-200">Apres</p>
+                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                            {item.afterState || "Resultat attendu apres validation admin."}
+                          </p>
                         </div>
                       </div>
 
@@ -1334,11 +1459,28 @@ const Admin = () => {
                           placeholder="Note admin : pourquoi valider, refuser ou demander une reprise ?"
                           className="min-h-[90px] rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/50"
                         />
-                        <div className="grid gap-2 sm:grid-cols-3">
+                        <textarea
+                          value={productLabCorrectionRequests[item.id] ?? item.localDecision.correctionRequest}
+                          onChange={(event) =>
+                            setProductLabCorrectionRequests((previous) => ({
+                              ...previous,
+                              [item.id]: event.target.value,
+                            }))
+                          }
+                          placeholder="Ce que je veux changer : ex. plus premium, plus simple, pas comme ca, autre direction..."
+                          className="min-h-[90px] rounded-2xl border border-primary/20 bg-primary/[0.04] px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/60"
+                        />
+                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                           <Button
                             className="bg-green-500/90 text-white hover:bg-green-500"
+                            disabled={productLabDecisionSaving === item.id}
                             onClick={() =>
-                              updateProductLabDecision(item.id, "approved", "Valide cote admin. A appliquer uniquement via garde-fous Product Lab.")
+                              void updateProductLabDecision(
+                                item,
+                                "approved",
+                                "Valide cote admin. Autorise le prochain run Product Lab a appliquer avec garde-fous.",
+                                { automationAction: "authorize_next_run" },
+                              )
                             }
                           >
                             <CheckCircle2 className="h-4 w-4" />
@@ -1347,8 +1489,11 @@ const Admin = () => {
                           <Button
                             variant="outline"
                             className="border-blue-400/20 bg-blue-400/[0.06] text-blue-100 hover:bg-blue-400/[0.12]"
+                            disabled={productLabDecisionSaving === item.id}
                             onClick={() =>
-                              updateProductLabDecision(item.id, "needs_review", "A revoir avant implementation.")
+                              void updateProductLabDecision(item, "needs_review", "A revoir avant implementation.", {
+                                automationAction: "hold",
+                              })
                             }
                           >
                             <Wand2 className="h-4 w-4" />
@@ -1357,10 +1502,32 @@ const Admin = () => {
                           <Button
                             variant="outline"
                             className="border-red-400/20 bg-red-400/[0.06] text-red-100 hover:bg-red-400/[0.12]"
-                            onClick={() => updateProductLabDecision(item.id, "rejected", "Refuse cote admin.")}
+                            disabled={productLabDecisionSaving === item.id}
+                            onClick={() =>
+                              void updateProductLabDecision(item, "rejected", "Refuse cote admin. Ne plus reproposer tel quel.", {
+                                rejectionMode: "ignore",
+                                automationAction: "ignore",
+                              })
+                            }
                           >
                             <XCircle className="h-4 w-4" />
-                            Refuser
+                            Ignorer
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="border-primary/20 bg-primary/[0.06] text-primary hover:bg-primary/[0.12]"
+                            disabled={productLabDecisionSaving === item.id}
+                            onClick={() =>
+                              void updateProductLabDecision(
+                                item,
+                                "rejected",
+                                "Refuse en l'etat. Demander une autre proposition adaptee a ma note.",
+                                { rejectionMode: "alternative", automationAction: "request_alternative" },
+                              )
+                            }
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            Alternative
                           </Button>
                         </div>
                       </div>

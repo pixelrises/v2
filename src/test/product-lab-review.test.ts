@@ -18,10 +18,13 @@ describe("Product Lab admin review", () => {
 
   it("records and exports admin decisions", () => {
     const item = fallbackProductLabReviewQueue.items[0];
-    const decisions = writeProductLabDecision({} as ProductLabDecisionMap, item.id, "approved", "OK avec garde-fous.");
+    const decisions = writeProductLabDecision({} as ProductLabDecisionMap, item.id, "approved", "OK avec garde-fous.", {
+      automationAction: "authorize_next_run",
+    });
     const exported = exportProductLabDecisions(decisions);
 
     expect(decisions[item.id].status).toBe("approved");
+    expect(decisions[item.id].automationAction).toBe("authorize_next_run");
     expect(exported).toContain("OK avec garde-fous.");
   });
 
@@ -33,5 +36,19 @@ describe("Product Lab admin review", () => {
 
     expect(stats.needsReview).toBe(1);
     expect(stats.pending).toBe(0);
+  });
+
+  it("keeps correction requests and alternative rejection intent", () => {
+    const item = fallbackProductLabReviewQueue.items[0];
+    const decisions = writeProductLabDecision({} as ProductLabDecisionMap, item.id, "rejected", "Pas comme ca.", {
+      correctionRequest: "Proposer une version plus simple et plus premium.",
+      rejectionMode: "alternative",
+      automationAction: "request_alternative",
+    });
+    const exported = exportProductLabDecisions(decisions);
+
+    expect(decisions[item.id].rejectionMode).toBe("alternative");
+    expect(decisions[item.id].automationAction).toBe("request_alternative");
+    expect(exported).toContain("plus simple et plus premium");
   });
 });

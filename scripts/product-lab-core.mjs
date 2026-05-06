@@ -743,6 +743,14 @@ export const renderWeeklyReport = (result) => [
 export const buildProductLabReviewQueue = (result) => {
   const reportPath = path.join("reports", "product-lab", "daily", `daily-${result.date}.md`).replace(/\\/g, "/");
   const humanValidationItems = result.findings.filter((finding) => finding.decision === "human_validation");
+  const scoreEntries = Object.entries(result.scores).map(([name, score]) => ({ name, note: score.note }));
+  const averageScore = scoreEntries.length
+    ? Math.round(scoreEntries.reduce((total, score) => total + score.note, 0) / scoreEntries.length)
+    : 0;
+  const lowestScore = scoreEntries.reduce(
+    (lowest, score) => (score.note < lowest.note ? score : lowest),
+    scoreEntries[0] ?? { name: "Product Quality Score", note: 0 },
+  );
 
   return {
     generatedAt: new Date().toISOString(),
@@ -756,11 +764,15 @@ export const buildProductLabReviewQueue = (result) => {
       total: humanValidationItems.length,
       maxAutoSafePatches: result.maxPatches,
       sensitiveChangesRequireApproval: true,
+      dailySummary: `Theme ${result.theme.label}: ${humanValidationItems.length} decision(s) sensible(s) a trancher avant application automatique.`,
+      averageScore,
+      lowestScore,
     },
     items: humanValidationItems.map((finding, index) => ({
       id: `${result.date}-${result.theme.id}-${finding.module.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${index + 1}`,
       title: finding.title,
       module: finding.module,
+      simpleSummary: buildReviewSimpleSummary(finding),
       priority: finding.priority,
       impact: finding.impact,
       risk: finding.risk,
@@ -773,8 +785,46 @@ export const buildProductLabReviewQueue = (result) => {
       sourceReport: reportPath,
       automationPolicy:
         "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      concernedFiles: resolveReviewFiles(result, finding),
+      beforeState: buildReviewBeforeState(finding),
+      afterState: buildReviewAfterState(finding),
     })),
   };
+};
+
+const reviewFilesByModule = {
+  "Product Lab": ["scripts/product-lab-core.mjs", "product-lab/backlog.md", "reports/product-lab/daily"],
+  "GitHub Actions": [".github/workflows/product-lab-nightly.yml", ".github/workflows/generator-nightly-audit.yml"],
+  "UX/UI": ["src/pages", "src/components"],
+  Dashboard: ["src/pages/Dashboard.tsx", "src/pages/Create.tsx"],
+  "Site Builder": ["src/pages/SiteBuilder.tsx", "src/modules/creation-engine", "supabase/functions/ai-orchestrator/index.ts"],
+  "Agent Builder": ["src/pages/AgentBuilder.tsx", "src/pages/Agents.tsx", "src/modules/registries/index.ts"],
+  "Game Builder": ["src/pages/GameBuilder.tsx", "src/pages/Games.tsx", "src/modules/registries/index.ts"],
+  "Product Vision": ["docs/product-lab-benchmark-targets.md", "product-lab/backlog.md"],
+};
+
+const resolveReviewFiles = (result, finding) => {
+  const files = reviewFilesByModule[finding.module] ?? result.audit.themeFiles ?? [];
+  return [...new Set(files)].slice(0, 6);
+};
+
+const buildReviewSimpleSummary = (finding) =>
+  `${finding.module}: ${finding.description} Impact ${finding.impact.toLowerCase()}, risque ${finding.risk.toLowerCase()}.`;
+
+const buildReviewBeforeState = (finding) => {
+  if (finding.module === "Dashboard") return "Le dashboard contient deja la base V2, mais certains signaux restent mockes ou trop peu actionnables.";
+  if (finding.module === "Site Builder") return "Le builder cree deja une experience V2, mais le chemin idee -> preview -> amelioration peut encore gagner en fluidite.";
+  if (finding.module === "Agent Builder") return "Les agents existent, mais les actions sensibles doivent rester encore plus visibles et validables.";
+  if (finding.module === "Game Builder") return "Le Game Builder est en beta et doit continuer a cadrer clairement blueprint, snippets, assets et checklist.";
+  return "La V2 fonctionne, mais cette proposition touche une zone qui doit rester sous controle humain.";
+};
+
+const buildReviewAfterState = (finding) => {
+  if (finding.module === "Dashboard") return "Le dashboard donne une prochaine action plus claire, avec moins de friction et plus de valeur percue.";
+  if (finding.module === "Site Builder") return "L'utilisateur comprend mieux quoi faire et comment ameliorer son projet sans casser le rendu.";
+  if (finding.module === "Agent Builder") return "Chaque permission ou action sensible est explicite avant que le Product Lab puisse appliquer un patch.";
+  if (finding.module === "Game Builder") return "Le statut beta reste honnete et aucune publication automatique n'est suggeree.";
+  return "Le Product Lab pourra agir au prochain run uniquement si la decision admin l'autorise.";
 };
 
 export const runChecks = (root) => {
