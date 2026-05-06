@@ -25,7 +25,32 @@ describe("Product Lab admin review", () => {
 
     expect(decisions[item.id].status).toBe("approved");
     expect(decisions[item.id].automationAction).toBe("authorize_next_run");
+    expect(decisions[item.id].applicationStatus).toBe("pending");
     expect(exported).toContain("OK avec garde-fous.");
+  });
+
+  it("keeps PR-ready processing status visible in merged admin items", () => {
+    const item = fallbackProductLabReviewQueue.items[0];
+    const decisions: ProductLabDecisionMap = {
+      [item.id]: {
+        itemId: item.id,
+        status: "approved",
+        note: "OK.",
+        correctionRequest: "",
+        rejectionMode: null,
+        automationAction: "hold",
+        decidedAt: "2026-05-07T00:00:00.000Z",
+        applicationStatus: "pr_ready",
+        processedAt: "2026-05-07T00:10:00.000Z",
+        processedRun: { theme: "agent-builder" },
+        persisted: "supabase",
+      },
+    };
+
+    const items = mergeProductLabReviewItems(fallbackProductLabReviewQueue, decisions);
+
+    expect(items[0].localDecision.applicationStatus).toBe("pr_ready");
+    expect(items[0].localDecision.automationAction).toBe("hold");
   });
 
   it("counts review states for the admin dashboard", () => {

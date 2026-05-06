@@ -1384,11 +1384,18 @@ const Admin = () => {
                 {productLabReviewItems.map((item) => {
                   const isSyncedApproval =
                     item.localDecision.status === "approved" && item.localDecision.persisted === "supabase";
+                  const applicationStatus = item.localDecision.applicationStatus ?? "pending";
                   const decisionLabel =
                     item.localDecision.status === "approved"
-                      ? isSyncedApproval
-                        ? "Validee pour prochain run"
-                        : "Validee localement - a synchroniser"
+                      ? applicationStatus === "pr_ready"
+                        ? "PR preparee par Product Lab"
+                        : applicationStatus === "skipped"
+                          ? "Traitee sans patch"
+                          : applicationStatus === "validation_failed"
+                            ? "Validation echouee"
+                            : isSyncedApproval
+                              ? "Validee pour prochain run"
+                              : "Validee localement - a synchroniser"
                       : item.localDecision.status === "rejected"
                         ? item.localDecision.rejectionMode === "alternative"
                           ? "Alternative demandee"
@@ -1432,6 +1439,9 @@ const Admin = () => {
                           <p>Risque : {item.risk}</p>
                           <p>Difficulte : {item.difficulty}</p>
                           <p>Inspiration : {item.inspiration}</p>
+                          {item.localDecision.processedAt ? (
+                            <p>Run traite : {new Date(item.localDecision.processedAt).toLocaleString("fr-FR")}</p>
+                          ) : null}
                         </div>
                       </div>
 

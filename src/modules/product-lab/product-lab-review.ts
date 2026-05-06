@@ -4,6 +4,7 @@ export type ProductLabDecisionStatus = "pending" | "approved" | "rejected" | "ne
 export type ProductLabRejectionMode = "ignore" | "alternative" | null;
 export type ProductLabAutomationAction = "hold" | "authorize_next_run" | "ignore" | "request_alternative";
 export type ProductLabFindingDecision = "auto_safe" | "human_validation";
+export type ProductLabApplicationStatus = "pending" | "pr_ready" | "skipped" | "validation_failed";
 
 export interface ProductLabReviewItem {
   id: string;
@@ -56,6 +57,9 @@ export interface ProductLabDecision {
   rejectionMode: ProductLabRejectionMode;
   automationAction: ProductLabAutomationAction;
   decidedAt: string;
+  applicationStatus?: ProductLabApplicationStatus;
+  processedAt?: string;
+  processedRun?: Record<string, unknown>;
   persisted?: "supabase" | "localStorage";
   persistedError?: string;
 }
@@ -208,6 +212,9 @@ export const writeProductLabDecision = (
               ? "hold"
               : "hold"),
       decidedAt: new Date().toISOString(),
+      applicationStatus: "pending",
+      processedAt: "",
+      processedRun: {},
       persisted: "localStorage",
     },
   };
@@ -233,7 +240,9 @@ export const readProductLabDecisionsFromSupabase = async (): Promise<{
 
     const { data, error } = await dynamicSupabase
       .from("product_lab_decisions")
-      .select("item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at")
+      .select(
+        "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,application_status,processed_at,processed_run",
+      )
       .order("decided_at", { ascending: false })
       .limit(500);
 
@@ -255,6 +264,9 @@ export const readProductLabDecisionsFromSupabase = async (): Promise<{
         rejectionMode: normalizeRejectionMode(record.rejection_mode),
         automationAction: normalizeAutomationAction(record.automation_action),
         decidedAt: typeof record.decided_at === "string" ? record.decided_at : "",
+        applicationStatus: normalizeApplicationStatus(record.application_status),
+        processedAt: typeof record.processed_at === "string" ? record.processed_at : "",
+        processedRun: isObject(record.processed_run) ? record.processed_run : {},
         persisted: "supabase",
       };
       return accumulator;
@@ -297,6 +309,9 @@ export const persistProductLabDecisionToSupabase = async (
         correction_request: decision.correctionRequest,
         rejection_mode: decision.rejectionMode,
         automation_action: decision.automationAction,
+        application_status: "pending",
+        processed_at: null,
+        processed_run: {},
         decided_by: userId,
         decided_at: decision.decidedAt || new Date().toISOString(),
       },
@@ -419,6 +434,9 @@ export const mergeProductLabReviewItems = (
       rejectionMode: null,
       automationAction: "hold",
       decidedAt: "",
+      applicationStatus: "pending",
+      processedAt: "",
+      processedRun: {},
     },
   }));
 
@@ -460,4 +478,9 @@ const normalizeAutomationAction = (action: unknown): ProductLabAutomationAction 
     return action;
   }
   return "hold";
+};
+
+const normalizeApplicationStatus = (status: unknown): ProductLabApplicationStatus => {
+  if (status === "pr_ready" || status === "skipped" || status === "validation_failed") return status;
+  return "pending";
 };

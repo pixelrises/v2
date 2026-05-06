@@ -149,10 +149,56 @@ const pullDecisions = async () => {
   console.log(`Product Lab Supabase decision pull complete: ${decisions.length} approved item(s).`);
 };
 
+const markProcessedDecisions = async () => {
+  if (!isConfigured()) {
+    console.log("Product Lab Supabase decision processing sync skipped: missing service role configuration.");
+    return;
+  }
+
+  const summary = readJson("product-lab/state/last-run-summary.json", null);
+  const approvedFindings = Array.isArray(summary?.approvedFindings) ? summary.approvedFindings : [];
+  const appliedImprovements = Array.isArray(summary?.appliedImprovements) ? summary.appliedImprovements : [];
+
+  if (!approvedFindings.length || !appliedImprovements.length) {
+    console.log("Product Lab Supabase decision processing sync skipped: no approved improvement was applied.");
+    return;
+  }
+
+  const processedAt = new Date().toISOString();
+  const processedRun = {
+    date: summary.date,
+    week: summary.week,
+    theme: summary.theme,
+    appliedImprovements,
+    modifiedFiles: Array.isArray(summary.modifiedFiles) ? summary.modifiedFiles : [],
+  };
+
+  for (const finding of approvedFindings) {
+    if (!finding?.itemId) continue;
+
+    await restFetch(`product_lab_decisions?item_id=eq.${encodeURIComponent(finding.itemId)}`, {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        automation_action: "hold",
+        application_status: "pr_ready",
+        processed_at: processedAt,
+        processed_run: processedRun,
+      }),
+    });
+  }
+
+  console.log(`Product Lab Supabase decision processing sync complete: ${approvedFindings.length} item(s).`);
+};
+
 if (action === "push-proposals") {
   await pushProposals();
 } else if (action === "pull-decisions") {
   await pullDecisions();
+} else if (action === "mark-processed") {
+  await markProcessedDecisions();
 } else {
-  console.log("Usage: node scripts/product-lab-supabase.mjs <pull-decisions|push-proposals>");
+  console.log("Usage: node scripts/product-lab-supabase.mjs <pull-decisions|push-proposals|mark-processed>");
 }

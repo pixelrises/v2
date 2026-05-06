@@ -199,6 +199,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Create Product Lab PR
+        id: create-pr
         if: >
           steps.guard.outputs.run == 'true' &&
           steps.validation.outputs.checks_passed == 'true' &&
@@ -221,6 +222,18 @@ jobs:
 
             No automatic merge. No production deployment. Human review required.
           labels: product-lab, automation, safe-improvement
+
+      - name: Mark approved decisions as PR-ready
+        if: >
+          steps.guard.outputs.run == 'true' &&
+          steps.validation.outputs.checks_passed == 'true' &&
+          steps.validation.outputs.has_approved_improvements == 'true' &&
+          steps.create-pr.outcome == 'success'
+        continue-on-error: true
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+        run: npm run product-lab:decisions:mark-processed
 
       - name: Fail if validation failed
         if: >
