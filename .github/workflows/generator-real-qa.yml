@@ -1,6 +1,9 @@
 name: Pixelrises V2 Generator Real QA
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     # Europe/Paris midnight is 22:00 UTC in summer and 23:00 UTC in winter.
     - cron: "20 22 * * *"
