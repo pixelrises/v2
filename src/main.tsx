@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import "./index.css";
-import { reportFrontendError } from "@/lib/monitoring";
+import { reportFrontendError } from "./lib/monitoring";
 
 const formatError = (value: unknown) => {
   if (value instanceof Error) {

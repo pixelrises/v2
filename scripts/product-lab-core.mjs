@@ -208,6 +208,35 @@ const normalize = (value) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
+const slugify = (value) => normalize(value).replace(/\s+/g, "-") || "item";
+
+export const getProductLabReviewItemId = (finding, theme) =>
+  [
+    theme?.id ?? "global",
+    finding?.module ?? "module",
+    finding?.title ?? finding?.description ?? "improvement",
+  ]
+    .map(slugify)
+    .join("-");
+
+export const readProductLabAdminDecisions = (root) => {
+  const decisionPath = path.join(root, "product-lab", "state", "admin-decisions.json");
+  if (!fs.existsSync(decisionPath)) return {};
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(decisionPath, "utf8"));
+    const decisions = Array.isArray(parsed?.decisions) ? parsed.decisions : Object.values(parsed?.decisions ?? {});
+
+    return decisions.reduce((accumulator, decision) => {
+      if (!decision?.itemId) return accumulator;
+      accumulator[decision.itemId] = decision;
+      return accumulator;
+    }, {});
+  } catch {
+    return {};
+  }
+};
+
 const exists = (root, relativePath) => fs.existsSync(path.join(root, relativePath));
 
 const readFile = (root, relativePath) => {
@@ -660,12 +689,12 @@ export const renderDailyReport = (result) => {
       ? result.appliedImprovements.map((item) => `- ${item}`).join("\n")
       : result.dryRun
         ? "- Aucune. Dry-run obligatoire ou validation auto-fix absente."
-        : "- Aucune nouvelle modification auto_safe appliquee sur ce run.",
+        : "- Aucune proposition validee dans l'admin n'a produit de patch sur ce run.",
     "",
     "## Ameliorations necessitant validation humaine",
     human.length ? human.map((finding) => `- ${finding.title} (${finding.module})`).join("\n") : "- Aucune decision sensible detectee dans ce run.",
     "",
-    "## Safe improvements proposes",
+    "## Propositions auto-safe a valider",
     autoSafe.length ? autoSafe.map((finding) => `- ${finding.title} (${finding.module})`).join("\n") : "- Aucun safe improvement propose.",
     "",
     "## Fichiers modifies",
@@ -742,7 +771,7 @@ export const renderWeeklyReport = (result) => [
 
 export const buildProductLabReviewQueue = (result) => {
   const reportPath = path.join("reports", "product-lab", "daily", `daily-${result.date}.md`).replace(/\\/g, "/");
-  const humanValidationItems = result.findings.filter((finding) => finding.decision === "human_validation");
+  const reviewItems = result.findings;
   const scoreEntries = Object.entries(result.scores).map(([name, score]) => ({ name, note: score.note }));
   const averageScore = scoreEntries.length
     ? Math.round(scoreEntries.reduce((total, score) => total + score.note, 0) / scoreEntries.length)
@@ -761,15 +790,15 @@ export const buildProductLabReviewQueue = (result) => {
       reportPath,
     },
     summary: {
-      total: humanValidationItems.length,
+      total: reviewItems.length,
       maxAutoSafePatches: result.maxPatches,
       sensitiveChangesRequireApproval: true,
-      dailySummary: `Theme ${result.theme.label}: ${humanValidationItems.length} decision(s) sensible(s) a trancher avant application automatique.`,
+      dailySummary: `Theme ${result.theme.label}: ${reviewItems.length} proposition(s) a valider, modifier ou refuser avant application.`,
       averageScore,
       lowestScore,
     },
-    items: humanValidationItems.map((finding, index) => ({
-      id: `${result.date}-${result.theme.id}-${finding.module.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${index + 1}`,
+    items: reviewItems.map((finding) => ({
+      id: getProductLabReviewItemId(finding, result.theme),
       title: finding.title,
       module: finding.module,
       simpleSummary: buildReviewSimpleSummary(finding),
@@ -866,12 +895,13 @@ export const runProductLab = ({
   const audit = auditProject(root, theme);
   const scores = scoreProduct(audit);
   const { agentReports, findings } = runExpertAgents(audit, scores);
+  const adminDecisions = readProductLabAdminDecisions(root);
   const risks = [
     dryRun
       ? "Patches automatiques verrouilles tant que le premier dry-run n'est pas valide."
-      : "Patches automatiques limites aux changements auto_safe et a PRODUCT_LAB_MAX_PATCHES.",
+      : "Patches automatiques limites aux propositions explicitement validees dans l'admin.",
     "Aucune PR automatique ne doit etre creee si lint, tests ou build echouent.",
-    "Les changements sensibles restent en validation humaine.",
+    "Les changements sensibles restent en validation humaine et ne sont jamais mergés automatiquement.",
   ];
   const checks = runChecksEnabled ? runChecks(root) : [];
   const maxPatches = Number(process.env.PRODUCT_LAB_MAX_PATCHES || DEFAULT_MAX_PATCHES);
@@ -881,9 +911,13 @@ export const runProductLab = ({
     process.env.PRODUCT_LAB_APPLY_SAFE_FIXES === "true" &&
     fs.existsSync(approvalFile) &&
     maxPatches > 0;
-  const safeFindings = findings.filter((finding) => finding.decision === "auto_safe");
+  const approvedFindings = findings.filter((finding) => {
+    const itemId = getProductLabReviewItemId(finding, theme);
+    const decision = adminDecisions[itemId];
+    return decision?.status === "approved" && decision?.automationAction === "authorize_next_run";
+  });
   const patchResult = canApplyPatches
-    ? applySafeImprovements(root, safeFindings, maxPatches, theme, dateLabel)
+    ? applySafeImprovements(root, approvedFindings, maxPatches, theme, dateLabel)
     : { appliedImprovements: [], modifiedFiles: [] };
   const appliedImprovements = patchResult.appliedImprovements;
   const modifiedFiles = patchResult.modifiedFiles;
@@ -898,6 +932,8 @@ export const runProductLab = ({
     scores,
     agentReports,
     findings,
+    adminDecisions,
+    approvedFindings,
     risks,
     checks,
     appliedImprovements,
@@ -921,6 +957,27 @@ export const runProductLab = ({
 
   fs.writeFileSync(path.join(root, "product-lab", "backlog.md"), backlog, "utf8");
   fs.writeFileSync(path.join(stateDir, "product-scores.json"), JSON.stringify({ date: dateLabel, week, scores }, null, 2), "utf8");
+  fs.writeFileSync(
+    path.join(stateDir, "last-run-summary.json"),
+    JSON.stringify(
+      {
+        date: dateLabel,
+        week,
+        theme: theme.id,
+        dryRun,
+        approvedFindings: approvedFindings.map((finding) => ({
+          itemId: getProductLabReviewItemId(finding, theme),
+          title: finding.title,
+          module: finding.module,
+        })),
+        appliedImprovements,
+        modifiedFiles,
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
   fs.writeFileSync(path.join(dailyDir, `daily-${dateLabel}.md`), dailyReport, "utf8");
   fs.writeFileSync(path.join(publicDir, "product-lab-review.json"), JSON.stringify(reviewQueue, null, 2), "utf8");
 

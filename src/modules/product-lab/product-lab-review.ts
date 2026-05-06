@@ -3,6 +3,7 @@ import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 export type ProductLabDecisionStatus = "pending" | "approved" | "rejected" | "needs_review";
 export type ProductLabRejectionMode = "ignore" | "alternative" | null;
 export type ProductLabAutomationAction = "hold" | "authorize_next_run" | "ignore" | "request_alternative";
+export type ProductLabFindingDecision = "auto_safe" | "human_validation";
 
 export interface ProductLabReviewItem {
   id: string;
@@ -15,7 +16,7 @@ export interface ProductLabReviewItem {
   difficulty: string;
   status: string;
   inspiration: string;
-  decision: "human_validation";
+  decision: ProductLabFindingDecision;
   description: string;
   scoreImpact: number;
   sourceReport: string;
@@ -82,6 +83,43 @@ type DynamicSupabase = {
 };
 
 const dynamicSupabase = supabase as unknown as DynamicSupabase;
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const normalizeReviewItem = (value: unknown, fallbackId: string): ProductLabReviewItem | null => {
+  if (!isObject(value)) return null;
+  const id = typeof value.id === "string" ? value.id : fallbackId;
+  const title = typeof value.title === "string" ? value.title : "";
+  const module = typeof value.module === "string" ? value.module : "Product Lab";
+  if (!id || !title) return null;
+
+  return {
+    id,
+    title,
+    module,
+    simpleSummary: typeof value.simpleSummary === "string" ? value.simpleSummary : title,
+    priority: typeof value.priority === "string" ? value.priority : "Important",
+    impact: typeof value.impact === "string" ? value.impact : "Moyen",
+    risk: typeof value.risk === "string" ? value.risk : "Moyen",
+    difficulty: typeof value.difficulty === "string" ? value.difficulty : "Moyenne",
+    status: typeof value.status === "string" ? value.status : "Propose",
+    inspiration: typeof value.inspiration === "string" ? value.inspiration : "Pixelrises Product Lab",
+    decision: value.decision === "auto_safe" ? "auto_safe" : "human_validation",
+    description: typeof value.description === "string" ? value.description : title,
+    scoreImpact: typeof value.scoreImpact === "number" ? value.scoreImpact : 0,
+    sourceReport: typeof value.sourceReport === "string" ? value.sourceReport : "reports/product-lab/daily/",
+    automationPolicy:
+      typeof value.automationPolicy === "string"
+        ? value.automationPolicy
+        : "Validation admin requise avant application.",
+    concernedFiles: Array.isArray(value.concernedFiles)
+      ? value.concernedFiles.filter((file): file is string => typeof file === "string")
+      : [],
+    beforeState: typeof value.beforeState === "string" ? value.beforeState : "",
+    afterState: typeof value.afterState === "string" ? value.afterState : "",
+  };
+};
 
 export const fallbackProductLabReviewQueue: ProductLabReviewQueue = {
   generatedAt: new Date(0).toISOString(),
@@ -275,7 +313,86 @@ export const persistProductLabDecisionToSupabase = async (
   }
 };
 
+export const readProductLabReviewQueueFromSupabase = async (): Promise<ProductLabReviewQueue | null> => {
+  if (!isSupabaseConfigured) return null;
+
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session?.user.id) return null;
+
+    const { data, error } = await dynamicSupabase
+      .from("product_lab_review_items")
+      .select("item_id,source_run,queue_summary,review_item,generated_at")
+      .order("generated_at", { ascending: false })
+      .limit(100);
+
+    if (error || !Array.isArray(data) || data.length === 0) return null;
+
+    const rows = data.filter(isObject);
+    const items = rows
+      .map((row) =>
+        normalizeReviewItem(
+          row.review_item,
+          typeof row.item_id === "string" ? row.item_id : "",
+        ),
+      )
+      .filter((item): item is ProductLabReviewItem => Boolean(item));
+
+    if (!items.length) return null;
+
+    const latest = rows[0] ?? {};
+    const sourceRun = isObject(latest.source_run) ? latest.source_run : {};
+    const queueSummary = isObject(latest.queue_summary) ? latest.queue_summary : {};
+
+    return {
+      generatedAt:
+        typeof latest.generated_at === "string" ? latest.generated_at : new Date().toISOString(),
+      sourceRun: {
+        date: typeof sourceRun.date === "string" ? sourceRun.date : "supabase",
+        week: typeof sourceRun.week === "string" ? sourceRun.week : "supabase",
+        theme: typeof sourceRun.theme === "string" ? sourceRun.theme : "Product Lab",
+        reportPath:
+          typeof sourceRun.reportPath === "string"
+            ? sourceRun.reportPath
+            : "reports/product-lab/daily/",
+      },
+      summary: {
+        total: typeof queueSummary.total === "number" ? queueSummary.total : items.length,
+        maxAutoSafePatches:
+          typeof queueSummary.maxAutoSafePatches === "number" ? queueSummary.maxAutoSafePatches : 2,
+        sensitiveChangesRequireApproval:
+          typeof queueSummary.sensitiveChangesRequireApproval === "boolean"
+            ? queueSummary.sensitiveChangesRequireApproval
+            : true,
+        dailySummary:
+          typeof queueSummary.dailySummary === "string"
+            ? queueSummary.dailySummary
+            : "Propositions Product Lab chargees depuis Supabase.",
+        averageScore: typeof queueSummary.averageScore === "number" ? queueSummary.averageScore : undefined,
+        lowestScore: isObject(queueSummary.lowestScore)
+          ? {
+              name:
+                typeof queueSummary.lowestScore.name === "string"
+                  ? queueSummary.lowestScore.name
+                  : "Product Lab",
+              note:
+                typeof queueSummary.lowestScore.note === "number"
+                  ? queueSummary.lowestScore.note
+                  : 0,
+            }
+          : undefined,
+      },
+      items,
+    };
+  } catch {
+    return null;
+  }
+};
+
 export const loadProductLabReviewQueue = async (): Promise<ProductLabReviewQueue> => {
+  const remoteQueue = await readProductLabReviewQueueFromSupabase();
+  if (remoteQueue) return remoteQueue;
+
   if (typeof fetch !== "function") return fallbackProductLabReviewQueue;
 
   try {

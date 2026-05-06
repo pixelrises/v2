@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   classifyImprovement,
+  getProductLabReviewItemId,
   getThemeForParisDate,
   redactSecrets,
   renderBacklog,
@@ -179,6 +180,25 @@ describe("Pixelrises Product Lab core", () => {
     process.env.PRODUCT_LAB_MAX_PATCHES = "2";
     fs.mkdirSync(path.join(root, "product-lab/state"), { recursive: true });
     fs.writeFileSync(path.join(root, "product-lab/state/first-dry-run-approved.json"), '{"approved":true}', "utf8");
+    fs.writeFileSync(
+      path.join(root, "product-lab/state/admin-decisions.json"),
+      JSON.stringify({
+        decisions: [
+          {
+            itemId: getProductLabReviewItemId(
+              {
+                module: "Site Builder",
+                title: "Ameliorer le flow Site Builder preview",
+              },
+              { id: "site-builder" },
+            ),
+            status: "approved",
+            automationAction: "authorize_next_run",
+          },
+        ],
+      }),
+      "utf8",
+    );
 
     const result = runProductLab({
       root,

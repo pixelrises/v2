@@ -14,6 +14,7 @@ dist
 dist-ssr
 .gateway-test
 generated
+product-lab/state/admin-decisions.json
 .env
 .env.local
 .env.*
