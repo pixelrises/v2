@@ -1,0 +1,88 @@
+name: Pixelrises V2 Generator Real QA
+
+on:
+  schedule:
+    # Europe/Paris midnight is 22:00 UTC in summer and 23:00 UTC in winter.
+    - cron: "20 22 * * *"
+    - cron: "20 23 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrises-v2-generator-real-qa
+  cancel-in-progress: false
+
+jobs:
+  generator-real-qa:
+    name: V2 generator real smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Guard midnight Europe/Paris and QA flag
+        id: guard
+        shell: bash
+        run: |
+          if [ "${{ vars.PIXELRISES_GENERATOR_REAL_QA }}" != "1" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Real QA disabled. Set PIXELRISES_GENERATOR_REAL_QA=1 in repository variables to enable."
+            exit 0
+          fi
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Manual real QA run requested."
+            exit 0
+          fi
+
+          paris_hour="$(TZ=Europe/Paris date +%H)"
+          if [ "$paris_hour" = "00" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Running generator real QA at midnight Europe/Paris."
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping because Europe/Paris hour is $paris_hour, not 00."
+          fi
+
+      - name: Checkout
+        if: steps.guard.outputs.run == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: steps.guard.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.guard.outputs.run == 'true'
+        run: npm ci
+
+      - name: Static validation before consuming credits
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          npm run lint
+          npm run test
+          npm run build
+
+      - name: Run V2 generator smoke with QA account
+        if: steps.guard.outputs.run == 'true'
+        env:
+          PIXELRISES_GENERATOR_REAL_QA: ${{ vars.PIXELRISES_GENERATOR_REAL_QA }}
+          PIXELRISES_GENERATOR_DAILY_REAL_BUDGET: ${{ vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '3' }}
+          PIXELRISES_SMOKE_EMAIL: ${{ secrets.PIXELRISES_SMOKE_EMAIL }}
+          PIXELRISES_SMOKE_PASSWORD: ${{ secrets.PIXELRISES_SMOKE_PASSWORD }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run smoke:generator
+
+      - name: Upload generator QA report
+        if: always() && steps.guard.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrises-v2-generator-real-qa
+          path: tmp/generator-smoke-last.json
+          if-no-files-found: warn

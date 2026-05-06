@@ -1,8 +1,10 @@
 ﻿import fs from "node:fs";
 import path from "node:path";
 
-const envPath = path.resolve(process.cwd(), ".env");
-if (fs.existsSync(envPath)) {
+const loadEnvFile = (relativePath) => {
+  const envPath = path.resolve(process.cwd(), relativePath);
+  if (!fs.existsSync(envPath)) return;
+
   const rawEnv = fs.readFileSync(envPath, "utf8");
   for (const line of rawEnv.split(/\r?\n/)) {
     if (!line || line.trim().startsWith("#")) continue;
@@ -14,7 +16,10 @@ if (fs.existsSync(envPath)) {
       process.env[key] = value;
     }
   }
-}
+};
+
+loadEnvFile(".env");
+loadEnvFile(".env.local");
 
 const requiredEnv = (name) => {
   const value = process.env[name]?.trim();
@@ -28,7 +33,11 @@ const supabaseUrl =
   process.env.SUPABASE_FUNCTIONS_URL?.trim() ||
   `${requiredEnv("VITE_SUPABASE_URL").replace(/\/$/, "")}/functions/v1`;
 const publishableKey = requiredEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
-const bearerToken = process.env.PIXELRISES_SMOKE_BEARER_TOKEN?.trim() || "";
+const realQaEnabled = process.env.PIXELRISES_GENERATOR_REAL_QA === "1";
+const dailyRealBudget = Math.max(
+  0,
+  Math.min(8, Number.parseInt(process.env.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || "0", 10) || 0),
+);
 
 const cases = [
   {
@@ -297,6 +306,32 @@ const requestedCaseIds = new Set(
     .filter(Boolean),
 );
 
+const getSmokeBearerToken = async () => {
+  const explicitToken = process.env.PIXELRISES_SMOKE_BEARER_TOKEN?.trim();
+  if (explicitToken) return explicitToken;
+
+  const email = process.env.PIXELRISES_SMOKE_EMAIL?.trim();
+  const password = process.env.PIXELRISES_SMOKE_PASSWORD?.trim();
+  if (!email || !password) return "";
+
+  const authEndpoint = `${requiredEnv("VITE_SUPABASE_URL").replace(/\/$/, "")}/auth/v1/token?grant_type=password`;
+  const response = await fetch(authEndpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: publishableKey,
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.access_token) {
+    throw new Error(`Smoke auth failed with status ${response.status}. Rotate the test password if it was exposed.`);
+  }
+
+  return String(payload.access_token);
+};
+
 const nicheAliases = {
   restaurant: ["restaurant", "bistro", "bistronomie", "gastronomie", "table"],
   coach: ["coach", "coaching", "sport", "fitness", "forme"],
@@ -477,20 +512,38 @@ const validateCase = (payload, testCase) => {
 };
 
 const run = async () => {
+  if (!realQaEnabled) {
+    console.warn("Generator smoke test skipped: PIXELRISES_GENERATOR_REAL_QA is not 1. No credits were consumed.");
+    return;
+  }
+
+  if (dailyRealBudget <= 0) {
+    console.warn("Generator smoke test skipped: PIXELRISES_GENERATOR_DAILY_REAL_BUDGET is 0. No credits were consumed.");
+    return;
+  }
+
+  const bearerToken = await getSmokeBearerToken();
   if (!bearerToken) {
-    console.warn("Generator smoke test skipped: PIXELRISES_SMOKE_BEARER_TOKEN is not configured. No credits were consumed.");
+    console.warn("Generator smoke test skipped: smoke credentials are not configured. No credits were consumed.");
     return;
   }
 
   const endpoint = `${supabaseUrl.replace(/\/$/, "")}/generate-site`;
   const results = [];
+  let consumedCases = 0;
 
   for (const testCase of cases) {
     if (requestedCaseIds.size > 0 && !requestedCaseIds.has(testCase.id)) {
       continue;
     }
 
+    if (consumedCases >= dailyRealBudget) {
+      console.log(`Budget reached: ${dailyRealBudget} real QA generation(s). Remaining cases skipped.`);
+      break;
+    }
+
     try {
+      consumedCases += 1;
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -549,7 +602,18 @@ const run = async () => {
   fs.mkdirSync(path.dirname(smokeReportPath), { recursive: true });
   fs.writeFileSync(
     smokeReportPath,
-    JSON.stringify({ endpoint, createdAt: new Date().toISOString(), results }, null, 2),
+    JSON.stringify(
+      {
+        endpoint,
+        createdAt: new Date().toISOString(),
+        realQaEnabled,
+        dailyRealBudget,
+        consumedCases,
+        results,
+      },
+      null,
+      2,
+    ),
   );
   console.log(`\nSmoke report saved: ${smokeReportPath}`);
 
