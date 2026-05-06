@@ -251,6 +251,7 @@ const Admin = () => {
   const [productLabNotes, setProductLabNotes] = useState<Record<string, string>>({});
   const [productLabCorrectionRequests, setProductLabCorrectionRequests] = useState<Record<string, string>>({});
   const [productLabPersistence, setProductLabPersistence] = useState<"loading" | "supabase" | "localStorage">("loading");
+  const [productLabPersistenceError, setProductLabPersistenceError] = useState<string | null>(null);
   const [productLabDecisionSaving, setProductLabDecisionSaving] = useState<string | null>(null);
 
   const loadAdminData = useCallback(async () => {
@@ -367,6 +368,7 @@ const Admin = () => {
     const result = await readProductLabDecisionsFromSupabase();
     setProductLabDecisions(sanitizeTextDeep(result.decisions));
     setProductLabPersistence(result.persisted ? "supabase" : "localStorage");
+    setProductLabPersistenceError(result.error ?? null);
   }, []);
 
   useEffect(() => {
@@ -751,6 +753,7 @@ const Admin = () => {
 
     if (persistenceResult.persisted) {
       setProductLabPersistence("supabase");
+      setProductLabPersistenceError(null);
       setProductLabDecisions((previous) => ({
         ...previous,
         [itemId]: {
@@ -767,11 +770,12 @@ const Admin = () => {
       });
     } else {
       setProductLabPersistence("localStorage");
+      setProductLabPersistenceError(persistenceResult.error ?? null);
       toast({
         title: "Decision gardee en local",
         description:
           persistenceResult.error ||
-          "Supabase n'est pas encore disponible pour cette table. Le fallback navigateur garde votre choix.",
+          "Supabase n'est pas encore disponible pour cette table. GitHub Actions ne verra pas ce choix tant qu'il n'est pas synchronise.",
       });
     }
 
@@ -1300,7 +1304,7 @@ const Admin = () => {
                         ? "Sync Supabase active"
                         : productLabPersistence === "loading"
                           ? "Sync en verification"
-                          : "Fallback navigateur actif"}
+                          : "Non synchronise GitHub"}
                     </span>
                     <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary">
                       Mode conseille: auto-safe + validation humaine
@@ -1308,7 +1312,11 @@ const Admin = () => {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
-                  <Button variant="outline" className="w-full sm:w-auto" onClick={() => void loadProductLabQueue()}>
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={() => void Promise.all([loadProductLabQueue(), loadProductLabDecisionsState()])}
+                  >
                     <FileText className="h-4 w-4" />
                     Recharger
                   </Button>
@@ -1318,6 +1326,16 @@ const Admin = () => {
                   </Button>
                 </div>
               </div>
+
+              {productLabPersistence !== "supabase" && (
+                <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/[0.08] p-4 text-sm leading-6 text-amber-100">
+                  <strong>Attention:</strong> les validations visibles ici sont gardees dans ce navigateur. Elles ne
+                  seront pas appliquees par GitHub Actions tant que la synchronisation Supabase n'est pas active.
+                  {productLabPersistenceError ? (
+                    <span className="mt-1 block text-amber-200/80">Detail: {productLabPersistenceError}</span>
+                  ) : null}
+                </div>
+              )}
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                 {[
@@ -1364,9 +1382,13 @@ const Admin = () => {
             ) : productLabReviewItems.length > 0 ? (
               <div className="grid gap-4">
                 {productLabReviewItems.map((item) => {
+                  const isSyncedApproval =
+                    item.localDecision.status === "approved" && item.localDecision.persisted === "supabase";
                   const decisionLabel =
                     item.localDecision.status === "approved"
-                      ? "Validee pour prochain run"
+                      ? isSyncedApproval
+                        ? "Validee pour prochain run"
+                        : "Validee localement - a synchroniser"
                       : item.localDecision.status === "rejected"
                         ? item.localDecision.rejectionMode === "alternative"
                           ? "Alternative demandee"
