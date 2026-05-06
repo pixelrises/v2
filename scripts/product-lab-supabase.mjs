@@ -58,6 +58,8 @@ const writeJson = (relativePath, value) => {
   fs.writeFileSync(absolutePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 };
 
+const isObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+
 const pushProposals = async () => {
   if (!isConfigured()) {
     console.log("Product Lab Supabase proposal sync skipped: missing service role configuration.");
@@ -109,7 +111,7 @@ const pullDecisions = async () => {
   const rows = await restFetch(
     [
       "product_lab_decisions",
-      "?select=item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at",
+      "?select=item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,review_item,source_run",
       "&status=eq.approved",
       "&automation_action=eq.authorize_next_run",
       "&order=decided_at.desc",
@@ -119,15 +121,23 @@ const pullDecisions = async () => {
   );
 
   const decisions = Array.isArray(rows)
-    ? rows.map((row) => ({
-        itemId: row.item_id,
-        status: row.status,
-        note: row.admin_note ?? "",
-        correctionRequest: row.correction_request ?? "",
-        rejectionMode: row.rejection_mode ?? null,
-        automationAction: row.automation_action,
-        decidedAt: row.decided_at,
-      }))
+    ? rows.map((row) => {
+        const reviewItem = isObject(row.review_item) ? row.review_item : {};
+        const sourceRun = isObject(row.source_run) ? row.source_run : {};
+
+        return {
+          itemId: row.item_id,
+          title: typeof reviewItem.title === "string" ? reviewItem.title : "",
+          module: typeof reviewItem.module === "string" ? reviewItem.module : "",
+          sourceTheme: typeof sourceRun.theme === "string" ? sourceRun.theme : "",
+          status: row.status,
+          note: row.admin_note ?? "",
+          correctionRequest: row.correction_request ?? "",
+          rejectionMode: row.rejection_mode ?? null,
+          automationAction: row.automation_action,
+          decidedAt: row.decided_at,
+        };
+      })
     : [];
 
   writeJson("product-lab/state/admin-decisions.json", {

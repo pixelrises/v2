@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   classifyImprovement,
+  findApprovedAdminDecision,
   getProductLabReviewItemId,
   getThemeForParisDate,
   redactSecrets,
@@ -227,5 +228,30 @@ describe("Pixelrises Product Lab core", () => {
         (file) => file.startsWith("docs/") || file.startsWith("product-lab/") || file.startsWith("reports/"),
       ),
     ).toBe(true);
+  });
+
+  it("keeps legacy admin approvals valid by matching title and module", () => {
+    const decision = findApprovedAdminDecision(
+      {
+        "2026-05-06-agent-builder-agent-builder-1": {
+          itemId: "2026-05-06-agent-builder-agent-builder-1",
+          title: "Durcir la securite des actions agents",
+          module: "Agent Builder",
+          sourceTheme: "Agent Builder / Agents IA",
+          status: "approved",
+          automationAction: "authorize_next_run",
+        },
+      },
+      {
+        title: "Durcir la securite des actions agents",
+        module: "Agent Builder",
+      },
+      {
+        id: "agent-builder",
+        label: "Agent Builder / Agents IA",
+      },
+    );
+
+    expect(decision?.itemId).toBe("2026-05-06-agent-builder-agent-builder-1");
   });
 });

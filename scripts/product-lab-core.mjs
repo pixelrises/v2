@@ -237,6 +237,26 @@ export const readProductLabAdminDecisions = (root) => {
   }
 };
 
+export const findApprovedAdminDecision = (adminDecisions, finding, theme) => {
+  const exactId = getProductLabReviewItemId(finding, theme);
+  const exactDecision = adminDecisions[exactId];
+  if (exactDecision?.status === "approved" && exactDecision?.automationAction === "authorize_next_run") {
+    return exactDecision;
+  }
+
+  const findingTitle = normalize(finding?.title);
+  const findingModule = normalize(finding?.module);
+  const themeIds = new Set([normalize(theme?.id), normalize(theme?.label)].filter(Boolean));
+
+  return Object.values(adminDecisions).find((decision) => {
+    if (decision?.status !== "approved" || decision?.automationAction !== "authorize_next_run") return false;
+    if (normalize(decision?.title) !== findingTitle || normalize(decision?.module) !== findingModule) return false;
+
+    const sourceTheme = normalize(decision?.sourceTheme ?? decision?.theme ?? decision?.themeId);
+    return !sourceTheme || themeIds.has(sourceTheme);
+  });
+};
+
 const exists = (root, relativePath) => fs.existsSync(path.join(root, relativePath));
 
 const readFile = (root, relativePath) => {
@@ -912,9 +932,7 @@ export const runProductLab = ({
     fs.existsSync(approvalFile) &&
     maxPatches > 0;
   const approvedFindings = findings.filter((finding) => {
-    const itemId = getProductLabReviewItemId(finding, theme);
-    const decision = adminDecisions[itemId];
-    return decision?.status === "approved" && decision?.automationAction === "authorize_next_run";
+    return Boolean(findApprovedAdminDecision(adminDecisions, finding, theme));
   });
   const patchResult = canApplyPatches
     ? applySafeImprovements(root, approvedFindings, maxPatches, theme, dateLabel)
