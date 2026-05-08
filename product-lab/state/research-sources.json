@@ -1,0 +1,80 @@
+{
+  "mode": "live",
+  "verifiedAt": "2026-05-08T13:42:00.823Z",
+  "total": 8,
+  "verifiedCount": 8,
+  "results": {
+    "vercel-ai-gateway": {
+      "id": "vercel-ai-gateway",
+      "name": "Vercel AI Gateway",
+      "url": "https://vercel.com/docs/ai-gateway",
+      "status": "verified",
+      "httpStatus": 200,
+      "durationMs": 153,
+      "verifiedAt": "2026-05-08T13:42:00.101Z"
+    },
+    "vercel-ai-gateway-models": {
+      "id": "vercel-ai-gateway-models",
+      "name": "Vercel AI Gateway Models & Providers",
+      "url": "https://vercel.com/docs/ai-gateway/models-and-providers",
+      "status": "verified",
+      "httpStatus": 200,
+      "durationMs": 234,
+      "verifiedAt": "2026-05-08T13:42:00.223Z"
+    },
+    "supabase-rls": {
+      "id": "supabase-rls",
+      "name": "Supabase Row Level Security",
+      "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+      "status": "verified",
+      "httpStatus": 200,
+      "durationMs": 127,
+      "verifiedAt": "2026-05-08T13:42:00.116Z"
+    },
+    "github-actions-secrets": {
+      "id": "github-actions-secrets",
+      "name": "GitHub Actions Secrets",
+      "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+      "status": "verified",
+      "httpStatus": 200,
+      "durationMs": 833,
+      "verifiedAt": "2026-05-08T13:42:00.823Z"
+    },
+    "nng-usability-heuristics": {
+      "id": "nng-usability-heuristics",
+      "name": "Nielsen Norman Group Usability Heuristics",
+      "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
+      "status": "verified",
+      "httpStatus": 200,
+      "durationMs": 379,
+      "verifiedAt": "2026-05-08T13:42:00.370Z"
+    },
+    "linear-method": {
+      "id": "linear-method",
+      "name": "Linear Method",
+      "url": "https://linear.app/method",
+      "status": "verified",
+      "httpStatus": 200,
+      "durationMs": 673,
+      "verifiedAt": "2026-05-08T13:42:00.664Z"
+    },
+    "baymard-ecommerce-ux": {
+      "id": "baymard-ecommerce-ux",
+      "name": "Baymard Ecommerce UX Research",
+      "url": "https://baymard.com/",
+      "status": "verified",
+      "httpStatus": 200,
+      "durationMs": 242,
+      "verifiedAt": "2026-05-08T13:42:00.234Z"
+    },
+    "vercel-design-guidelines": {
+      "id": "vercel-design-guidelines",
+      "name": "Vercel Web Interface Guidelines",
+      "url": "https://vercel.com/design/guidelines",
+      "status": "verified",
+      "httpStatus": 200,
+      "durationMs": 83,
+      "verifiedAt": "2026-05-08T13:42:00.075Z"
+    }
+  }
+}

@@ -3,35 +3,35 @@
   "week": "2026-W19",
   "scores": {
     "Product Quality Score": {
-      "note": 82,
+      "note": 84,
       "reason": "Base V2 solide avec opportunites d'iteration ciblee.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Maintenir une roadmap Product Lab priorisee par impact/risque.",
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "UX Score": {
-      "note": 72,
+      "note": 74,
       "reason": "Base utile mais encore trop dependante de mocks ou d'etats incomplets.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Renforcer empty states, microcopy et actions rapides par theme hebdomadaire.",
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "Conversion Score": {
-      "note": 76,
+      "note": 78,
       "reason": "Base V2 solide avec opportunites d'iteration ciblee.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Auditer CTA, objections et preuves dans les builders.",
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "Design Score": {
-      "note": 77,
+      "note": 79,
       "reason": "Identite noir/or coherente dans les modules audites.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Verifier coherence noir/or, spacing et lisibilite mobile.",
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "AI System Score": {
-      "note": 78,
+      "note": 80,
       "reason": "Pipeline Gateway/Supabase detecte, reste a durcir en CI.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Durcir fallback Gateway, normalisation et logs sans secrets.",
@@ -73,7 +73,7 @@
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "Code Health Score": {
-      "note": 76,
+      "note": 78,
       "reason": "Scripts et workflows principaux sont coherents.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Corriger workflows, tests et imports avant PR.",

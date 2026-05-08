@@ -62,6 +62,15 @@ Ce backlog est maintenu par le Product Lab. Les changements sensibles restent en
   - Statut: En continu
   - Source inspiration: Vercel / Linear
   - Decision: auto_safe
+- **Ancrer les propositions dans des sources verifiees**
+  - Module: Product Research
+  - Impact: Eleve (30/30)
+  - Risque: Faible
+  - Difficulte: Faible
+  - Priorite: Important
+  - Statut: En continu
+  - Source inspiration: NN/g / Vercel / Supabase / Linear
+  - Decision: auto_safe
 
 ## Amelioration
 

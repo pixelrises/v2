@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  buildResearchEvidence,
   classifyImprovement,
   findApprovedAdminDecision,
   getProductLabReviewItemId,
@@ -13,6 +14,7 @@ import {
   runProductLab,
   scoreProduct,
   selectProductLabReviewFindings,
+  trustedResearchSources,
 } from "../../scripts/product-lab-core.mjs";
 
 const createTempProject = () => {
@@ -90,6 +92,51 @@ describe("Pixelrises Product Lab core", () => {
     expect(redacted).not.toContain("vck_1234567890");
     expect(redacted).not.toContain("secret-token-1234567890");
     expect(redacted).toContain("[REDACTED]");
+  });
+
+  it("uses a static research fallback when live verification has not run", () => {
+    const root = createTempProject();
+    const evidence = buildResearchEvidence(root, { id: "site-builder" });
+
+    expect(evidence.mode).toBe("static_fallback");
+    expect(evidence.total).toBeGreaterThanOrEqual(3);
+    expect(evidence.verifiedCount).toBe(0);
+    expect(evidence.sources.some((source) => source.id === "vercel-ai-gateway")).toBe(true);
+  });
+
+  it("loads live research verification without exposing secrets", () => {
+    const root = createTempProject();
+    fs.mkdirSync(path.join(root, "product-lab/state"), { recursive: true });
+    fs.writeFileSync(
+      path.join(root, "product-lab/state/research-sources.json"),
+      JSON.stringify({
+        mode: "live",
+        verifiedAt: "2026-05-08T12:00:00.000Z",
+        results: {
+          "vercel-ai-gateway": {
+            id: "vercel-ai-gateway",
+            status: "verified",
+            httpStatus: 200,
+            verifiedAt: "2026-05-08T12:00:00.000Z",
+          },
+        },
+      }),
+      "utf8",
+    );
+
+    const evidence = buildResearchEvidence(root, { id: "site-builder" });
+
+    expect(evidence.mode).toBe("live");
+    expect(evidence.verifiedCount).toBe(1);
+    expect(JSON.stringify(evidence)).not.toContain("AI_GATEWAY_API_KEY");
+  });
+
+  it("keeps trusted research sources allowlisted and non-empty", () => {
+    expect(trustedResearchSources.length).toBeGreaterThanOrEqual(6);
+    for (const source of trustedResearchSources) {
+      expect(source.url).toMatch(/^https:\/\//);
+      expect(source.principles.length).toBeGreaterThan(0);
+    }
   });
 
   it("renders backlog sections with decisions", () => {
@@ -200,6 +247,8 @@ describe("Pixelrises Product Lab core", () => {
     expect(report).toContain("Dashboard");
     expect(report).toContain("Site Builder");
     expect(report).toContain("## Agents experts consultes");
+    expect(report).toContain("## Recherche fiable et verification live");
+    expect(report).toContain("Vercel AI Gateway");
     expect(report).toContain("## Ameliorations necessitant validation humaine");
     expect(report).toContain("## Risques restants");
   });

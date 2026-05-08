@@ -29,6 +29,9 @@ const summary = {
   appliedImprovements: result.appliedImprovements.length,
   autoSafeProposals: result.findings.filter((finding) => finding.decision === "auto_safe").length,
   humanValidationProposals: result.findings.filter((finding) => finding.decision === "human_validation").length,
+  researchMode: result.researchEvidence.mode,
+  verifiedResearchSources: result.researchEvidence.verifiedCount,
+  totalResearchSources: result.researchEvidence.total,
   checks: result.checks,
 };
 
@@ -44,4 +47,5 @@ if (json) {
   console.log(`- Backlog: ${summary.backlogPath}`);
   console.log(`- Auto-safe proposals: ${summary.autoSafeProposals}`);
   console.log(`- Human validation proposals: ${summary.humanValidationProposals}`);
+  console.log(`- Research: ${summary.researchMode} (${summary.verifiedResearchSources}/${summary.totalResearchSources} verified)`);
 }

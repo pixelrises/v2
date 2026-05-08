@@ -96,6 +96,103 @@ export const inspirationSources = [
   "Shopify Admin",
 ];
 
+export const trustedResearchSources = [
+  {
+    id: "vercel-ai-gateway",
+    name: "Vercel AI Gateway",
+    url: "https://vercel.com/docs/ai-gateway",
+    authority: "official",
+    modules: ["Multi-IA / Systeme", "Site Builder", "Agent Builder", "Game Builder"],
+    principles: [
+      "unifier les providers IA via une gateway",
+      "suivre usage, budgets et fallbacks",
+      "garder les cles IA cote serveur uniquement",
+    ],
+  },
+  {
+    id: "vercel-ai-gateway-models",
+    name: "Vercel AI Gateway Models & Providers",
+    url: "https://vercel.com/docs/ai-gateway/models-and-providers",
+    authority: "official",
+    modules: ["Multi-IA / Systeme", "Code Health"],
+    principles: [
+      "router les modeles selon cout, qualite et disponibilite",
+      "prevoir des fallbacks provider pour la fiabilite",
+    ],
+  },
+  {
+    id: "supabase-rls",
+    name: "Supabase Row Level Security",
+    url: "https://supabase.com/docs/guides/database/postgres/row-level-security",
+    authority: "official",
+    modules: ["Dashboard", "Analytics", "Multi-IA / Systeme", "Code Health"],
+    principles: [
+      "activer RLS sur les tables exposees",
+      "limiter chaque role aux permissions utiles",
+      "proteger les donnees meme avec une cle publishable",
+    ],
+  },
+  {
+    id: "github-actions-secrets",
+    name: "GitHub Actions Secrets",
+    url: "https://docs.github.com/en/actions/concepts/security/secrets",
+    authority: "official",
+    modules: ["Code Health", "Product Lab"],
+    principles: [
+      "injecter les secrets uniquement dans les jobs qui en ont besoin",
+      "accorder les permissions minimales",
+      "ne jamais ecrire les secrets dans les rapports",
+    ],
+  },
+  {
+    id: "nng-usability-heuristics",
+    name: "Nielsen Norman Group Usability Heuristics",
+    url: "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
+    authority: "research",
+    modules: ["Dashboard", "Site Builder", "Agent Builder", "Game Builder", "Integrations / Templates"],
+    principles: [
+      "rendre le statut du systeme visible",
+      "parler le langage utilisateur",
+      "aider l'utilisateur a diagnostiquer et corriger les erreurs",
+    ],
+  },
+  {
+    id: "linear-method",
+    name: "Linear Method",
+    url: "https://linear.app/method",
+    authority: "product-practice",
+    modules: ["Product Vision", "Dashboard", "Code Health"],
+    principles: [
+      "prioriser direction, objectifs utiles et blockers",
+      "reduire le scope pour garder le momentum",
+      "ameliorer par cycles lisibles",
+    ],
+  },
+  {
+    id: "baymard-ecommerce-ux",
+    name: "Baymard Ecommerce UX Research",
+    url: "https://baymard.com/",
+    authority: "research",
+    modules: ["Site Builder", "Conversion", "Dashboard"],
+    principles: [
+      "baser les decisions e-commerce sur des observations UX",
+      "reduire la friction des parcours business critiques",
+      "transformer les audits UX en recommandations actionnables",
+    ],
+  },
+  {
+    id: "vercel-design-guidelines",
+    name: "Vercel Web Interface Guidelines",
+    url: "https://vercel.com/design/guidelines",
+    authority: "product-practice",
+    modules: ["Dashboard", "Site Builder", "Integrations / Templates"],
+    principles: [
+      "traiter les guidelines de marque comme inspiration, pas comme regle universelle",
+      "privilegier performance, clarte et composants sobres",
+    ],
+  },
+];
+
 const weeklyThemes = {
   monday: {
     id: "dashboard",
@@ -363,6 +460,71 @@ export const classifyImprovement = (input) => {
   return input.risk === "Faible" ? "auto_safe" : "human_validation";
 };
 
+export const getResearchSourcesForTheme = (theme) => {
+  const themeModule = themeModuleById[theme?.id];
+  const selected = trustedResearchSources.filter((source) => {
+    if (themeModule && source.modules.includes(themeModule)) return true;
+    return source.modules.includes("Product Lab") || source.modules.includes("Code Health");
+  });
+
+  return selected.length ? selected : trustedResearchSources.slice(0, 4);
+};
+
+export const loadResearchVerification = (root) => {
+  const verificationPath = path.join(root, "product-lab", "state", "research-sources.json");
+  if (!fs.existsSync(verificationPath)) {
+    return {
+      mode: "static_fallback",
+      verifiedAt: null,
+      results: {},
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(verificationPath, "utf8"));
+    return {
+      mode: parsed.mode ?? "live",
+      verifiedAt: parsed.verifiedAt ?? null,
+      results: parsed.results ?? {},
+    };
+  } catch {
+    return {
+      mode: "static_fallback",
+      verifiedAt: null,
+      results: {},
+    };
+  }
+};
+
+export const buildResearchEvidence = (root, theme) => {
+  const verification = loadResearchVerification(root);
+  const selectedSources = getResearchSourcesForTheme(theme);
+  const sources = selectedSources.map((source) => {
+    const check = verification.results[source.id] ?? {};
+    return {
+      ...source,
+      verificationStatus: check.status ?? "not_checked",
+      httpStatus: check.httpStatus ?? null,
+      checkedAt: check.verifiedAt ?? verification.verifiedAt ?? null,
+      durationMs: check.durationMs ?? null,
+    };
+  });
+  const verifiedCount = sources.filter((source) => source.verificationStatus === "verified").length;
+
+  return {
+    mode: verification.mode,
+    verifiedAt: verification.verifiedAt,
+    verifiedCount,
+    total: sources.length,
+    sources,
+    principles: [...new Set(sources.flatMap((source) => source.principles))].slice(0, 12),
+    warning:
+      verifiedCount > 0
+        ? "Sources verifiees en live ou dernier etat disponible."
+        : "Fallback statique: les sources sont allowlistees, mais la verification live n'a pas encore tourne ou a echoue.",
+  };
+};
+
 export const auditProject = (root, theme) => {
   const packageJson = JSON.parse(readFile(root, "package.json") || "{}");
   const scripts = packageJson.scripts ?? {};
@@ -412,6 +574,8 @@ export const auditProject = (root, theme) => {
 };
 
 export const scoreProduct = (audit) => {
+  const verifiedResearchCount = audit.researchEvidence?.verifiedCount ?? 0;
+  const researchBonus = verifiedResearchCount > 0 ? 2 : 0;
   const base = {
     "Product Quality Score": 74,
     "UX Score": 72,
@@ -427,17 +591,17 @@ export const scoreProduct = (audit) => {
   };
 
   const adjustments = {
-    "Product Quality Score": (audit.hasProductLabScripts ? 4 : -4) + (audit.missingRuntimeFiles.length ? -6 : 4),
-    "UX Score": audit.currentTheme.id === "dashboard" ? 2 : 0,
-    "Conversion Score": audit.hasQualityGate ? 3 : -4,
-    "Design Score": audit.mojibakeHits.length ? -5 : 2,
-    "AI System Score": audit.hasGateway ? 8 : -10,
+    "Product Quality Score": (audit.hasProductLabScripts ? 4 : -4) + (audit.missingRuntimeFiles.length ? -6 : 4) + researchBonus,
+    "UX Score": (audit.currentTheme.id === "dashboard" ? 2 : 0) + researchBonus,
+    "Conversion Score": (audit.hasQualityGate ? 3 : -4) + researchBonus,
+    "Design Score": (audit.mojibakeHits.length ? -5 : 2) + researchBonus,
+    "AI System Score": (audit.hasGateway ? 8 : -10) + researchBonus,
     "Site Builder Score": audit.currentTheme.id === "site-builder" ? 3 : 0,
     "Agent Builder Score": audit.currentTheme.id === "agent-builder" ? 3 : 0,
     "Game Builder Score": audit.currentTheme.id === "game-builder" ? 3 : 0,
     "Integration Score": audit.currentTheme.id === "templates-integrations" ? 3 : 0,
     "Analytics Score": audit.hasStorageAdapter ? 3 : -3,
-    "Code Health Score": audit.hasExistingBrokenWorkflow ? -8 : 4,
+    "Code Health Score": (audit.hasExistingBrokenWorkflow ? -8 : 4) + researchBonus,
   };
 
   const scoreDetails = {};
@@ -646,6 +810,18 @@ export const runExpertAgents = (audit, scores) => {
     description: "Verifier que l'automatisation ne cree jamais de PR tant que lint, tests et build ne sont pas verts.",
   });
 
+  findings.push({
+    title: "Ancrer les propositions dans des sources verifiees",
+    module: "Product Research",
+    impact: "Eleve",
+    risk: "Faible",
+    difficulty: "Faible",
+    priority: "Important",
+    status: "En continu",
+    inspiration: "NN/g / Vercel / Supabase / Linear",
+    description: `Utiliser les sources fiables allowlistees pour guider les experts Product Lab (${audit.researchEvidence?.verifiedCount ?? 0}/${audit.researchEvidence?.total ?? 0} source(s) verifiee(s)).`,
+  });
+
   return {
     agentReports: expertAgents.map((agent) => ({
       agent,
@@ -731,6 +907,17 @@ export const renderBenchmarkTable = () => [
   ...benchmarkModules.map((item) => `| ${item.module} | ${item.inspiration} | ${item.target} |`),
 ].join("\n");
 
+export const renderResearchTable = (researchEvidence) => [
+  "| Source | Autorite | Statut verification | Usage Pixelrises | URL |",
+  "| --- | --- | --- | --- | --- |",
+  ...researchEvidence.sources.map((source) => {
+    const status = source.verificationStatus === "verified"
+      ? `verifie${source.httpStatus ? ` (${source.httpStatus})` : ""}`
+      : source.verificationStatus;
+    return `| ${source.name} | ${source.authority} | ${status} | ${source.principles[0]} | ${source.url} |`;
+  }),
+].join("\n");
+
 export const renderDailyReport = (result) => {
   const autoSafe = result.findings.filter((finding) => finding.decision === "auto_safe");
   const human = result.findings.filter((finding) => finding.decision === "human_validation");
@@ -761,6 +948,17 @@ export const renderDailyReport = (result) => {
     "",
     "## Inspirations utilisees",
     inspirationSources.map((source) => `- ${source}`).join("\n"),
+    "",
+    "## Recherche fiable et verification live",
+    `- Mode: ${result.researchEvidence.mode}`,
+    `- Sources verifiees: ${result.researchEvidence.verifiedCount}/${result.researchEvidence.total}`,
+    `- Derniere verification: ${result.researchEvidence.verifiedAt ?? "non disponible"}`,
+    `- Note: ${result.researchEvidence.warning}`,
+    "",
+    renderResearchTable(result.researchEvidence),
+    "",
+    "## Principes de recherche appliques",
+    result.researchEvidence.principles.map((principle) => `- ${principle}`).join("\n"),
     "",
     "## Problemes detectes",
     result.findings.map((finding) => `- **${finding.title}** (${finding.module}) - ${finding.description}`).join("\n"),
@@ -954,6 +1152,12 @@ export const buildProductLabReviewQueue = (result) => {
       dailySummary: `Theme ${result.theme.label}: ${reviewItems.length} proposition(s) a valider, modifier ou refuser avant application. Objectif utile: ${PRODUCT_LAB_MIN_REVIEW_ITEMS}-${PRODUCT_LAB_MAX_REVIEW_ITEMS} propositions max par run.`,
       averageScore,
       lowestScore,
+      research: {
+        mode: result.researchEvidence.mode,
+        verifiedSources: result.researchEvidence.verifiedCount,
+        totalSources: result.researchEvidence.total,
+        verifiedAt: result.researchEvidence.verifiedAt,
+      },
     },
     items: reviewItems.map((finding) => ({
       id: getProductLabReviewItemId(finding, result.theme),
@@ -973,6 +1177,7 @@ export const buildProductLabReviewQueue = (result) => {
       automationPolicy:
         "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       concernedFiles: resolveReviewFiles(result, finding),
+      evidenceSources: resolveEvidenceSources(result.researchEvidence, finding),
       beforeState: buildReviewBeforeState(finding),
       afterState: buildReviewAfterState(finding),
     })),
@@ -991,12 +1196,28 @@ const reviewFilesByModule = {
   "Integrations / Templates": ["src/pages/Integrations.tsx", "src/pages/Templates.tsx", "src/modules/registries/index.ts"],
   Analytics: ["src/pages/Analytics.tsx", "src/pages/Dashboard.tsx", "src/modules/storage/project-storage-adapter.ts"],
   "Code Health": ["scripts/product-lab-core.mjs", ".github/workflows/product-lab-nightly.yml", "src/test/product-lab-core.test.ts"],
+  "Product Research": ["scripts/product-lab-core.mjs", "product-lab/state/research-sources.json", "reports/product-lab/daily"],
   "Product Vision": ["docs/product-lab-benchmark-targets.md", "product-lab/backlog.md"],
 };
 
 const resolveReviewFiles = (result, finding) => {
   const files = reviewFilesByModule[finding.module] ?? result.audit.themeFiles ?? [];
   return [...new Set(files)].slice(0, 6);
+};
+
+const resolveEvidenceSources = (researchEvidence, finding) => {
+  const moduleSources = researchEvidence.sources.filter(
+    (source) => source.modules.includes(finding.module) || source.modules.includes("Product Lab"),
+  );
+  const sources = moduleSources.length ? moduleSources : researchEvidence.sources.slice(0, 2);
+  return sources.slice(0, 3).map((source) => ({
+    id: source.id,
+    name: source.name,
+    url: source.url,
+    authority: source.authority,
+    verificationStatus: source.verificationStatus,
+    checkedAt: source.checkedAt,
+  }));
 };
 
 const buildReviewSimpleSummary = (finding) =>
@@ -1011,6 +1232,7 @@ const buildReviewBeforeState = (finding) => {
   if (finding.module === "Integrations / Templates") return "Les registries existent, mais certaines cartes peuvent encore mieux guider l'utilisateur vers la prochaine action utile.";
   if (finding.module === "Analytics") return "Les analytics sont prepares, mais les signaux doivent devenir des recommandations plus exploitables.";
   if (finding.module === "Code Health") return "La CI protege deja le projet, mais le Product Lab doit rester bloque si une validation echoue.";
+  if (finding.module === "Product Research") return "Le Product Lab utilise deja des inspirations, mais doit distinguer avis interne, source fiable et verification live.";
   return "La V2 fonctionne, mais cette proposition touche une zone qui doit rester sous controle humain.";
 };
 
@@ -1023,6 +1245,7 @@ const buildReviewAfterState = (finding) => {
   if (finding.module === "Integrations / Templates") return "Les cartes donnent une action claire et gardent des statuts honnetes entre mock, beta et reel.";
   if (finding.module === "Analytics") return "Le dashboard transforme davantage les signaux en prochaines actions priorisees.";
   if (finding.module === "Code Health") return "Aucune PR automatique n'est creee tant que lint, tests et build ne sont pas verts.";
+  if (finding.module === "Product Research") return "Chaque run relie ses recommandations a une base de sources fiables, verifiee quand le workflow a du reseau.";
   return "Le Product Lab pourra agir au prochain run uniquement si la decision admin l'autorise.";
 };
 
@@ -1062,7 +1285,11 @@ export const runProductLab = ({
   const { date: dateLabel } = getParisDateParts(date);
   const week = getIsoWeek(date);
   const theme = getThemeForParisDate(date, forcedTheme);
-  const audit = auditProject(root, theme);
+  const researchEvidence = buildResearchEvidence(root, theme);
+  const audit = {
+    ...auditProject(root, theme),
+    researchEvidence,
+  };
   const scores = scoreProduct(audit);
   const { agentReports, findings } = runExpertAgents(audit, scores);
   const adminDecisions = readProductLabAdminDecisions(root);
@@ -1098,6 +1325,7 @@ export const runProductLab = ({
     dryRun,
     audit,
     scores,
+    researchEvidence,
     agentReports,
     findings,
     adminDecisions,

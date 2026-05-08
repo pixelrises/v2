@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T13:34:36.471Z",
+  "generatedAt": "2026-05-08T13:42:14.756Z",
   "sourceRun": {
     "date": "2026-05-08",
     "week": "2026-W19",
@@ -11,10 +11,16 @@
     "maxAutoSafePatches": 2,
     "sensitiveChangesRequireApproval": true,
     "dailySummary": "Theme Site Builder / Conversion / SEO: 8 proposition(s) a valider, modifier ou refuser avant application. Objectif utile: 5-8 propositions max par run.",
-    "averageScore": 74,
+    "averageScore": 76,
     "lowestScore": {
       "name": "Analytics Score",
       "note": 68
+    },
+    "research": {
+      "mode": "live",
+      "verifiedSources": 8,
+      "totalSources": 8,
+      "verifiedAt": "2026-05-08T13:42:00.823Z"
     }
   },
   "items": [
@@ -39,6 +45,32 @@
         "src/modules/creation-engine",
         "supabase/functions/ai-orchestrator/index.ts"
       ],
+      "evidenceSources": [
+        {
+          "id": "vercel-ai-gateway",
+          "name": "Vercel AI Gateway",
+          "url": "https://vercel.com/docs/ai-gateway",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.101Z"
+        },
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.823Z"
+        },
+        {
+          "id": "nng-usability-heuristics",
+          "name": "Nielsen Norman Group Usability Heuristics",
+          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.370Z"
+        }
+      ],
       "beforeState": "Le builder cree deja une experience V2, mais le chemin idee -> preview -> amelioration peut encore gagner en fluidite.",
       "afterState": "L'utilisateur comprend mieux quoi faire et comment ameliorer son projet sans casser le rendu."
     },
@@ -62,8 +94,60 @@
         "docs/product-lab-benchmark-targets.md",
         "product-lab/backlog.md"
       ],
+      "evidenceSources": [
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.823Z"
+        },
+        {
+          "id": "linear-method",
+          "name": "Linear Method",
+          "url": "https://linear.app/method",
+          "authority": "product-practice",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.664Z"
+        }
+      ],
       "beforeState": "La V2 fonctionne, mais cette proposition touche une zone qui doit rester sous controle humain.",
       "afterState": "Le Product Lab pourra agir au prochain run uniquement si la decision admin l'autorise."
+    },
+    {
+      "id": "site-builder-product-research-ancrer-les-propositions-dans-des-sources-verifiees",
+      "title": "Ancrer les propositions dans des sources verifiees",
+      "module": "Product Research",
+      "simpleSummary": "Product Research: Utiliser les sources fiables allowlistees pour guider les experts Product Lab (8/8 source(s) verifiee(s)). Impact eleve, risque faible.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Faible",
+      "difficulty": "Faible",
+      "status": "En continu",
+      "inspiration": "NN/g / Vercel / Supabase / Linear",
+      "decision": "auto_safe",
+      "description": "Utiliser les sources fiables allowlistees pour guider les experts Product Lab (8/8 source(s) verifiee(s)).",
+      "scoreImpact": 30,
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-08.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "scripts/product-lab-core.mjs",
+        "product-lab/state/research-sources.json",
+        "reports/product-lab/daily"
+      ],
+      "evidenceSources": [
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.823Z"
+        }
+      ],
+      "beforeState": "Le Product Lab utilise deja des inspirations, mais doit distinguer avis interne, source fiable et verification live.",
+      "afterState": "Chaque run relie ses recommandations a une base de sources fiables, verifiee quand le workflow a du reseau."
     },
     {
       "id": "site-builder-code-health-bloquer-toute-pr-si-lint-tests-ou-build-echouent",
@@ -85,6 +169,32 @@
         "scripts/product-lab-core.mjs",
         ".github/workflows/product-lab-nightly.yml",
         "src/test/product-lab-core.test.ts"
+      ],
+      "evidenceSources": [
+        {
+          "id": "vercel-ai-gateway-models",
+          "name": "Vercel AI Gateway Models & Providers",
+          "url": "https://vercel.com/docs/ai-gateway/models-and-providers",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.223Z"
+        },
+        {
+          "id": "supabase-rls",
+          "name": "Supabase Row Level Security",
+          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.116Z"
+        },
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.823Z"
+        }
       ],
       "beforeState": "La CI protege deja le projet, mais le Product Lab doit rester bloque si une validation echoue.",
       "afterState": "Aucune PR automatique n'est creee tant que lint, tests et build ne sont pas verts."
@@ -110,6 +220,32 @@
         "src/pages/Agents.tsx",
         "src/modules/registries/index.ts"
       ],
+      "evidenceSources": [
+        {
+          "id": "vercel-ai-gateway",
+          "name": "Vercel AI Gateway",
+          "url": "https://vercel.com/docs/ai-gateway",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.101Z"
+        },
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.823Z"
+        },
+        {
+          "id": "nng-usability-heuristics",
+          "name": "Nielsen Norman Group Usability Heuristics",
+          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.370Z"
+        }
+      ],
       "beforeState": "Les agents existent, mais les actions sensibles doivent rester encore plus visibles et validables.",
       "afterState": "Chaque permission ou action sensible est explicite avant que le Product Lab puisse appliquer un patch."
     },
@@ -134,6 +270,32 @@
         "supabase/functions/ai-orchestrator/index.ts",
         "scripts/product-lab-core.mjs"
       ],
+      "evidenceSources": [
+        {
+          "id": "vercel-ai-gateway",
+          "name": "Vercel AI Gateway",
+          "url": "https://vercel.com/docs/ai-gateway",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.101Z"
+        },
+        {
+          "id": "vercel-ai-gateway-models",
+          "name": "Vercel AI Gateway Models & Providers",
+          "url": "https://vercel.com/docs/ai-gateway/models-and-providers",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.223Z"
+        },
+        {
+          "id": "supabase-rls",
+          "name": "Supabase Row Level Security",
+          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.116Z"
+        }
+      ],
       "beforeState": "Le routing IA existe, mais chaque builder doit garder une sortie normalisee, verifiee et repliable en mock propre.",
       "afterState": "Les generations restent mieux routees, mieux normalisees et plus stables en cas d'echec provider."
     },
@@ -156,6 +318,32 @@
       "concernedFiles": [
         "src/pages/Dashboard.tsx",
         "src/pages/Create.tsx"
+      ],
+      "evidenceSources": [
+        {
+          "id": "supabase-rls",
+          "name": "Supabase Row Level Security",
+          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.116Z"
+        },
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.823Z"
+        },
+        {
+          "id": "nng-usability-heuristics",
+          "name": "Nielsen Norman Group Usability Heuristics",
+          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.370Z"
+        }
       ],
       "beforeState": "Le dashboard contient deja la base V2, mais certains signaux restent mockes ou trop peu actionnables.",
       "afterState": "Le dashboard donne une prochaine action plus claire, avec moins de friction et plus de valeur percue."
@@ -181,32 +369,26 @@
         "src/pages/Dashboard.tsx",
         "src/modules/storage/project-storage-adapter.ts"
       ],
+      "evidenceSources": [
+        {
+          "id": "supabase-rls",
+          "name": "Supabase Row Level Security",
+          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.116Z"
+        },
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-08T13:42:00.823Z"
+        }
+      ],
       "beforeState": "Les analytics sont prepares, mais les signaux doivent devenir des recommandations plus exploitables.",
       "afterState": "Le dashboard transforme davantage les signaux en prochaines actions priorisees."
-    },
-    {
-      "id": "site-builder-game-builder-conserver-le-game-builder-en-beta-explicite",
-      "title": "Conserver le Game Builder en beta explicite",
-      "module": "Game Builder",
-      "simpleSummary": "Game Builder: Les rapports doivent traquer toute promesse de publication automatique. Impact moyen, risque faible.",
-      "priority": "Amelioration",
-      "impact": "Moyen",
-      "risk": "Faible",
-      "difficulty": "Faible",
-      "status": "Propose",
-      "inspiration": "Roblox Creator Hub / UEFN",
-      "decision": "auto_safe",
-      "description": "Les rapports doivent traquer toute promesse de publication automatique.",
-      "scoreImpact": 18,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-08.md",
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "concernedFiles": [
-        "src/pages/GameBuilder.tsx",
-        "src/pages/Games.tsx",
-        "src/modules/registries/index.ts"
-      ],
-      "beforeState": "Le Game Builder est en beta et doit continuer a cadrer clairement blueprint, snippets, assets et checklist.",
-      "afterState": "Le statut beta reste honnete et aucune publication automatique n'est suggeree."
     }
   ]
 }
