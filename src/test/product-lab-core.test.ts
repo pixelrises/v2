@@ -12,6 +12,7 @@ import {
   renderDailyReport,
   runProductLab,
   scoreProduct,
+  selectProductLabReviewFindings,
 } from "../../scripts/product-lab-core.mjs";
 
 const createTempProject = () => {
@@ -135,6 +136,50 @@ describe("Pixelrises Product Lab core", () => {
     expect(fs.existsSync(path.join(root, "reports/product-lab/daily/daily-2026-05-05.md"))).toBe(true);
     expect(fs.existsSync(path.join(root, "product-lab/backlog.md"))).toBe(true);
     expect(fs.existsSync(path.join(root, "public/product-lab-review.json"))).toBe(true);
+  });
+
+  it("creates a balanced admin review queue with multiple actionable proposals", () => {
+    const root = createTempProject();
+    fs.mkdirSync(path.join(root, "product-lab/state"), { recursive: true });
+    fs.writeFileSync(path.join(root, "product-lab/state/first-dry-run-approved.json"), '{"approved":true}', "utf8");
+
+    runProductLab({
+      root,
+      action: "daily",
+      dryRun: true,
+      forcedTheme: "site-builder",
+      date: new Date("2026-05-05T10:00:00.000Z"),
+    });
+
+    const queue = JSON.parse(fs.readFileSync(path.join(root, "public/product-lab-review.json"), "utf8"));
+    const modules = new Set(queue.items.map((item: { module: string }) => item.module));
+
+    expect(queue.items.length).toBeGreaterThanOrEqual(5);
+    expect(queue.items.length).toBeLessThanOrEqual(8);
+    expect(modules.size).toBeGreaterThanOrEqual(5);
+    expect(queue.summary.total).toBe(queue.items.length);
+  });
+
+  it("caps review findings at eight while keeping module diversity", () => {
+    const findings = Array.from({ length: 12 }, (_, index) => ({
+      title: `Proposition ${index}`,
+      module: index === 0 ? "Site Builder" : `Module ${index}`,
+      impact: index % 2 === 0 ? "Eleve" : "Moyen",
+      risk: "Faible",
+      difficulty: "Faible",
+      priority: index === 0 ? "Critique" : "Important",
+      status: "Propose",
+      inspiration: "Lovable / v0",
+      description: "Amelioration actionnable et non destructive.",
+      decision: "auto_safe",
+      scoreImpact: 20 - index,
+    }));
+
+    const selected = selectProductLabReviewFindings(findings, { id: "site-builder" });
+
+    expect(selected).toHaveLength(8);
+    expect(selected[0].module).toBe("Site Builder");
+    expect(new Set(selected.map((finding) => finding.module)).size).toBe(8);
   });
 
   it("renders a report with mandatory sections", () => {

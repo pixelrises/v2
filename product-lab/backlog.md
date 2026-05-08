@@ -35,6 +35,33 @@ Ce backlog est maintenu par le Product Lab. Les changements sensibles restent en
   - Statut: Propose
   - Source inspiration: Delos / Base44
   - Decision: human_validation
+- **Durcir le routing Multi-IA et les fallbacks Gateway**
+  - Module: Multi-IA / Systeme
+  - Impact: Eleve (24/30)
+  - Risque: Moyen
+  - Difficulte: Moyenne
+  - Priorite: Important
+  - Statut: A cadrer
+  - Source inspiration: Vercel AI Gateway / Base44
+  - Decision: human_validation
+- **Transformer analytics en recommandations exploitables**
+  - Module: Analytics
+  - Impact: Eleve (24/30)
+  - Risque: Moyen
+  - Difficulte: Moyenne
+  - Priorite: Important
+  - Statut: A cadrer
+  - Source inspiration: Shopify Admin / Linear
+  - Decision: human_validation
+- **Bloquer toute PR si lint tests ou build echouent**
+  - Module: Code Health
+  - Impact: Eleve (30/30)
+  - Risque: Faible
+  - Difficulte: Faible
+  - Priorite: Important
+  - Statut: En continu
+  - Source inspiration: Vercel / Linear
+  - Decision: auto_safe
 
 ## Amelioration
 
@@ -55,6 +82,15 @@ Ce backlog est maintenu par le Product Lab. Les changements sensibles restent en
   - Priorite: Amelioration
   - Statut: Propose
   - Source inspiration: Roblox Creator Hub / UEFN
+  - Decision: auto_safe
+- **Rendre integrations et templates plus actionnables**
+  - Module: Integrations / Templates
+  - Impact: Moyen (18/30)
+  - Risque: Faible
+  - Difficulte: Faible
+  - Priorite: Amelioration
+  - Statut: Propose
+  - Source inspiration: 21st.dev / Mobbin / Vercel
   - Decision: auto_safe
 
 ## Plus tard

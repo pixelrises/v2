@@ -4,6 +4,8 @@ import { execFileSync } from "node:child_process";
 
 export const PRODUCT_LAB_NAME = "Pixelrises Continuous Product Lab";
 export const DEFAULT_MAX_PATCHES = 2;
+export const PRODUCT_LAB_MIN_REVIEW_ITEMS = 5;
+export const PRODUCT_LAB_MAX_REVIEW_ITEMS = 8;
 
 export const productVision = {
   promise: "Pixelrises transforme une idee en projet digital concret.",
@@ -235,6 +237,16 @@ export const readProductLabAdminDecisions = (root) => {
   } catch {
     return {};
   }
+};
+
+const themeModuleById = {
+  dashboard: "Dashboard",
+  "site-builder": "Site Builder",
+  "agent-builder": "Agent Builder",
+  "game-builder": "Game Builder",
+  "multi-ai": "Multi-IA / Systeme",
+  "templates-integrations": "Integrations / Templates",
+  "audit-roadmap": "Code Health",
 };
 
 export const findApprovedAdminDecision = (adminDecisions, finding, theme) => {
@@ -586,6 +598,54 @@ export const runExpertAgents = (audit, scores) => {
     description: "Les rapports doivent traquer toute promesse de publication automatique.",
   });
 
+  findings.push({
+    title: "Durcir le routing Multi-IA et les fallbacks Gateway",
+    module: "Multi-IA / Systeme",
+    impact: "Eleve",
+    risk: "Moyen",
+    difficulty: "Moyenne",
+    priority: "Important",
+    status: "A cadrer",
+    inspiration: "Vercel AI Gateway / Base44",
+    description: "Verifier que chaque builder route vers le bon role IA, normalise la sortie et garde un fallback mock propre.",
+  });
+
+  findings.push({
+    title: "Rendre integrations et templates plus actionnables",
+    module: "Integrations / Templates",
+    impact: "Moyen",
+    risk: "Faible",
+    difficulty: "Faible",
+    priority: "Amelioration",
+    status: "Propose",
+    inspiration: "21st.dev / Mobbin / Vercel",
+    description: "Transformer les cartes integrations/templates en prochaines actions claires sans pretendre que les connecteurs mockes sont actifs.",
+  });
+
+  findings.push({
+    title: "Transformer analytics en recommandations exploitables",
+    module: "Analytics",
+    impact: "Eleve",
+    risk: "Moyen",
+    difficulty: "Moyenne",
+    priority: "Important",
+    status: "A cadrer",
+    inspiration: "Shopify Admin / Linear",
+    description: "Relier les evenements, projets et generations a des prochaines actions lisibles meme quand les donnees reelles sont partielles.",
+  });
+
+  findings.push({
+    title: "Bloquer toute PR si lint tests ou build echouent",
+    module: "Code Health",
+    impact: "Eleve",
+    risk: "Faible",
+    difficulty: "Faible",
+    priority: "Important",
+    status: "En continu",
+    inspiration: "Vercel / Linear",
+    description: "Verifier que l'automatisation ne cree jamais de PR tant que lint, tests et build ne sont pas verts.",
+  });
+
   return {
     agentReports: expertAgents.map((agent) => ({
       agent,
@@ -793,9 +853,83 @@ export const renderWeeklyReport = (result) => [
   "",
 ].join("\n");
 
+const priorityRank = {
+  Critique: 0,
+  Important: 1,
+  Amelioration: 2,
+  "Plus tard": 3,
+};
+
+const impactRank = {
+  Eleve: 0,
+  Moyen: 1,
+  Faible: 2,
+};
+
+const riskRank = {
+  Faible: 0,
+  Moyen: 1,
+  Eleve: 2,
+};
+
+const compareReviewFindings = (theme) => (left, right) => {
+  const themeModule = themeModuleById[theme?.id];
+  const leftThemeBoost = left.module === themeModule ? -2 : 0;
+  const rightThemeBoost = right.module === themeModule ? -2 : 0;
+  const leftCriticalBoost = left.priority === "Critique" ? -3 : 0;
+  const rightCriticalBoost = right.priority === "Critique" ? -3 : 0;
+
+  return (
+    leftCriticalBoost - rightCriticalBoost ||
+    leftThemeBoost - rightThemeBoost ||
+    (priorityRank[left.priority] ?? 4) - (priorityRank[right.priority] ?? 4) ||
+    (impactRank[left.impact] ?? 3) - (impactRank[right.impact] ?? 3) ||
+    (riskRank[left.risk] ?? 3) - (riskRank[right.risk] ?? 3) ||
+    (right.scoreImpact ?? 0) - (left.scoreImpact ?? 0) ||
+    String(left.title).localeCompare(String(right.title))
+  );
+};
+
+export const selectProductLabReviewFindings = (findings, theme) => {
+  const uniqueFindings = [];
+  const seen = new Set();
+
+  for (const finding of findings) {
+    const key = `${finding.module}:${finding.title}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniqueFindings.push(finding);
+  }
+
+  const sortedFindings = uniqueFindings.sort(compareReviewFindings(theme));
+  const selected = [];
+  const selectedModules = new Set();
+  const themeModule = themeModuleById[theme?.id];
+
+  const addFinding = (finding) => {
+    if (!finding || selected.length >= PRODUCT_LAB_MAX_REVIEW_ITEMS) return;
+    const itemId = getProductLabReviewItemId(finding, theme);
+    if (selected.some((item) => getProductLabReviewItemId(item, theme) === itemId)) return;
+    selected.push(finding);
+    selectedModules.add(finding.module);
+  };
+
+  sortedFindings
+    .filter((finding) => finding.priority === "Critique" || finding.module === themeModule)
+    .forEach(addFinding);
+
+  sortedFindings
+    .filter((finding) => !selectedModules.has(finding.module))
+    .forEach(addFinding);
+
+  sortedFindings.forEach(addFinding);
+
+  return selected.slice(0, PRODUCT_LAB_MAX_REVIEW_ITEMS);
+};
+
 export const buildProductLabReviewQueue = (result) => {
   const reportPath = path.join("reports", "product-lab", "daily", `daily-${result.date}.md`).replace(/\\/g, "/");
-  const reviewItems = result.findings;
+  const reviewItems = selectProductLabReviewFindings(result.findings, result.theme);
   const scoreEntries = Object.entries(result.scores).map(([name, score]) => ({ name, note: score.note }));
   const averageScore = scoreEntries.length
     ? Math.round(scoreEntries.reduce((total, score) => total + score.note, 0) / scoreEntries.length)
@@ -817,7 +951,7 @@ export const buildProductLabReviewQueue = (result) => {
       total: reviewItems.length,
       maxAutoSafePatches: result.maxPatches,
       sensitiveChangesRequireApproval: true,
-      dailySummary: `Theme ${result.theme.label}: ${reviewItems.length} proposition(s) a valider, modifier ou refuser avant application.`,
+      dailySummary: `Theme ${result.theme.label}: ${reviewItems.length} proposition(s) a valider, modifier ou refuser avant application. Objectif utile: ${PRODUCT_LAB_MIN_REVIEW_ITEMS}-${PRODUCT_LAB_MAX_REVIEW_ITEMS} propositions max par run.`,
       averageScore,
       lowestScore,
     },
@@ -853,6 +987,10 @@ const reviewFilesByModule = {
   "Site Builder": ["src/pages/SiteBuilder.tsx", "src/modules/creation-engine", "supabase/functions/ai-orchestrator/index.ts"],
   "Agent Builder": ["src/pages/AgentBuilder.tsx", "src/pages/Agents.tsx", "src/modules/registries/index.ts"],
   "Game Builder": ["src/pages/GameBuilder.tsx", "src/pages/Games.tsx", "src/modules/registries/index.ts"],
+  "Multi-IA / Systeme": ["src/modules/ai", "supabase/functions/ai-orchestrator/index.ts", "scripts/product-lab-core.mjs"],
+  "Integrations / Templates": ["src/pages/Integrations.tsx", "src/pages/Templates.tsx", "src/modules/registries/index.ts"],
+  Analytics: ["src/pages/Analytics.tsx", "src/pages/Dashboard.tsx", "src/modules/storage/project-storage-adapter.ts"],
+  "Code Health": ["scripts/product-lab-core.mjs", ".github/workflows/product-lab-nightly.yml", "src/test/product-lab-core.test.ts"],
   "Product Vision": ["docs/product-lab-benchmark-targets.md", "product-lab/backlog.md"],
 };
 
@@ -869,6 +1007,10 @@ const buildReviewBeforeState = (finding) => {
   if (finding.module === "Site Builder") return "Le builder cree deja une experience V2, mais le chemin idee -> preview -> amelioration peut encore gagner en fluidite.";
   if (finding.module === "Agent Builder") return "Les agents existent, mais les actions sensibles doivent rester encore plus visibles et validables.";
   if (finding.module === "Game Builder") return "Le Game Builder est en beta et doit continuer a cadrer clairement blueprint, snippets, assets et checklist.";
+  if (finding.module === "Multi-IA / Systeme") return "Le routing IA existe, mais chaque builder doit garder une sortie normalisee, verifiee et repliable en mock propre.";
+  if (finding.module === "Integrations / Templates") return "Les registries existent, mais certaines cartes peuvent encore mieux guider l'utilisateur vers la prochaine action utile.";
+  if (finding.module === "Analytics") return "Les analytics sont prepares, mais les signaux doivent devenir des recommandations plus exploitables.";
+  if (finding.module === "Code Health") return "La CI protege deja le projet, mais le Product Lab doit rester bloque si une validation echoue.";
   return "La V2 fonctionne, mais cette proposition touche une zone qui doit rester sous controle humain.";
 };
 
@@ -877,6 +1019,10 @@ const buildReviewAfterState = (finding) => {
   if (finding.module === "Site Builder") return "L'utilisateur comprend mieux quoi faire et comment ameliorer son projet sans casser le rendu.";
   if (finding.module === "Agent Builder") return "Chaque permission ou action sensible est explicite avant que le Product Lab puisse appliquer un patch.";
   if (finding.module === "Game Builder") return "Le statut beta reste honnete et aucune publication automatique n'est suggeree.";
+  if (finding.module === "Multi-IA / Systeme") return "Les generations restent mieux routees, mieux normalisees et plus stables en cas d'echec provider.";
+  if (finding.module === "Integrations / Templates") return "Les cartes donnent une action claire et gardent des statuts honnetes entre mock, beta et reel.";
+  if (finding.module === "Analytics") return "Le dashboard transforme davantage les signaux en prochaines actions priorisees.";
+  if (finding.module === "Code Health") return "Aucune PR automatique n'est creee tant que lint, tests et build ne sont pas verts.";
   return "Le Product Lab pourra agir au prochain run uniquement si la decision admin l'autorise.";
 };
 
@@ -1017,15 +1163,6 @@ export const runProductLab = ({
 
 export const buildDailyImprovementLines = (theme, safeFindings) => {
   const moduleTarget = benchmarkModules.find((item) => item.module.toLowerCase().includes(theme.id.split("-")[0]));
-  const themeModuleById = {
-    dashboard: "Dashboard",
-    "site-builder": "Site Builder",
-    "agent-builder": "Agent Builder",
-    "game-builder": "Game Builder",
-    "multi-ai": "Multi-IA",
-    "templates-integrations": "Integrations",
-    "audit-roadmap": "Code",
-  };
   const themeModule = themeModuleById[theme.id] ?? theme.label;
   const relevantFindings = safeFindings.filter(
     (finding) => finding.module === themeModule || finding.module === "Product Vision",
