@@ -1,5 +1,5 @@
 {
-  "date": "2026-05-08",
+  "date": "2026-05-09",
   "week": "2026-W19",
   "scores": {
     "Product Quality Score": {
@@ -38,7 +38,7 @@
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "Site Builder Score": {
-      "note": 79,
+      "note": 76,
       "reason": "Base V2 solide avec opportunites d'iteration ciblee.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Ameliorer le brief et les presets niche/conversion.",
@@ -59,7 +59,7 @@
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "Integration Score": {
-      "note": 70,
+      "note": 73,
       "reason": "Base utile mais encore trop dependante de mocks ou d'etats incomplets.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Clarifier statuts mock/reel et connecteurs demandes.",
