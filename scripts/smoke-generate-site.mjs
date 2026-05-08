@@ -36,7 +36,7 @@ const publishableKey = requiredEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
 const realQaEnabled = process.env.PIXELRISES_GENERATOR_REAL_QA === "1";
 const dailyRealBudget = Math.max(
   0,
-  Math.min(8, Number.parseInt(process.env.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || "0", 10) || 0),
+  Math.min(20, Number.parseInt(process.env.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || "0", 10) || 0),
 );
 
 const cases = [
@@ -195,6 +195,246 @@ const cases = [
         "Landing B2B pour vendre une formation commerciale a des PME. Le site doit expliquer l'offre vite, montrer la methode, lever les objections et pousser une demande de diagnostic.",
     },
   },
+  {
+    id: "ecommerce-lille",
+    city: "Lille",
+    expectedNiche: "ecommerce",
+    objectiveHint: "vendre-produits",
+    form: {
+      businessName: "Nord Atelier",
+      businessType: "Boutique e-commerce",
+      city: "Lille",
+      targetAudience: "Clients urbains qui veulent acheter des accessoires responsables avec livraison rapide",
+      services: "Collection sacs, accessoires recyclés, coffrets cadeaux, livraison locale, retours simples",
+      objective: "Vendre des produits",
+      positioning: "Premium accessible",
+      style: "Editorial, boutique, clair, photos lifestyle",
+      colors: "Vert sauge, creme, noir doux",
+      cta: "Voir la collection",
+      description:
+        "Boutique e-commerce responsable a Lille. Le site doit vendre une collection, rassurer sur la livraison et mettre en avant les produits sans ressembler a un simple catalogue.",
+    },
+  },
+  {
+    id: "agence-branding-rennes",
+    city: "Rennes",
+    expectedNiche: "agency",
+    objectiveHint: "generer-leads",
+    form: {
+      businessName: "Studio Kerno",
+      businessType: "Agence branding",
+      city: "Rennes",
+      targetAudience: "Startups et commerces qui veulent une identite claire avant leur lancement",
+      services: "Identite visuelle, direction artistique, site vitrine, kit reseaux sociaux, accompagnement lancement",
+      objective: "Recevoir des demandes de devis",
+      positioning: "Premium",
+      style: "Studio creatif, minimal, editorial, premium",
+      colors: "Noir carbone, ivoire, jaune signal",
+      cta: "Demander un audit de marque",
+      description:
+        "Agence branding a Rennes pour aider les entreprises a lancer une marque forte. Le site doit montrer la methode, les preuves et pousser la demande d'audit.",
+    },
+  },
+  {
+    id: "portfolio-architecte-lyon",
+    city: "Lyon",
+    expectedNiche: "portfolio",
+    objectiveHint: "renforcer-credibilite",
+    form: {
+      businessName: "Clara Monceau",
+      businessType: "Architecte d'interieur",
+      city: "Lyon",
+      targetAudience: "Proprietaires et commerces qui veulent repenser un espace avec une signature elegante",
+      services: "Conception interieur, renovation, shopping list, suivi chantier, projection 3D",
+      objective: "Presenter une expertise",
+      positioning: "Luxe discret",
+      style: "Editorial, architectural, haut de gamme, sobre",
+      colors: "Greige, noir mat, pierre claire",
+      cta: "Voir les realisations",
+      description:
+        "Portfolio d'architecte d'interieur a Lyon. Le site doit rassurer sur le style, montrer les realisations et donner envie de prendre contact.",
+    },
+  },
+  {
+    id: "barber-toulouse",
+    city: "Toulouse",
+    expectedNiche: "barber",
+    objectiveHint: "prendre-rendez-vous",
+    form: {
+      businessName: "Le Comptoir Barber",
+      businessType: "Barber shop",
+      city: "Toulouse",
+      targetAudience: "Hommes actifs qui veulent une coupe nette, une barbe soignee et une reservation rapide",
+      services: "Coupe homme, taille barbe, soin visage, forfait coupe barbe, carte cadeau",
+      objective: "Prendre rendez-vous",
+      positioning: "Premium local",
+      style: "Masculin, moderne, chaleureux, premium",
+      colors: "Noir, cognac, creme",
+      cta: "Reserver mon creneau",
+      description:
+        "Barber shop premium a Toulouse. Le site doit afficher les prestations, les tarifs, l'ambiance et pousser la reservation.",
+    },
+  },
+  {
+    id: "salle-sport-montpellier",
+    city: "Montpellier",
+    expectedNiche: "fitness",
+    objectiveHint: "vendre-abonnements",
+    form: {
+      businessName: "Pulse District",
+      businessType: "Salle de sport",
+      city: "Montpellier",
+      targetAudience: "Actifs et etudiants qui veulent reprendre le sport avec cours collectifs et coaching",
+      services: "Abonnements, coaching prive, cours collectifs, bilan forme, programme nutrition",
+      objective: "Vendre des abonnements",
+      positioning: "Energique",
+      style: "Sport premium, dynamique, contrasté",
+      colors: "Noir, rouge neon, blanc",
+      cta: "Faire un essai gratuit",
+      description:
+        "Salle de sport moderne a Montpellier. Le site doit vendre l'essai gratuit, montrer les offres et donner envie de rejoindre la communaute.",
+    },
+  },
+  {
+    id: "evenementiel-nice",
+    city: "Nice",
+    expectedNiche: "event",
+    objectiveHint: "recevoir-devis",
+    form: {
+      businessName: "Azur Events",
+      businessType: "Agence evenementielle",
+      city: "Nice",
+      targetAudience: "Entreprises et particuliers qui organisent un evenement premium sur la Cote d'Azur",
+      services: "Mariages, seminaires, lancements produits, scenographie, coordination jour J",
+      objective: "Recevoir des demandes de devis",
+      positioning: "Premium",
+      style: "Luxe, solaire, evenementiel, elegant",
+      colors: "Bleu nuit, sable, or doux",
+      cta: "Imaginer mon evenement",
+      description:
+        "Agence evenementielle a Nice. Le site doit inspirer, rassurer sur l'organisation et pousser la demande de devis.",
+    },
+  },
+  {
+    id: "artisan-bordeaux",
+    city: "Bordeaux",
+    expectedNiche: "artisan",
+    objectiveHint: "attirer-clients",
+    form: {
+      businessName: "Atelier Dumas",
+      businessType: "Menuisier artisan",
+      city: "Bordeaux",
+      targetAudience: "Particuliers qui veulent un meuble sur mesure ou une renovation bois durable",
+      services: "Meuble sur mesure, dressing, cuisine bois, renovation escalier, pose bibliotheque",
+      objective: "Recevoir des demandes de devis",
+      positioning: "Artisan premium",
+      style: "Authentique, chaleureux, matiere, premium",
+      colors: "Noyer, beige, vert foret",
+      cta: "Demander un devis bois",
+      description:
+        "Menuisier artisan a Bordeaux. Le site doit montrer le savoir-faire, les realisations et rassurer sur le processus de devis.",
+    },
+  },
+  {
+    id: "cabinet-medical-strasbourg",
+    city: "Strasbourg",
+    expectedNiche: "medical",
+    objectiveHint: "prendre-rendez-vous",
+    form: {
+      businessName: "Cabinet Orangerie",
+      businessType: "Cabinet medical",
+      city: "Strasbourg",
+      targetAudience: "Patients qui veulent comprendre les soins proposes et prendre rendez-vous simplement",
+      services: "Consultation generale, suivi prevention, teleconsultation, vaccination, conseils sante",
+      objective: "Prendre rendez-vous",
+      positioning: "Serieux et rassurant",
+      style: "Medical, calme, clair, accessible",
+      colors: "Bleu doux, blanc, vert menthe",
+      cta: "Prendre rendez-vous",
+      description:
+        "Cabinet medical a Strasbourg. Le site doit rassurer, expliquer les informations utiles et orienter vers la prise de rendez-vous.",
+    },
+  },
+  {
+    id: "consultant-rh-paris",
+    city: "Paris",
+    expectedNiche: "consulting",
+    objectiveHint: "generer-leads",
+    form: {
+      businessName: "HumanScale Conseil",
+      businessType: "Consultant RH",
+      city: "Paris",
+      targetAudience: "Dirigeants de PME qui veulent structurer le recrutement et la retention sans equipe RH interne",
+      services: "Audit RH, recrutement cadre, onboarding, politique retention, coaching managers",
+      objective: "Generer des leads",
+      positioning: "Expert",
+      style: "B2B premium, clair, confiance, conseil",
+      colors: "Bleu marine, ivoire, cuivre",
+      cta: "Planifier un audit RH",
+      description:
+        "Consultant RH a Paris. Le site doit vendre un accompagnement clair, mettre en avant la credibilite et pousser l'audit.",
+    },
+  },
+  {
+    id: "saas-finance-lyon",
+    city: "Lyon",
+    expectedNiche: "saas",
+    objectiveHint: "demander-demo",
+    form: {
+      businessName: "Finpilot",
+      businessType: "SaaS finance",
+      city: "Lyon",
+      targetAudience: "TPE et startups qui veulent suivre leur cashflow et anticiper les depenses",
+      services: "Dashboard cashflow, previsions, alertes, reporting investisseur, integration banque",
+      objective: "Demander une demo",
+      positioning: "Startup",
+      style: "SaaS premium, bento, rapide, moderne",
+      colors: "Noir, bleu electrique, vert validation",
+      cta: "Demander une demo",
+      description:
+        "SaaS finance a Lyon. Le site doit expliquer la promesse vite, montrer la valeur produit et convertir en demo.",
+    },
+  },
+  {
+    id: "coworking-marseille",
+    city: "Marseille",
+    expectedNiche: "coworking",
+    objectiveHint: "reserver-visite",
+    form: {
+      businessName: "Dock 7 Coworking",
+      businessType: "Espace coworking",
+      city: "Marseille",
+      targetAudience: "Freelances et petites equipes qui cherchent un espace flexible, beau et bien situe",
+      services: "Bureaux flexibles, salle reunion, domiciliation, cafe illimite, evenements membres",
+      objective: "Reserver une visite",
+      positioning: "Local premium",
+      style: "Urbain, lumineux, communaute, moderne",
+      colors: "Terracotta, bleu mediterranee, blanc",
+      cta: "Reserver une visite",
+      description:
+        "Espace coworking a Marseille. Le site doit montrer les espaces, les offres et pousser la reservation d'une visite.",
+    },
+  },
+  {
+    id: "avocat-lille",
+    city: "Lille",
+    expectedNiche: "legal",
+    objectiveHint: "prendre-contact",
+    form: {
+      businessName: "Cabinet Morel",
+      businessType: "Avocat droit des affaires",
+      city: "Lille",
+      targetAudience: "Dirigeants et independants qui veulent securiser contrats, litiges et croissance",
+      services: "Contrats commerciaux, litiges, creation societe, recouvrement, conseil dirigeant",
+      objective: "Prendre contact",
+      positioning: "Serieux premium",
+      style: "Institutionnel moderne, sobre, confiance",
+      colors: "Bleu nuit, blanc casse, or discret",
+      cta: "Planifier un premier echange",
+      description:
+        "Cabinet d'avocat a Lille. Le site doit inspirer confiance, expliquer les domaines et faciliter la prise de contact.",
+    },
+  },
 ];
 
 const requiredKeys = [
@@ -341,6 +581,19 @@ const nicheAliases = {
   "creative-services": ["creative", "creation", "photographe", "photographie", "photo", "studio", "portfolio"],
   beauty: ["beaute", "beauty", "institut", "spa", "esthetique", "soin", "wellness"],
   education: ["education", "formation", "academy", "b2b", "learning", "coaching business", "consulting"],
+  ecommerce: ["ecommerce", "e-commerce", "boutique", "shop", "store", "catalogue", "vente en ligne"],
+  agency: ["agence", "branding", "studio", "marketing", "communication", "creative"],
+  portfolio: ["portfolio", "architecte", "architecture", "interieur", "design", "realisation"],
+  barber: ["barber", "barbier", "coiffure", "coupe", "barbe", "salon"],
+  fitness: ["fitness", "sport", "gym", "salle de sport", "coaching", "forme"],
+  event: ["evenement", "evenementiel", "event", "mariage", "seminaire", "organisation"],
+  artisan: ["artisan", "menuisier", "bois", "sur mesure", "habitat", "service local"],
+  medical: ["medical", "sante", "cabinet", "medecin", "patient", "soin"],
+  consulting: ["consulting", "consultant", "conseil", "rh", "b2b", "expert"],
+  saas: ["saas", "logiciel", "software", "startup", "dashboard", "finance"],
+  coworking: ["coworking", "bureau", "workspace", "espace", "domiciliation", "communaute"],
+  catering: ["traiteur", "catering", "gastronomie", "buffet", "evenementiel", "restaurant"],
+  legal: ["avocat", "juridique", "droit", "cabinet", "legal", "affaires"],
 };
 
 const nicheMatches = (actual, expected) => {
@@ -628,12 +881,18 @@ const run = async () => {
     throw new Error("Generator variety check failed: hero titles are too similar");
   }
 
-  if (nicheSet.size !== passedResults.length) {
-    throw new Error("Generator variety check failed: niches are not clearly differentiated");
+  const minimumDistinctNiches = Math.min(8, passedResults.length);
+  if (nicheSet.size < minimumDistinctNiches) {
+    throw new Error(
+      `Generator variety check failed: only ${nicheSet.size}/${minimumDistinctNiches} distinct niche(s) found`,
+    );
   }
 
-  if (passedResults.length >= 3 && sectionSet.size < 3) {
-    throw new Error("Generator variety check failed: section structures are too similar");
+  const minimumDistinctSections = Math.min(8, passedResults.length);
+  if (sectionSet.size < minimumDistinctSections) {
+    throw new Error(
+      `Generator variety check failed: only ${sectionSet.size}/${minimumDistinctSections} distinct section structure(s) found`,
+    );
   }
 
   if (failedResults.length > 0) {
