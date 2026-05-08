@@ -6,6 +6,7 @@ export type ProductLabAutomationAction = "hold" | "authorize_next_run" | "ignore
 export type ProductLabFindingDecision = "auto_safe" | "human_validation";
 export type ProductLabApplicationStatus = "pending" | "pr_ready" | "skipped" | "validation_failed";
 export type ProductLabScope = "v2" | "v1";
+export type ProductLabQueueSource = "supabase" | "public" | "fallback";
 
 export interface ProductLabReviewItem {
   id: string;
@@ -30,6 +31,8 @@ export interface ProductLabReviewItem {
 
 export interface ProductLabReviewQueue {
   generatedAt: string;
+  loadSource?: ProductLabQueueSource;
+  loadedAt?: string;
   sourceRun: {
     date: string;
     week: string;
@@ -538,10 +541,14 @@ export const loadProductLabReviewQueue = async (scope: ProductLabScope = "v2"): 
   ]);
 
   if (remoteQueue && publicQueue) {
-    return getQueueTimestamp(publicQueue) > getQueueTimestamp(remoteQueue) ? publicQueue : remoteQueue;
+    return getQueueTimestamp(publicQueue) > getQueueTimestamp(remoteQueue)
+      ? withQueueLoadMeta(publicQueue, "public")
+      : withQueueLoadMeta(remoteQueue, "supabase");
   }
 
-  return remoteQueue ?? publicQueue ?? config.fallbackQueue;
+  if (remoteQueue) return withQueueLoadMeta(remoteQueue, "supabase");
+  if (publicQueue) return withQueueLoadMeta(publicQueue, "public");
+  return withQueueLoadMeta(config.fallbackQueue, "fallback");
 };
 
 export const mergeProductLabReviewItems = (
@@ -616,3 +623,9 @@ const getQueueTimestamp = (queue: ProductLabReviewQueue | null) => {
   const timestamp = Date.parse(queue?.generatedAt ?? "");
   return Number.isNaN(timestamp) ? 0 : timestamp;
 };
+
+const withQueueLoadMeta = (queue: ProductLabReviewQueue, loadSource: ProductLabQueueSource): ProductLabReviewQueue => ({
+  ...queue,
+  loadSource,
+  loadedAt: new Date().toISOString(),
+});

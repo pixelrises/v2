@@ -38,6 +38,7 @@ import {
   type ProductLabAutomationAction,
   type ProductLabDecisionMap,
   type ProductLabDecisionStatus,
+  type ProductLabQueueSource,
   type ProductLabRejectionMode,
   type ProductLabScope,
   type ProductLabReviewQueue,
@@ -62,6 +63,27 @@ const productLabScopeOptions: Array<{
     description: "Generateur V1 separe, suivi depuis le meme admin sans melanger les tables.",
   },
 ];
+
+const productLabQueueSourceMeta: Record<
+  ProductLabQueueSource,
+  { label: string; tone: string; description: string }
+> = {
+  supabase: {
+    label: "Supabase live",
+    tone: "border-green-400/20 bg-green-400/10 text-green-200",
+    description: "Les propositions viennent de la base et sont pretes pour validation admin.",
+  },
+  public: {
+    label: "JSON secours",
+    tone: "border-blue-400/20 bg-blue-400/10 text-blue-200",
+    description: "Les propositions viennent du fichier public de secours; les decisions restent synchronisables.",
+  },
+  fallback: {
+    label: "Fallback local",
+    tone: "border-amber-400/20 bg-amber-400/10 text-amber-200",
+    description: "Aucune file live n'a ete trouvee; l'admin affiche une carte de configuration.",
+  },
+};
 
 interface UserRow {
   user_id: string;
@@ -751,6 +773,23 @@ const Admin = () => {
     [productLabDecisions, productLabQueue, productLabScopeConfig.fallbackQueue],
   );
   const productLabReviewStats = useMemo(() => getProductLabReviewStats(productLabReviewItems), [productLabReviewItems]);
+  const productLabQueueSource = productLabQueue?.loadSource ?? "fallback";
+  const productLabQueueSourceInfo = productLabQueueSourceMeta[productLabQueueSource];
+  const productLabGeneratedAt = useMemo(() => {
+    const timestamp = Date.parse(productLabQueue?.generatedAt ?? "");
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return "En attente";
+    return new Date(timestamp).toLocaleString("fr-FR");
+  }, [productLabQueue?.generatedAt]);
+  const productLabFreshness = useMemo(() => {
+    const timestamp = Date.parse(productLabQueue?.generatedAt ?? "");
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return "Pas encore alimente";
+    const hours = Math.max(0, (Date.now() - timestamp) / 1000 / 60 / 60);
+    if (hours < 30) return "A jour";
+    if (hours < 168) return "Ancien, a surveiller";
+    return "Trop ancien, relancer le workflow";
+  }, [productLabQueue?.generatedAt]);
+  const productLabDisplayedCount = productLabReviewItems.length;
+  const productLabExpectedCount = productLabQueue?.summary.total ?? productLabDisplayedCount;
 
   const updateProductLabDecision = async (
     item: ProductLabReviewItemWithDecision,
@@ -1348,6 +1387,9 @@ const Admin = () => {
                     <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary">
                       Mode conseille: auto-safe + validation humaine
                     </span>
+                    <span className={`rounded-full border px-3 py-1 text-xs ${productLabQueueSourceInfo.tone}`}>
+                      File: {productLabQueueSourceInfo.label}
+                    </span>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
@@ -1420,6 +1462,13 @@ const Admin = () => {
                   {productLabQueue?.sourceRun.reportPath || "non charge"}.
                 </p>
                 <p className="mt-1">
+                  Etat file : {productLabQueueSourceInfo.label} - {productLabQueueSourceInfo.description}
+                </p>
+                <p className="mt-1">
+                  Derniere generation : {productLabGeneratedAt}. Fraicheur : {productLabFreshness}. Propositions affichees :{" "}
+                  {productLabDisplayedCount}/{productLabExpectedCount}.
+                </p>
+                <p className="mt-1">
                   Resume du jour : {productLabQueue?.summary.dailySummary || "Actions sensibles a valider avant application."}
                 </p>
                 <p className="mt-1">
@@ -1434,6 +1483,13 @@ const Admin = () => {
                   provider IA, production ou suppression majeure restent bloques sans action humaine explicite.
                 </p>
               </div>
+
+              {productLabDisplayedCount !== productLabExpectedCount && (
+                <div className="mt-4 rounded-2xl border border-red-400/25 bg-red-400/[0.08] p-4 text-sm leading-6 text-red-100">
+                  <strong>Verification requise:</strong> la file annonce {productLabExpectedCount} proposition(s), mais
+                  l'admin en affiche {productLabDisplayedCount}. Recharge ou relance le workflow avant de valider.
+                </div>
+              )}
             </div>
 
             {productLabLoading ? (
