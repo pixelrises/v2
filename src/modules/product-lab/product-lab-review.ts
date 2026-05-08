@@ -5,6 +5,7 @@ export type ProductLabRejectionMode = "ignore" | "alternative" | null;
 export type ProductLabAutomationAction = "hold" | "authorize_next_run" | "ignore" | "request_alternative";
 export type ProductLabFindingDecision = "auto_safe" | "human_validation";
 export type ProductLabApplicationStatus = "pending" | "pr_ready" | "skipped" | "validation_failed";
+export type ProductLabScope = "v2" | "v1";
 
 export interface ProductLabReviewItem {
   id: string;
@@ -70,7 +71,15 @@ export interface ProductLabReviewItemWithDecision extends ProductLabReviewItem {
   localDecision: ProductLabDecision;
 }
 
-const PRODUCT_LAB_DECISIONS_KEY = "pixelrises-v2-product-lab-decisions";
+interface ProductLabScopeConfig {
+  scope: ProductLabScope;
+  label: string;
+  reviewTable: string;
+  decisionsTable: string;
+  storageKey: string;
+  publicQueuePath: string;
+  fallbackQueue: ProductLabReviewQueue;
+}
 
 type DbError = { message: string } | null;
 
@@ -170,13 +179,87 @@ export const fallbackProductLabReviewQueue: ProductLabReviewQueue = {
   ],
 };
 
+export const fallbackProductLabV1ReviewQueue: ProductLabReviewQueue = {
+  generatedAt: new Date(0).toISOString(),
+  sourceRun: {
+    date: "v1-pending",
+    week: "v1-pending",
+    theme: "Product Lab V1",
+    reportPath: "reports/product-lab-v1/daily/",
+  },
+  summary: {
+    total: 1,
+    maxAutoSafePatches: 2,
+    sensitiveChangesRequireApproval: true,
+    dailySummary:
+      "Le Product Lab V1 est pret cote admin. Les propositions apparaitront ici quand le workflow V1 alimentera Supabase.",
+    averageScore: 0,
+    lowestScore: {
+      name: "Product Lab V1",
+      note: 0,
+    },
+  },
+  items: [
+    {
+      id: "v1-product-lab-setup",
+      title: "Brancher le Product Lab V1",
+      module: "Product Lab V1",
+      simpleSummary:
+        "Connecter la V1 a ses tables separees pour auditer le generateur V1 et remonter les decisions dans cet admin.",
+      priority: "Critique",
+      impact: "Eleve",
+      risk: "Faible",
+      difficulty: "Moyenne",
+      status: "A brancher",
+      inspiration: "Linear / Vercel",
+      decision: "human_validation",
+      description:
+        "La V1 doit utiliser product_lab_v1_review_items et product_lab_v1_decisions, sans melanger les donnees V2.",
+      scoreImpact: 30,
+      sourceReport: "reports/product-lab-v1/daily/",
+      automationPolicy:
+        "Validation humaine requise. Cette carte est un placeholder admin tant que le workflow V1 ne publie pas encore ses propositions.",
+      concernedFiles: [
+        "C:/Users/rkf/Documents/New project/pixelrises-export/.github/workflows",
+        "product_lab_v1_review_items",
+        "product_lab_v1_decisions",
+      ],
+      beforeState: "La V1 n'alimente pas encore le centre de validation commun.",
+      afterState: "Les propositions V1 seront visibles et decidables depuis ce meme admin.",
+    },
+  ],
+};
+
+export const productLabScopeConfigs: Record<ProductLabScope, ProductLabScopeConfig> = {
+  v2: {
+    scope: "v2",
+    label: "Pixelrises V2",
+    reviewTable: "product_lab_review_items",
+    decisionsTable: "product_lab_decisions",
+    storageKey: "pixelrises-v2-product-lab-decisions",
+    publicQueuePath: "/product-lab-review.json",
+    fallbackQueue: fallbackProductLabReviewQueue,
+  },
+  v1: {
+    scope: "v1",
+    label: "Pixelrises V1",
+    reviewTable: "product_lab_v1_review_items",
+    decisionsTable: "product_lab_v1_decisions",
+    storageKey: "pixelrises-v1-product-lab-decisions",
+    publicQueuePath: "/product-lab-v1-review.json",
+    fallbackQueue: fallbackProductLabV1ReviewQueue,
+  },
+};
+
+export const getProductLabScopeConfig = (scope: ProductLabScope = "v2") => productLabScopeConfigs[scope];
+
 const canUseBrowserStorage = () => typeof window !== "undefined" && Boolean(window.localStorage);
 
-export const readProductLabDecisions = (): ProductLabDecisionMap => {
+export const readProductLabDecisions = (scope: ProductLabScope = "v2"): ProductLabDecisionMap => {
   if (!canUseBrowserStorage()) return {};
 
   try {
-    const raw = window.localStorage.getItem(PRODUCT_LAB_DECISIONS_KEY);
+    const raw = window.localStorage.getItem(getProductLabScopeConfig(scope).storageKey);
     return raw ? (JSON.parse(raw) as ProductLabDecisionMap) : {};
   } catch {
     return {};
@@ -193,6 +276,7 @@ export const writeProductLabDecision = (
     rejectionMode?: ProductLabRejectionMode;
     automationAction?: ProductLabAutomationAction;
   } = {},
+  scope: ProductLabScope = "v2",
 ) => {
   const nextDecisions: ProductLabDecisionMap = {
     ...decisions,
@@ -220,18 +304,19 @@ export const writeProductLabDecision = (
   };
 
   if (canUseBrowserStorage()) {
-    window.localStorage.setItem(PRODUCT_LAB_DECISIONS_KEY, JSON.stringify(nextDecisions));
+    window.localStorage.setItem(getProductLabScopeConfig(scope).storageKey, JSON.stringify(nextDecisions));
   }
 
   return nextDecisions;
 };
 
-export const readProductLabDecisionsFromSupabase = async (): Promise<{
+export const readProductLabDecisionsFromSupabase = async (scope: ProductLabScope = "v2"): Promise<{
   decisions: ProductLabDecisionMap;
   persisted: boolean;
   error?: string;
 }> => {
-  const localDecisions = readProductLabDecisions();
+  const config = getProductLabScopeConfig(scope);
+  const localDecisions = readProductLabDecisions(scope);
   if (!isSupabaseConfigured) return { decisions: localDecisions, persisted: false };
 
   try {
@@ -239,7 +324,7 @@ export const readProductLabDecisionsFromSupabase = async (): Promise<{
     if (!sessionData.session?.user.id) return { decisions: localDecisions, persisted: false };
 
     const { data, error } = await dynamicSupabase
-      .from("product_lab_decisions")
+      .from(config.decisionsTable)
       .select(
         "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,application_status,processed_at,processed_run",
       )
@@ -274,7 +359,7 @@ export const readProductLabDecisionsFromSupabase = async (): Promise<{
 
     const merged = { ...localDecisions, ...remoteDecisions };
     if (canUseBrowserStorage()) {
-      window.localStorage.setItem(PRODUCT_LAB_DECISIONS_KEY, JSON.stringify(merged));
+      window.localStorage.setItem(config.storageKey, JSON.stringify(merged));
     }
 
     return { decisions: merged, persisted: true };
@@ -291,7 +376,9 @@ export const persistProductLabDecisionToSupabase = async (
   decision: ProductLabDecision,
   item: ProductLabReviewItem,
   queue: ProductLabReviewQueue,
+  scope: ProductLabScope = "v2",
 ): Promise<{ persisted: boolean; error?: string }> => {
+  const config = getProductLabScopeConfig(scope);
   if (!isSupabaseConfigured) return { persisted: false };
 
   try {
@@ -299,7 +386,7 @@ export const persistProductLabDecisionToSupabase = async (
     const userId = sessionData.session?.user.id;
     if (!userId) return { persisted: false, error: "Session admin absente." };
 
-    const { error } = await dynamicSupabase.from("product_lab_decisions").upsert(
+    const { error } = await dynamicSupabase.from(config.decisionsTable).upsert(
       {
         item_id: decision.itemId,
         source_run: queue.sourceRun,
@@ -328,7 +415,8 @@ export const persistProductLabDecisionToSupabase = async (
   }
 };
 
-export const readProductLabReviewQueueFromSupabase = async (): Promise<ProductLabReviewQueue | null> => {
+export const readProductLabReviewQueueFromSupabase = async (scope: ProductLabScope = "v2"): Promise<ProductLabReviewQueue | null> => {
+  const config = getProductLabScopeConfig(scope);
   if (!isSupabaseConfigured) return null;
 
   try {
@@ -336,7 +424,7 @@ export const readProductLabReviewQueueFromSupabase = async (): Promise<ProductLa
     if (!sessionData.session?.user.id) return null;
 
     const { data, error } = await dynamicSupabase
-      .from("product_lab_review_items")
+      .from(config.reviewTable)
       .select("item_id,source_run,queue_summary,review_item,generated_at")
       .order("generated_at", { ascending: false })
       .limit(100);
@@ -344,7 +432,14 @@ export const readProductLabReviewQueueFromSupabase = async (): Promise<ProductLa
     if (error || !Array.isArray(data) || data.length === 0) return null;
 
     const rows = data.filter(isObject);
-    const items = rows
+    const latest = rows[0] ?? {};
+    const sourceRun = isObject(latest.source_run) ? latest.source_run : {};
+    const currentRunKey = getSourceRunKey(sourceRun);
+    const currentRows = currentRunKey
+      ? rows.filter((row) => getSourceRunKey(isObject(row.source_run) ? row.source_run : {}) === currentRunKey)
+      : rows;
+
+    const items = currentRows
       .map((row) =>
         normalizeReviewItem(
           row.review_item,
@@ -355,8 +450,6 @@ export const readProductLabReviewQueueFromSupabase = async (): Promise<ProductLa
 
     if (!items.length) return null;
 
-    const latest = rows[0] ?? {};
-    const sourceRun = isObject(latest.source_run) ? latest.source_run : {};
     const queueSummary = isObject(latest.queue_summary) ? latest.queue_summary : {};
 
     return {
@@ -404,20 +497,33 @@ export const readProductLabReviewQueueFromSupabase = async (): Promise<ProductLa
   }
 };
 
-export const loadProductLabReviewQueue = async (): Promise<ProductLabReviewQueue> => {
-  const remoteQueue = await readProductLabReviewQueueFromSupabase();
-  if (remoteQueue) return remoteQueue;
+const readProductLabReviewQueueFromPublic = async (scope: ProductLabScope): Promise<ProductLabReviewQueue | null> => {
+  const config = getProductLabScopeConfig(scope);
 
-  if (typeof fetch !== "function") return fallbackProductLabReviewQueue;
+  if (typeof fetch !== "function") return null;
 
   try {
-    const response = await fetch(`/product-lab-review.json?t=${Date.now()}`);
-    if (!response.ok) return fallbackProductLabReviewQueue;
+    const response = await fetch(`${config.publicQueuePath}?t=${Date.now()}`);
+    if (!response.ok) return null;
     const queue = (await response.json()) as ProductLabReviewQueue;
-    return Array.isArray(queue.items) ? queue : fallbackProductLabReviewQueue;
+    return Array.isArray(queue.items) ? queue : null;
   } catch {
-    return fallbackProductLabReviewQueue;
+    return null;
   }
+};
+
+export const loadProductLabReviewQueue = async (scope: ProductLabScope = "v2"): Promise<ProductLabReviewQueue> => {
+  const config = getProductLabScopeConfig(scope);
+  const [remoteQueue, publicQueue] = await Promise.all([
+    readProductLabReviewQueueFromSupabase(scope),
+    readProductLabReviewQueueFromPublic(scope),
+  ]);
+
+  if (remoteQueue && publicQueue) {
+    return getQueueTimestamp(publicQueue) > getQueueTimestamp(remoteQueue) ? publicQueue : remoteQueue;
+  }
+
+  return remoteQueue ?? publicQueue ?? config.fallbackQueue;
 };
 
 export const mergeProductLabReviewItems = (
@@ -483,4 +589,12 @@ const normalizeAutomationAction = (action: unknown): ProductLabAutomationAction 
 const normalizeApplicationStatus = (status: unknown): ProductLabApplicationStatus => {
   if (status === "pr_ready" || status === "skipped" || status === "validation_failed") return status;
   return "pending";
+};
+
+const getSourceRunKey = (sourceRun: Record<string, unknown>) =>
+  [sourceRun.date, sourceRun.week, sourceRun.theme].filter((value) => typeof value === "string").join("|");
+
+const getQueueTimestamp = (queue: ProductLabReviewQueue | null) => {
+  const timestamp = Date.parse(queue?.generatedAt ?? "");
+  return Number.isNaN(timestamp) ? 0 : timestamp;
 };

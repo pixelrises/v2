@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   exportProductLabDecisions,
+  fallbackProductLabV1ReviewQueue,
   fallbackProductLabReviewQueue,
   getProductLabReviewStats,
   mergeProductLabReviewItems,
@@ -75,5 +76,32 @@ describe("Product Lab admin review", () => {
     expect(decisions[item.id].rejectionMode).toBe("alternative");
     expect(decisions[item.id].automationAction).toBe("request_alternative");
     expect(exported).toContain("plus simple et plus premium");
+  });
+
+  it("keeps V1 and V2 admin decisions isolated", () => {
+    const v2Item = fallbackProductLabReviewQueue.items[0];
+    const v1Item = fallbackProductLabV1ReviewQueue.items[0];
+    const v2Decisions = writeProductLabDecision(
+      {} as ProductLabDecisionMap,
+      v2Item.id,
+      "approved",
+      "OK V2.",
+      { automationAction: "authorize_next_run" },
+      "v2",
+    );
+    const v1Decisions = writeProductLabDecision(
+      {} as ProductLabDecisionMap,
+      v1Item.id,
+      "needs_review",
+      "A revoir V1.",
+      { automationAction: "hold" },
+      "v1",
+    );
+
+    expect(v2Decisions[v2Item.id].status).toBe("approved");
+    expect(v2Decisions[v1Item.id]).toBeUndefined();
+    expect(v1Decisions[v1Item.id].status).toBe("needs_review");
+    expect(v1Decisions[v2Item.id]).toBeUndefined();
+    expect(fallbackProductLabV1ReviewQueue.sourceRun.theme).toContain("V1");
   });
 });

@@ -27,7 +27,7 @@ import { sanitizeTextDeep } from "@/lib/text-sanitize";
 import { resolvePublishedSiteUrl } from "@/lib/published-site";
 import {
   exportProductLabDecisions,
-  fallbackProductLabReviewQueue,
+  getProductLabScopeConfig,
   getProductLabReviewStats,
   loadProductLabReviewQueue,
   mergeProductLabReviewItems,
@@ -39,11 +39,29 @@ import {
   type ProductLabDecisionMap,
   type ProductLabDecisionStatus,
   type ProductLabRejectionMode,
+  type ProductLabScope,
   type ProductLabReviewQueue,
   type ProductLabReviewItemWithDecision,
 } from "@/modules/product-lab/product-lab-review";
 
 type Tab = "overview" | "users" | "credits" | "sites" | "payments" | "leads" | "product-lab";
+
+const productLabScopeOptions: Array<{
+  id: ProductLabScope;
+  label: string;
+  description: string;
+}> = [
+  {
+    id: "v2",
+    label: "Pixelrises V2",
+    description: "Plateforme SaaS, builders, Multi-IA, Supabase et Vercel AI Gateway.",
+  },
+  {
+    id: "v1",
+    label: "Pixelrises V1",
+    description: "Generateur V1 separe, suivi depuis le meme admin sans melanger les tables.",
+  },
+];
 
 interface UserRow {
   user_id: string;
@@ -245,14 +263,18 @@ const Admin = () => {
   const [creditInput, setCreditInput] = useState<Record<string, string>>({});
   const [monthlyGrantLoading, setMonthlyGrantLoading] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [productLabScope, setProductLabScope] = useState<ProductLabScope>("v2");
   const [productLabQueue, setProductLabQueue] = useState<ProductLabReviewQueue | null>(null);
   const [productLabLoading, setProductLabLoading] = useState(true);
-  const [productLabDecisions, setProductLabDecisions] = useState<ProductLabDecisionMap>(() => readProductLabDecisions());
+  const [productLabDecisions, setProductLabDecisions] = useState<ProductLabDecisionMap>(() =>
+    readProductLabDecisions("v2"),
+  );
   const [productLabNotes, setProductLabNotes] = useState<Record<string, string>>({});
   const [productLabCorrectionRequests, setProductLabCorrectionRequests] = useState<Record<string, string>>({});
   const [productLabPersistence, setProductLabPersistence] = useState<"loading" | "supabase" | "localStorage">("loading");
   const [productLabPersistenceError, setProductLabPersistenceError] = useState<string | null>(null);
   const [productLabDecisionSaving, setProductLabDecisionSaving] = useState<string | null>(null);
+  const productLabScopeConfig = getProductLabScopeConfig(productLabScope);
 
   const loadAdminData = useCallback(async () => {
     const [profilesRes, creditsRes, sitesRes, rolesRes, leadsRes, eventsRes, creditTransactionsRes] =
@@ -358,18 +380,18 @@ const Admin = () => {
 
   const loadProductLabQueue = useCallback(async () => {
     setProductLabLoading(true);
-    const queue = await loadProductLabReviewQueue();
+    const queue = await loadProductLabReviewQueue(productLabScope);
     setProductLabQueue(sanitizeTextDeep(queue));
     setProductLabLoading(false);
-  }, []);
+  }, [productLabScope]);
 
   const loadProductLabDecisionsState = useCallback(async () => {
     setProductLabPersistence("loading");
-    const result = await readProductLabDecisionsFromSupabase();
+    const result = await readProductLabDecisionsFromSupabase(productLabScope);
     setProductLabDecisions(sanitizeTextDeep(result.decisions));
     setProductLabPersistence(result.persisted ? "supabase" : "localStorage");
     setProductLabPersistenceError(result.error ?? null);
-  }, []);
+  }, [productLabScope]);
 
   useEffect(() => {
     const init = async () => {
@@ -436,6 +458,12 @@ const Admin = () => {
     void loadProductLabQueue();
     void loadProductLabDecisionsState();
   }, [loadProductLabDecisionsState, loadProductLabQueue]);
+
+  useEffect(() => {
+    setProductLabNotes({});
+    setProductLabCorrectionRequests({});
+    setProductLabDecisionSaving(null);
+  }, [productLabScope]);
 
   const refreshAdminData = async () => {
     setRefreshing(true);
@@ -719,8 +747,8 @@ const Admin = () => {
     `${entry.display_name || ""} ${entry.source_type || ""} ${entry.user_id}`.toLowerCase().includes(search.toLowerCase()),
   );
   const productLabReviewItems = useMemo(
-    () => mergeProductLabReviewItems(productLabQueue ?? { ...fallbackProductLabReviewQueue, items: [] }, productLabDecisions),
-    [productLabDecisions, productLabQueue],
+    () => mergeProductLabReviewItems(productLabQueue ?? { ...productLabScopeConfig.fallbackQueue, items: [] }, productLabDecisions),
+    [productLabDecisions, productLabQueue, productLabScopeConfig.fallbackQueue],
   );
   const productLabReviewStats = useMemo(() => getProductLabReviewStats(productLabReviewItems), [productLabReviewItems]);
 
@@ -736,11 +764,18 @@ const Admin = () => {
     const itemId = item.id;
     const note = productLabNotes[itemId]?.trim() || fallbackNote;
     const correctionRequest = productLabCorrectionRequests[itemId]?.trim() || "";
-    const nextDecisions = writeProductLabDecision(productLabDecisions, itemId, status, note, {
-      correctionRequest,
-      rejectionMode: options.rejectionMode,
-      automationAction: options.automationAction,
-    });
+    const nextDecisions = writeProductLabDecision(
+      productLabDecisions,
+      itemId,
+      status,
+      note,
+      {
+        correctionRequest,
+        rejectionMode: options.rejectionMode,
+        automationAction: options.automationAction,
+      },
+      productLabScope,
+    );
     setProductLabDecisions(nextDecisions);
     setProductLabNotes((previous) => ({ ...previous, [itemId]: note }));
     setProductLabCorrectionRequests((previous) => ({ ...previous, [itemId]: correctionRequest }));
@@ -748,7 +783,7 @@ const Admin = () => {
 
     const decision = nextDecisions[itemId];
     const persistenceResult = productLabQueue
-      ? await persistProductLabDecisionToSupabase(decision, item, productLabQueue)
+      ? await persistProductLabDecisionToSupabase(decision, item, productLabQueue, productLabScope)
       : { persisted: false };
 
     if (persistenceResult.persisted) {
@@ -789,7 +824,7 @@ const Admin = () => {
       await navigator.clipboard.writeText(payload);
       toast({
         title: "Decisions copiees",
-        description: "Le JSON reprend vos validations, corrections demandees et actions automation.",
+        description: `Le JSON reprend les validations ${productLabScopeConfig.label}, corrections demandees et actions automation.`,
       });
     } catch {
       toast({
@@ -1290,6 +1325,10 @@ const Admin = () => {
                     Les changements sensibles proposes par l'automatisation arrivent ici avec resume, risque,
                     fichiers concernes et avant/apres. Une validation autorise le Product Lab a agir au prochain run.
                   </p>
+                  <p className="mt-2 max-w-3xl text-xs leading-6 text-muted-foreground">
+                    Les tests quotidiens valident la qualite du code. Les cartes ci-dessous sont les vraies
+                    ameliorations actionnables a valider, corriger ou refuser.
+                  </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <span
                       className={`rounded-full border px-3 py-1 text-xs ${
@@ -1327,10 +1366,33 @@ const Admin = () => {
                 </div>
               </div>
 
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                {productLabScopeOptions.map((option) => {
+                  const isActive = option.id === productLabScope;
+
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setProductLabScope(option.id)}
+                      className={`rounded-2xl border p-4 text-left transition hover:border-primary/40 hover:bg-primary/[0.05] ${
+                        isActive
+                          ? "border-primary/45 bg-primary/[0.1] shadow-[0_0_0_1px_rgba(245,197,24,0.12)]"
+                          : "border-white/10 bg-black/20"
+                      }`}
+                    >
+                      <span className="text-sm font-semibold text-foreground">{option.label}</span>
+                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">{option.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               {productLabPersistence !== "supabase" && (
                 <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/[0.08] p-4 text-sm leading-6 text-amber-100">
-                  <strong>Attention:</strong> les validations visibles ici sont gardees dans ce navigateur. Elles ne
-                  seront pas appliquees par GitHub Actions tant que la synchronisation Supabase n'est pas active.
+                  <strong>Attention:</strong> les validations {productLabScopeConfig.label} visibles ici sont gardees
+                  dans ce navigateur. Elles ne seront pas appliquees par GitHub Actions tant que la synchronisation
+                  Supabase n'est pas active.
                   {productLabPersistenceError ? (
                     <span className="mt-1 block text-amber-200/80">Detail: {productLabPersistenceError}</span>
                   ) : null}
@@ -1354,7 +1416,7 @@ const Admin = () => {
 
               <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-muted-foreground">
                 <p>
-                  Source automation : {productLabQueue?.sourceRun.theme || "Product Lab"} - rapport{" "}
+                  Source automation {productLabScopeConfig.label} : {productLabQueue?.sourceRun.theme || "Product Lab"} - rapport{" "}
                   {productLabQueue?.sourceRun.reportPath || "non charge"}.
                 </p>
                 <p className="mt-1">
@@ -1569,7 +1631,8 @@ const Admin = () => {
               </div>
             ) : (
               <div className="premium-shell-muted p-6 text-sm leading-7 text-muted-foreground">
-                Aucun changement sensible en attente. Le Product Lab peut continuer les patches auto_safe limites a 2.
+                Aucun changement sensible en attente pour {productLabScopeConfig.label}. Le Product Lab peut continuer
+                les patches auto_safe limites a 2 et envoyer ici les decisions importantes.
               </div>
             )}
           </div>
