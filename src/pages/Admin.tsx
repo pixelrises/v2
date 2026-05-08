@@ -1447,6 +1447,14 @@ const Admin = () => {
                   const isSyncedApproval =
                     item.localDecision.status === "approved" && item.localDecision.persisted === "supabase";
                   const applicationStatus = item.localDecision.applicationStatus ?? "pending";
+                  const prUrl =
+                    typeof item.localDecision.processedRun?.prUrl === "string"
+                      ? item.localDecision.processedRun.prUrl
+                      : "";
+                  const prNumber =
+                    typeof item.localDecision.processedRun?.prNumber === "number"
+                      ? item.localDecision.processedRun.prNumber
+                      : null;
                   const decisionLabel =
                     item.localDecision.status === "approved"
                       ? applicationStatus === "pr_ready"
@@ -1503,6 +1511,16 @@ const Admin = () => {
                           <p>Inspiration : {item.inspiration}</p>
                           {item.localDecision.processedAt ? (
                             <p>Run traite : {new Date(item.localDecision.processedAt).toLocaleString("fr-FR")}</p>
+                          ) : null}
+                          {prUrl ? (
+                            <a
+                              href={prUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary underline-offset-4 hover:underline"
+                            >
+                              PR Product Lab{prNumber ? ` #${prNumber}` : ""}
+                            </a>
                           ) : null}
                         </div>
                       </div>

@@ -326,7 +326,9 @@ export const readProductLabDecisionsFromSupabase = async (scope: ProductLabScope
     const { data, error } = await dynamicSupabase
       .from(config.decisionsTable)
       .select(
-        "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,application_status,processed_at,processed_run",
+        config.scope === "v1"
+          ? "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,pr_url,pr_number,pr_ready_at"
+          : "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,application_status,processed_at,processed_run",
       )
       .order("decided_at", { ascending: false })
       .limit(500);
@@ -339,19 +341,30 @@ export const readProductLabDecisionsFromSupabase = async (scope: ProductLabScope
       const record = row as Record<string, unknown>;
       const itemId = typeof record.item_id === "string" ? record.item_id : "";
       if (!itemId) return accumulator;
+      const isV1PrReady = config.scope === "v1" && record.status === "pr_ready";
+      const prUrl = typeof record.pr_url === "string" ? record.pr_url : "";
+      const prNumber = typeof record.pr_number === "number" ? record.pr_number : null;
+      const prReadyAt = typeof record.pr_ready_at === "string" ? record.pr_ready_at : "";
 
       accumulator[itemId] = {
         itemId,
-        status: normalizeDecisionStatus(record.status),
+        status: isV1PrReady ? "approved" : normalizeDecisionStatus(record.status),
         note: typeof record.admin_note === "string" ? record.admin_note : "",
         correctionRequest:
           typeof record.correction_request === "string" ? record.correction_request : "",
         rejectionMode: normalizeRejectionMode(record.rejection_mode),
         automationAction: normalizeAutomationAction(record.automation_action),
         decidedAt: typeof record.decided_at === "string" ? record.decided_at : "",
-        applicationStatus: normalizeApplicationStatus(record.application_status),
-        processedAt: typeof record.processed_at === "string" ? record.processed_at : "",
-        processedRun: isObject(record.processed_run) ? record.processed_run : {},
+        applicationStatus: isV1PrReady ? "pr_ready" : normalizeApplicationStatus(record.application_status),
+        processedAt:
+          typeof record.processed_at === "string"
+            ? record.processed_at
+            : prReadyAt,
+        processedRun: isObject(record.processed_run)
+          ? record.processed_run
+          : prUrl
+            ? { prUrl, prNumber }
+            : {},
         persisted: "supabase",
       };
       return accumulator;
@@ -386,24 +399,29 @@ export const persistProductLabDecisionToSupabase = async (
     const userId = sessionData.session?.user.id;
     if (!userId) return { persisted: false, error: "Session admin absente." };
 
-    const { error } = await dynamicSupabase.from(config.decisionsTable).upsert(
-      {
-        item_id: decision.itemId,
-        source_run: queue.sourceRun,
-        review_item: item,
-        status: decision.status,
-        admin_note: decision.note,
-        correction_request: decision.correctionRequest,
-        rejection_mode: decision.rejectionMode,
-        automation_action: decision.automationAction,
-        application_status: "pending",
-        processed_at: null,
-        processed_run: {},
-        decided_by: userId,
-        decided_at: decision.decidedAt || new Date().toISOString(),
-      },
-      { onConflict: "item_id" },
-    );
+    const basePayload = {
+      item_id: decision.itemId,
+      source_run: queue.sourceRun,
+      review_item: item,
+      status: decision.status,
+      admin_note: decision.note,
+      correction_request: decision.correctionRequest,
+      rejection_mode: decision.rejectionMode,
+      automation_action: decision.automationAction,
+      decided_by: userId,
+      decided_at: decision.decidedAt || new Date().toISOString(),
+    };
+    const payload =
+      config.scope === "v1"
+        ? basePayload
+        : {
+            ...basePayload,
+            application_status: "pending",
+            processed_at: null,
+            processed_run: {},
+          };
+
+    const { error } = await dynamicSupabase.from(config.decisionsTable).upsert(payload, { onConflict: "item_id" });
 
     if (error) return { persisted: false, error: error.message };
     return { persisted: true };
@@ -458,11 +476,11 @@ export const readProductLabReviewQueueFromSupabase = async (scope: ProductLabSco
       sourceRun: {
         date: typeof sourceRun.date === "string" ? sourceRun.date : "supabase",
         week: typeof sourceRun.week === "string" ? sourceRun.week : "supabase",
-        theme: typeof sourceRun.theme === "string" ? sourceRun.theme : "Product Lab",
+        theme: typeof sourceRun.theme === "string" ? sourceRun.theme : config.label,
         reportPath:
           typeof sourceRun.reportPath === "string"
             ? sourceRun.reportPath
-            : "reports/product-lab/daily/",
+            : config.fallbackQueue.sourceRun.reportPath,
       },
       summary: {
         total: typeof queueSummary.total === "number" ? queueSummary.total : items.length,

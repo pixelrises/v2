@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-05-08T12:54:49.293Z",
+  "sourceRun": {
+    "date": "2026-05-08",
+    "week": "2026-05-08",
+    "theme": "Generateur IA Pixelrises V1",
+    "reportPath": "reports/nightly/2026-05-08-generator-report.md"
+  },
+  "summary": {
+    "total": 5,
+    "maxAutoSafePatches": 2,
+    "sensitiveChangesRequireApproval": true,
+    "dailySummary": "Product Lab a transforme l'audit generateur en 5 propositions validables. Aucune modification n'est appliquee sans validation admin.",
+    "averageScore": 91,
+    "lowestScore": {
+      "name": "Location voiture Paris",
+      "note": 91
+    }
+  },
+  "items": [
+    {
+      "id": "continuous-designVariety",
+      "title": "Augmenter la variete visuelle des generations",
+      "module": "Design / Archetypes",
+      "simpleSummary": "Faire varier la composition, le rythme, les cards, les images, les palettes et les sections selon le brief. Moyenne: 8/10, cas le plus faible: Location voiture Paris (8/10).",
+      "priority": "Confort",
+      "impact": "Moyen",
+      "risk": "Faible",
+      "difficulty": "Moyenne",
+      "status": "Propose",
+      "inspiration": "Lovable / v0 / Mobbin / 21st.dev",
+      "decision": "auto_safe",
+      "description": "Ajouter un apprentissage qui choisit un layout recipe distinct par niche/objectif et evite la repetition de la meme structure.",
+      "scoreImpact": 10,
+      "sourceReport": "reports/nightly/2026-05-08-generator-report.md",
+      "automationPolicy": "Validation admin requise. Si tu valides, le prochain run ajoute l'apprentissage au prompt backend du generateur, lance les checks et ouvre une PR sans merge ni prod automatique.",
+      "concernedFiles": [
+        "supabase/functions/generate-site/index.ts",
+        "src/pages/Preview.tsx"
+      ],
+      "beforeState": "Le score designVariety tourne a 8/10, avec Location voiture Paris a 8/10.",
+      "afterState": "Deux generations proches ne sortent plus avec le meme hero, la meme grille, les memes CTA et le meme rythme."
+    },
+    {
+      "id": "continuous-faqUsefulness",
+      "title": "Transformer la FAQ en levee d'objections",
+      "module": "FAQ / Reassurance",
+      "simpleSummary": "Remplacer les questions plates par des objections utiles : prix, delai, fonctionnement, confiance, disponibilite. Moyenne: 8/10, cas le plus faible: Location voiture Paris (8/10).",
+      "priority": "Confort",
+      "impact": "Moyen",
+      "risk": "Faible",
+      "difficulty": "Moyenne",
+      "status": "Propose",
+      "inspiration": "Lovable / v0 / Mobbin / 21st.dev",
+      "decision": "auto_safe",
+      "description": "Ajouter une consigne qui relie chaque FAQ a une objection client concrete et a une reponse courte orientee action.",
+      "scoreImpact": 10,
+      "sourceReport": "reports/nightly/2026-05-08-generator-report.md",
+      "automationPolicy": "Validation admin requise. Si tu valides, le prochain run ajoute l'apprentissage au prompt backend du generateur, lance les checks et ouvre une PR sans merge ni prod automatique.",
+      "concernedFiles": [
+        "supabase/functions/generate-site/index.ts"
+      ],
+      "beforeState": "Le score faqUsefulness tourne a 8/10, avec Location voiture Paris a 8/10.",
+      "afterState": "La FAQ rassure vraiment avant l'action au lieu de repeter des phrases interchangeables."
+    },
+    {
+      "id": "continuous-heroQuality",
+      "title": "Durcir le hero pour vendre en 3 secondes",
+      "module": "Hero / Copywriting",
+      "simpleSummary": "Forcer un hero specifique au metier, a la ville et au resultat client au lieu d'un titre directory ou trop vague. Moyenne: 9/10, cas le plus faible: Location voiture Paris (9/10).",
+      "priority": "Confort",
+      "impact": "Moyen",
+      "risk": "Faible",
+      "difficulty": "Moyenne",
+      "status": "Propose",
+      "inspiration": "Lovable / v0 / Mobbin / 21st.dev",
+      "decision": "auto_safe",
+      "description": "Ajouter des exemples anti-generiques par niche et renforcer la verification titre/sous-titre/CTA dans le quality gate.",
+      "scoreImpact": 6,
+      "sourceReport": "reports/nightly/2026-05-08-generator-report.md",
+      "automationPolicy": "Validation admin requise. Si tu valides, le prochain run ajoute l'apprentissage au prompt backend du generateur, lance les checks et ouvre une PR sans merge ni prod automatique.",
+      "concernedFiles": [
+        "supabase/functions/generate-site/index.ts",
+        "src/pages/Preview.tsx"
+      ],
+      "beforeState": "Le score heroQuality tourne a 9/10, avec Location voiture Paris a 9/10.",
+      "afterState": "Le visiteur comprend vite l'offre, pour qui elle existe, pourquoi elle compte et quoi faire ensuite."
+    },
+    {
+      "id": "continuous-structureFit",
+      "title": "Adapter la structure au vrai parcours client",
+      "module": "Structure business",
+      "simpleSummary": "Faire varier sectionOrder selon vendre plus, credibilite, reservation, lead ou service local. Moyenne: 9/10, cas le plus faible: Location voiture Paris (9/10).",
+      "priority": "Confort",
+      "impact": "Moyen",
+      "risk": "Faible",
+      "difficulty": "Moyenne",
+      "status": "Propose",
+      "inspiration": "Lovable / v0 / Mobbin / 21st.dev",
+      "decision": "auto_safe",
+      "description": "Renforcer les recettes one-page, landing, vitrine premium et tunnel client pour que l'ordre des sections serve la conversion.",
+      "scoreImpact": 6,
+      "sourceReport": "reports/nightly/2026-05-08-generator-report.md",
+      "automationPolicy": "Validation admin requise. Si tu valides, le prochain run ajoute l'apprentissage au prompt backend du generateur, lance les checks et ouvre une PR sans merge ni prod automatique.",
+      "concernedFiles": [
+        "supabase/functions/generate-site/index.ts"
+      ],
+      "beforeState": "Le score structureFit tourne a 9/10, avec Location voiture Paris a 9/10.",
+      "afterState": "La structure n'est plus un template unique : elle suit l'objectif business et les objections de la cible."
+    },
+    {
+      "id": "continuous-localSeo",
+      "title": "Rendre le SEO local plus naturel et utile",
+      "module": "SEO local",
+      "simpleSummary": "Mieux utiliser ville, zone, quartiers, intentions locales et FAQ sans bourrage de mots-cles. Moyenne: 9/10, cas le plus faible: Location voiture Paris (9/10).",
+      "priority": "Confort",
+      "impact": "Moyen",
+      "risk": "Faible",
+      "difficulty": "Moyenne",
+      "status": "Propose",
+      "inspiration": "Lovable / v0 / Mobbin / 21st.dev",
+      "decision": "auto_safe",
+      "description": "Ajouter des consignes SEO local par niche pour title, meta, H1/H2, FAQ et signaux de proximite.",
+      "scoreImpact": 6,
+      "sourceReport": "reports/nightly/2026-05-08-generator-report.md",
+      "automationPolicy": "Validation admin requise. Si tu valides, le prochain run ajoute l'apprentissage au prompt backend du generateur, lance les checks et ouvre une PR sans merge ni prod automatique.",
+      "concernedFiles": [
+        "supabase/functions/generate-site/index.ts",
+        "src/pages/Preview.tsx"
+      ],
+      "beforeState": "Le score localSeo tourne a 9/10, avec Location voiture Paris a 9/10.",
+      "afterState": "Les sites locaux expliquent clairement ou ils interviennent et pourquoi ils sont pertinents dans cette ville."
+    }
+  ]
+}

@@ -137,9 +137,9 @@ create table if not exists public.product_lab_v1_decisions (
   correction_request text not null default '',
   rejection_mode text,
   automation_action text not null default 'hold',
-  application_status text not null default 'pending',
-  processed_at timestamptz,
-  processed_run jsonb not null default '{}'::jsonb,
+  pr_url text not null default '',
+  pr_number integer,
+  pr_ready_at timestamptz,
   decided_by uuid references auth.users(id) on delete set null,
   decided_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
@@ -154,9 +154,9 @@ alter table public.product_lab_v1_decisions
   add column if not exists correction_request text not null default '',
   add column if not exists rejection_mode text,
   add column if not exists automation_action text not null default 'hold',
-  add column if not exists application_status text not null default 'pending',
-  add column if not exists processed_at timestamptz,
-  add column if not exists processed_run jsonb not null default '{}'::jsonb,
+  add column if not exists pr_url text not null default '',
+  add column if not exists pr_number integer,
+  add column if not exists pr_ready_at timestamptz,
   add column if not exists decided_by uuid references auth.users(id) on delete set null,
   add column if not exists decided_at timestamptz not null default now(),
   add column if not exists created_at timestamptz not null default now(),
@@ -171,8 +171,9 @@ create index if not exists product_lab_v1_decisions_status_idx
 create index if not exists product_lab_v1_decisions_action_idx
   on public.product_lab_v1_decisions (automation_action, decided_at desc);
 
-create index if not exists product_lab_v1_decisions_application_status_idx
-  on public.product_lab_v1_decisions (application_status, processed_at desc);
+create index if not exists product_lab_v1_decisions_pr_ready_idx
+  on public.product_lab_v1_decisions (pr_ready_at desc)
+  where pr_ready_at is not null;
 
 alter table public.product_lab_v1_decisions enable row level security;
 
