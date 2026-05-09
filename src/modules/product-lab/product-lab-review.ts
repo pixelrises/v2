@@ -84,7 +84,7 @@ interface ProductLabScopeConfig {
   fallbackQueue: ProductLabReviewQueue;
 }
 
-type DbError = { message: string } | null;
+type DbError = { message: string; code?: string; details?: string; hint?: string } | null;
 
 type DynamicQuery = {
   upsert: (value: unknown, options?: unknown) => Promise<{ error: DbError }>;
@@ -99,6 +99,28 @@ type DynamicSupabase = {
 };
 
 const dynamicSupabase = supabase as unknown as DynamicSupabase;
+
+export const isProductLabMissingTableError = (error: unknown) => {
+  if (!error || typeof error !== "object") return false;
+  const record = error as Record<string, unknown>;
+  const text = [record.message, record.details, record.hint, record.code]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    text.includes("could not find the table") ||
+    text.includes("schema cache") ||
+    text.includes("does not exist") ||
+    text.includes("pgrst205") ||
+    text.includes("42p01")
+  );
+};
+
+export const getProductLabMissingTableMessage = (scope: ProductLabScope) =>
+  scope === "v1"
+    ? "Tables Product Lab V1 absentes ou cache Supabase non recharge. Applique la migration supabase/migrations/20260509190000_repair_product_lab_v1_decisions_cache.sql puis relance l'admin."
+    : "Tables Product Lab V2 absentes ou cache Supabase non recharge. Applique les migrations Product Lab V2 puis relance l'admin.";
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -337,7 +359,13 @@ export const readProductLabDecisionsFromSupabase = async (scope: ProductLabScope
       .limit(500);
 
     if (error || !Array.isArray(data)) {
-      return { decisions: localDecisions, persisted: false, error: error?.message };
+      return {
+        decisions: localDecisions,
+        persisted: false,
+        error: isProductLabMissingTableError(error)
+          ? getProductLabMissingTableMessage(config.scope)
+          : error?.message,
+      };
     }
 
     const remoteDecisions = data.reduce<ProductLabDecisionMap>((accumulator, row) => {
@@ -426,7 +454,14 @@ export const persistProductLabDecisionToSupabase = async (
 
     const { error } = await dynamicSupabase.from(config.decisionsTable).upsert(payload, { onConflict: "item_id" });
 
-    if (error) return { persisted: false, error: error.message };
+    if (error) {
+      return {
+        persisted: false,
+        error: isProductLabMissingTableError(error)
+          ? getProductLabMissingTableMessage(config.scope)
+          : error.message,
+      };
+    }
     return { persisted: true };
   } catch (error) {
     return {

@@ -3,7 +3,9 @@ import {
   exportProductLabDecisions,
   fallbackProductLabV1ReviewQueue,
   fallbackProductLabReviewQueue,
+  getProductLabMissingTableMessage,
   getProductLabReviewStats,
+  isProductLabMissingTableError,
   mergeProductLabReviewItems,
   writeProductLabDecision,
   type ProductLabDecisionMap,
@@ -103,5 +105,16 @@ describe("Product Lab admin review", () => {
     expect(v1Decisions[v1Item.id].status).toBe("needs_review");
     expect(v1Decisions[v2Item.id]).toBeUndefined();
     expect(fallbackProductLabV1ReviewQueue.sourceRun.theme).toContain("V1");
+  });
+
+  it("turns Supabase schema cache errors into a V1 migration hint", () => {
+    const error = {
+      code: "PGRST205",
+      message: "Could not find the table 'public.product_lab_v1_decisions' in the schema cache",
+      details: "Could not find the table 'public.product_lab_v1_decisions' in the schema cache",
+    };
+
+    expect(isProductLabMissingTableError(error)).toBe(true);
+    expect(getProductLabMissingTableMessage("v1")).toContain("20260509190000_repair_product_lab_v1_decisions_cache.sql");
   });
 });
