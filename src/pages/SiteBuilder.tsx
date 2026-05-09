@@ -32,6 +32,17 @@ import { trackV2Event } from "@/v2/analytics";
 
 type Device = "desktop" | "tablet" | "mobile";
 type MobilePanel = "brief" | "preview";
+type SiteBuilderBrief = {
+  businessName: string;
+  niche: string;
+  city: string;
+  goal: string;
+  targetAudience: string;
+  tier: string;
+  style: string;
+  offer: string;
+  freePrompt: string;
+};
 
 const deviceWidth: Record<Device, string> = {
   desktop: "w-full",
@@ -73,6 +84,32 @@ const defaultSite = createMockSiteProject({
   city: "Lyon",
   goal: "generer des demandes de devis",
 });
+
+const enforceSiteSpecificity = (candidate: NormalizedSiteProject, brief: SiteBuilderBrief) => {
+  const quality = validateSiteProject(candidate);
+  const antiGenericFailed = quality.checks.some(
+    (check) =>
+      !check.passed &&
+      ["site-no-generic-copy", "site-layout-diversity", "site-niche-specificity"].includes(check.id),
+  );
+
+  if (!antiGenericFailed) {
+    return { project: candidate, repaired: false, quality };
+  }
+
+  const repaired = createMockSiteProject({
+    businessName: brief.businessName,
+    niche: brief.niche,
+    city: brief.city,
+    goal: brief.goal,
+    targetAudience: brief.targetAudience,
+    tier: brief.tier,
+    style: brief.style,
+    offer: brief.freePrompt.trim() || brief.offer,
+  });
+
+  return { project: repaired, repaired: true, quality: validateSiteProject(repaired) };
+};
 
 const promptPresets = [
   {
@@ -136,7 +173,7 @@ const visionCheckpoints = [
 ];
 
 const SiteBuilder = () => {
-  const [brief, setBrief] = useState({
+  const [brief, setBrief] = useState<SiteBuilderBrief>({
     businessName: "Atelier Nova",
     niche: "Service local premium",
     city: "Lyon",
@@ -181,11 +218,14 @@ const SiteBuilder = () => {
       const backendOutput = backend.normalizedOutput;
 
       if (backend.success && backendOutput && "pages" in backendOutput) {
-        const next = backendOutput as NormalizedSiteProject;
+        const repairedResult = enforceSiteSpecificity(backendOutput as NormalizedSiteProject, brief);
+        const next = repairedResult.project;
         setSiteProject(next);
-        setGenerationSource(backend.source ?? "real");
+        setGenerationSource(repairedResult.repaired ? "mock-fallback" : (backend.source ?? "real"));
         setGenerationMessage(
-          backend.source === "mock-fallback"
+          repairedResult.repaired
+            ? "Sortie trop generique detectee. Pixelrises a applique un blueprint niche-safe avant affichage."
+            : backend.source === "mock-fallback"
             ? "Backend appele, fallback mock utilise car la generation reelle est indisponible."
             : backend.persisted
               ? "Generation reelle terminee et sauvegardee dans Supabase."
@@ -198,7 +238,7 @@ const SiteBuilder = () => {
           title: next.meta.businessName,
           status: "generated",
           updatedAt: new Date().toISOString(),
-          score: backend.qualityGateResult?.score ?? validateSiteProject(next).score,
+          score: repairedResult.quality.score,
           payload: next,
         });
 
@@ -206,8 +246,9 @@ const SiteBuilder = () => {
           projectType: "site",
           businessName: next.meta.businessName,
           orchestrator: backend.source ?? "real",
-          qualityScore: backend.qualityGateResult?.score,
+          qualityScore: repairedResult.quality.score,
           persisted: backend.persisted,
+          repairedAntiGeneric: repairedResult.repaired,
         });
       } else {
         const orchestrated = await aiOrchestrator.run({
@@ -216,7 +257,7 @@ const SiteBuilder = () => {
           mode: "business",
           context: brief,
         });
-        const next =
+        const candidate =
           orchestrated.projectType === "site" &&
           orchestrated.output &&
           "pages" in (orchestrated.output as NormalizedSiteProject)
@@ -225,15 +266,22 @@ const SiteBuilder = () => {
                 ...brief,
                 offer: brief.freePrompt.trim() || brief.offer,
               });
+        const repairedResult = enforceSiteSpecificity(candidate, brief);
+        const next = repairedResult.project;
 
         setSiteProject(next);
         setGenerationSource("frontend-mock");
-        setGenerationMessage("Fallback frontend utilise. Le backend n'a pas retourne de site exploitable.");
+        setGenerationMessage(
+          repairedResult.repaired
+            ? "Fallback frontend applique avec blueprint niche-safe car la sortie etait trop generique."
+            : "Fallback frontend utilise. Le backend n'a pas retourne de site exploitable.",
+        );
         trackV2Event("generation_completed", {
           projectType: "site",
           businessName: brief.businessName,
           orchestrator: "frontend-mock",
-          qualityScore: orchestrated.quality.score,
+          qualityScore: repairedResult.quality.score,
+          repairedAntiGeneric: repairedResult.repaired,
         });
       }
 
@@ -246,7 +294,8 @@ const SiteBuilder = () => {
         ...brief,
         offer: brief.freePrompt.trim() || brief.offer,
       });
-      setSiteProject(fallback);
+      const repairedResult = enforceSiteSpecificity(fallback, brief);
+      setSiteProject(repairedResult.project);
       setMode("build");
       setMobilePanel("preview");
     } finally {
