@@ -1,156 +1,31 @@
 {
-  "generatedAt": "2026-05-08T13:42:14.756Z",
+  "generatedAt": "2026-05-09T22:48:31.325Z",
   "sourceRun": {
-    "date": "2026-05-08",
+    "date": "2026-05-10",
     "week": "2026-W19",
-    "theme": "Site Builder / Conversion / SEO",
-    "reportPath": "reports/product-lab/daily/daily-2026-05-08.md"
+    "theme": "Audit Global / Refactor / Tests / Roadmap",
+    "reportPath": "reports/product-lab/daily/daily-2026-05-10.md"
   },
   "summary": {
     "total": 8,
     "maxAutoSafePatches": 2,
     "sensitiveChangesRequireApproval": true,
-    "dailySummary": "Theme Site Builder / Conversion / SEO: 8 proposition(s) a valider, modifier ou refuser avant application. Objectif utile: 5-8 propositions max par run.",
-    "averageScore": 76,
+    "dailySummary": "Theme Audit Global / Refactor / Tests / Roadmap: 8 proposition(s) a valider, modifier ou refuser avant application. Objectif utile: 5-8 propositions max par run.",
+    "averageScore": 75,
     "lowestScore": {
       "name": "Analytics Score",
       "note": 68
     },
     "research": {
       "mode": "live",
-      "verifiedSources": 8,
-      "totalSources": 8,
-      "verifiedAt": "2026-05-08T13:42:00.823Z"
+      "verifiedSources": 4,
+      "totalSources": 4,
+      "verifiedAt": "2026-05-09T22:48:23.786Z"
     }
   },
   "items": [
     {
-      "id": "site-builder-site-builder-ameliorer-le-flow-site-builder-preview",
-      "title": "Ameliorer le flow Site Builder preview",
-      "module": "Site Builder",
-      "simpleSummary": "Site Builder: Rendre le chemin idee -> preview -> amelioration plus fluide avec microcopy et actions rapides. Impact eleve, risque faible.",
-      "priority": "Amelioration",
-      "impact": "Eleve",
-      "risk": "Faible",
-      "difficulty": "Moyenne",
-      "status": "Propose",
-      "inspiration": "Lovable / v0",
-      "decision": "auto_safe",
-      "description": "Rendre le chemin idee -> preview -> amelioration plus fluide avec microcopy et actions rapides.",
-      "scoreImpact": 30,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-08.md",
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "concernedFiles": [
-        "src/pages/SiteBuilder.tsx",
-        "src/modules/creation-engine",
-        "supabase/functions/ai-orchestrator/index.ts"
-      ],
-      "evidenceSources": [
-        {
-          "id": "vercel-ai-gateway",
-          "name": "Vercel AI Gateway",
-          "url": "https://vercel.com/docs/ai-gateway",
-          "authority": "official",
-          "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.101Z"
-        },
-        {
-          "id": "github-actions-secrets",
-          "name": "GitHub Actions Secrets",
-          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
-          "authority": "official",
-          "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.823Z"
-        },
-        {
-          "id": "nng-usability-heuristics",
-          "name": "Nielsen Norman Group Usability Heuristics",
-          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
-          "authority": "research",
-          "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.370Z"
-        }
-      ],
-      "beforeState": "Le builder cree deja une experience V2, mais le chemin idee -> preview -> amelioration peut encore gagner en fluidite.",
-      "afterState": "L'utilisateur comprend mieux quoi faire et comment ameliorer son projet sans casser le rendu."
-    },
-    {
-      "id": "site-builder-product-vision-aligner-chaque-patch-sur-la-vision-idee-vers-projet-concret",
-      "title": "Aligner chaque patch sur la vision idee vers projet concret",
-      "module": "Product Vision",
-      "simpleSummary": "Product Vision: Verifier que chaque amelioration renforce la promesse Pixelrises: creer, ameliorer, publier, connecter ou analyser. Impact eleve, risque faible.",
-      "priority": "Important",
-      "impact": "Eleve",
-      "risk": "Faible",
-      "difficulty": "Faible",
-      "status": "En continu",
-      "inspiration": "Lovable / Base44 / Linear",
-      "decision": "auto_safe",
-      "description": "Verifier que chaque amelioration renforce la promesse Pixelrises: creer, ameliorer, publier, connecter ou analyser.",
-      "scoreImpact": 30,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-08.md",
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "concernedFiles": [
-        "docs/product-lab-benchmark-targets.md",
-        "product-lab/backlog.md"
-      ],
-      "evidenceSources": [
-        {
-          "id": "github-actions-secrets",
-          "name": "GitHub Actions Secrets",
-          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
-          "authority": "official",
-          "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.823Z"
-        },
-        {
-          "id": "linear-method",
-          "name": "Linear Method",
-          "url": "https://linear.app/method",
-          "authority": "product-practice",
-          "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.664Z"
-        }
-      ],
-      "beforeState": "La V2 fonctionne, mais cette proposition touche une zone qui doit rester sous controle humain.",
-      "afterState": "Le Product Lab pourra agir au prochain run uniquement si la decision admin l'autorise."
-    },
-    {
-      "id": "site-builder-product-research-ancrer-les-propositions-dans-des-sources-verifiees",
-      "title": "Ancrer les propositions dans des sources verifiees",
-      "module": "Product Research",
-      "simpleSummary": "Product Research: Utiliser les sources fiables allowlistees pour guider les experts Product Lab (8/8 source(s) verifiee(s)). Impact eleve, risque faible.",
-      "priority": "Important",
-      "impact": "Eleve",
-      "risk": "Faible",
-      "difficulty": "Faible",
-      "status": "En continu",
-      "inspiration": "NN/g / Vercel / Supabase / Linear",
-      "decision": "auto_safe",
-      "description": "Utiliser les sources fiables allowlistees pour guider les experts Product Lab (8/8 source(s) verifiee(s)).",
-      "scoreImpact": 30,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-08.md",
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "concernedFiles": [
-        "scripts/product-lab-core.mjs",
-        "product-lab/state/research-sources.json",
-        "reports/product-lab/daily"
-      ],
-      "evidenceSources": [
-        {
-          "id": "github-actions-secrets",
-          "name": "GitHub Actions Secrets",
-          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
-          "authority": "official",
-          "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.823Z"
-        }
-      ],
-      "beforeState": "Le Product Lab utilise deja des inspirations, mais doit distinguer avis interne, source fiable et verification live.",
-      "afterState": "Chaque run relie ses recommandations a une base de sources fiables, verifiee quand le workflow a du reseau."
-    },
-    {
-      "id": "site-builder-code-health-bloquer-toute-pr-si-lint-tests-ou-build-echouent",
+      "id": "audit-roadmap-code-health-bloquer-toute-pr-si-lint-tests-ou-build-echouent",
       "title": "Bloquer toute PR si lint tests ou build echouent",
       "module": "Code Health",
       "simpleSummary": "Code Health: Verifier que l'automatisation ne cree jamais de PR tant que lint, tests et build ne sont pas verts. Impact eleve, risque faible.",
@@ -163,7 +38,7 @@
       "decision": "auto_safe",
       "description": "Verifier que l'automatisation ne cree jamais de PR tant que lint, tests et build ne sont pas verts.",
       "scoreImpact": 30,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-08.md",
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-10.md",
       "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "scripts/product-lab-core.mjs",
@@ -177,7 +52,7 @@
           "url": "https://vercel.com/docs/ai-gateway/models-and-providers",
           "authority": "official",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.223Z"
+          "checkedAt": "2026-05-09T22:48:23.191Z"
         },
         {
           "id": "supabase-rls",
@@ -185,7 +60,7 @@
           "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
           "authority": "official",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.116Z"
+          "checkedAt": "2026-05-09T22:48:23.130Z"
         },
         {
           "id": "github-actions-secrets",
@@ -193,14 +68,89 @@
           "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "authority": "official",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.823Z"
+          "checkedAt": "2026-05-09T22:48:23.319Z"
         }
       ],
       "beforeState": "La CI protege deja le projet, mais le Product Lab doit rester bloque si une validation echoue.",
       "afterState": "Aucune PR automatique n'est creee tant que lint, tests et build ne sont pas verts."
     },
     {
-      "id": "site-builder-agent-builder-durcir-la-securite-des-actions-agents",
+      "id": "audit-roadmap-product-vision-aligner-chaque-patch-sur-la-vision-idee-vers-projet-concret",
+      "title": "Aligner chaque patch sur la vision idee vers projet concret",
+      "module": "Product Vision",
+      "simpleSummary": "Product Vision: Verifier que chaque amelioration renforce la promesse Pixelrises: creer, ameliorer, publier, connecter ou analyser. Impact eleve, risque faible.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Faible",
+      "difficulty": "Faible",
+      "status": "En continu",
+      "inspiration": "Lovable / Base44 / Linear",
+      "decision": "auto_safe",
+      "description": "Verifier que chaque amelioration renforce la promesse Pixelrises: creer, ameliorer, publier, connecter ou analyser.",
+      "scoreImpact": 30,
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-10.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "docs/product-lab-benchmark-targets.md",
+        "product-lab/backlog.md"
+      ],
+      "evidenceSources": [
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-09T22:48:23.319Z"
+        },
+        {
+          "id": "linear-method",
+          "name": "Linear Method",
+          "url": "https://linear.app/method",
+          "authority": "product-practice",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-09T22:48:23.183Z"
+        }
+      ],
+      "beforeState": "La V2 fonctionne, mais cette proposition touche une zone qui doit rester sous controle humain.",
+      "afterState": "Le Product Lab pourra agir au prochain run uniquement si la decision admin l'autorise."
+    },
+    {
+      "id": "audit-roadmap-product-research-ancrer-les-propositions-dans-des-sources-verifiees",
+      "title": "Ancrer les propositions dans des sources verifiees",
+      "module": "Product Research",
+      "simpleSummary": "Product Research: Utiliser les sources fiables allowlistees pour guider les experts Product Lab (4/4 source(s) verifiee(s)). Impact eleve, risque faible.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Faible",
+      "difficulty": "Faible",
+      "status": "En continu",
+      "inspiration": "NN/g / Vercel / Supabase / Linear",
+      "decision": "auto_safe",
+      "description": "Utiliser les sources fiables allowlistees pour guider les experts Product Lab (4/4 source(s) verifiee(s)).",
+      "scoreImpact": 30,
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-10.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "scripts/product-lab-core.mjs",
+        "product-lab/state/research-sources.json",
+        "reports/product-lab/daily"
+      ],
+      "evidenceSources": [
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-09T22:48:23.319Z"
+        }
+      ],
+      "beforeState": "Le Product Lab utilise deja des inspirations, mais doit distinguer avis interne, source fiable et verification live.",
+      "afterState": "Chaque run relie ses recommandations a une base de sources fiables, verifiee quand le workflow a du reseau."
+    },
+    {
+      "id": "audit-roadmap-agent-builder-durcir-la-securite-des-actions-agents",
       "title": "Durcir la securite des actions agents",
       "module": "Agent Builder",
       "simpleSummary": "Agent Builder: Toute action sensible agent doit rester validable et visible. Impact eleve, risque moyen.",
@@ -213,7 +163,7 @@
       "decision": "human_validation",
       "description": "Toute action sensible agent doit rester validable et visible.",
       "scoreImpact": 24,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-08.md",
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-10.md",
       "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "src/pages/AgentBuilder.tsx",
@@ -222,35 +172,19 @@
       ],
       "evidenceSources": [
         {
-          "id": "vercel-ai-gateway",
-          "name": "Vercel AI Gateway",
-          "url": "https://vercel.com/docs/ai-gateway",
-          "authority": "official",
-          "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.101Z"
-        },
-        {
           "id": "github-actions-secrets",
           "name": "GitHub Actions Secrets",
           "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "authority": "official",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.823Z"
-        },
-        {
-          "id": "nng-usability-heuristics",
-          "name": "Nielsen Norman Group Usability Heuristics",
-          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
-          "authority": "research",
-          "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.370Z"
+          "checkedAt": "2026-05-09T22:48:23.319Z"
         }
       ],
       "beforeState": "Les agents existent, mais les actions sensibles doivent rester encore plus visibles et validables.",
       "afterState": "Chaque permission ou action sensible est explicite avant que le Product Lab puisse appliquer un patch."
     },
     {
-      "id": "site-builder-multi-ia-systeme-durcir-le-routing-multi-ia-et-les-fallbacks-gateway",
+      "id": "audit-roadmap-multi-ia-systeme-durcir-le-routing-multi-ia-et-les-fallbacks-gateway",
       "title": "Durcir le routing Multi-IA et les fallbacks Gateway",
       "module": "Multi-IA / Systeme",
       "simpleSummary": "Multi-IA / Systeme: Verifier que chaque builder route vers le bon role IA, normalise la sortie et garde un fallback mock propre. Impact eleve, risque moyen.",
@@ -263,7 +197,7 @@
       "decision": "human_validation",
       "description": "Verifier que chaque builder route vers le bon role IA, normalise la sortie et garde un fallback mock propre.",
       "scoreImpact": 24,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-08.md",
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-10.md",
       "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "src/modules/ai",
@@ -272,20 +206,12 @@
       ],
       "evidenceSources": [
         {
-          "id": "vercel-ai-gateway",
-          "name": "Vercel AI Gateway",
-          "url": "https://vercel.com/docs/ai-gateway",
-          "authority": "official",
-          "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.101Z"
-        },
-        {
           "id": "vercel-ai-gateway-models",
           "name": "Vercel AI Gateway Models & Providers",
           "url": "https://vercel.com/docs/ai-gateway/models-and-providers",
           "authority": "official",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.223Z"
+          "checkedAt": "2026-05-09T22:48:23.191Z"
         },
         {
           "id": "supabase-rls",
@@ -293,14 +219,22 @@
           "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
           "authority": "official",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.116Z"
+          "checkedAt": "2026-05-09T22:48:23.130Z"
+        },
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-09T22:48:23.319Z"
         }
       ],
       "beforeState": "Le routing IA existe, mais chaque builder doit garder une sortie normalisee, verifiee et repliable en mock propre.",
       "afterState": "Les generations restent mieux routees, mieux normalisees et plus stables en cas d'echec provider."
     },
     {
-      "id": "site-builder-dashboard-renforcer-le-dashboard-avec-donnees-v2-reelles",
+      "id": "audit-roadmap-dashboard-renforcer-le-dashboard-avec-donnees-v2-reelles",
       "title": "Renforcer le dashboard avec donnees V2 reelles",
       "module": "Dashboard",
       "simpleSummary": "Dashboard: Augmenter les insights reels Supabase sans supprimer les empty states. Impact eleve, risque moyen.",
@@ -313,7 +247,7 @@
       "decision": "auto_safe",
       "description": "Augmenter les insights reels Supabase sans supprimer les empty states.",
       "scoreImpact": 24,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-08.md",
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-10.md",
       "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "src/pages/Dashboard.tsx",
@@ -326,7 +260,7 @@
           "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
           "authority": "official",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.116Z"
+          "checkedAt": "2026-05-09T22:48:23.130Z"
         },
         {
           "id": "github-actions-secrets",
@@ -334,22 +268,22 @@
           "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "authority": "official",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.823Z"
+          "checkedAt": "2026-05-09T22:48:23.319Z"
         },
         {
-          "id": "nng-usability-heuristics",
-          "name": "Nielsen Norman Group Usability Heuristics",
-          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
-          "authority": "research",
+          "id": "linear-method",
+          "name": "Linear Method",
+          "url": "https://linear.app/method",
+          "authority": "product-practice",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.370Z"
+          "checkedAt": "2026-05-09T22:48:23.183Z"
         }
       ],
       "beforeState": "Le dashboard contient deja la base V2, mais certains signaux restent mockes ou trop peu actionnables.",
       "afterState": "Le dashboard donne une prochaine action plus claire, avec moins de friction et plus de valeur percue."
     },
     {
-      "id": "site-builder-analytics-transformer-analytics-en-recommandations-exploitables",
+      "id": "audit-roadmap-analytics-transformer-analytics-en-recommandations-exploitables",
       "title": "Transformer analytics en recommandations exploitables",
       "module": "Analytics",
       "simpleSummary": "Analytics: Relier les evenements, projets et generations a des prochaines actions lisibles meme quand les donnees reelles sont partielles. Impact eleve, risque moyen.",
@@ -362,7 +296,7 @@
       "decision": "human_validation",
       "description": "Relier les evenements, projets et generations a des prochaines actions lisibles meme quand les donnees reelles sont partielles.",
       "scoreImpact": 24,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-08.md",
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-10.md",
       "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "src/pages/Analytics.tsx",
@@ -376,7 +310,7 @@
           "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
           "authority": "official",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.116Z"
+          "checkedAt": "2026-05-09T22:48:23.130Z"
         },
         {
           "id": "github-actions-secrets",
@@ -384,11 +318,45 @@
           "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "authority": "official",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-08T13:42:00.823Z"
+          "checkedAt": "2026-05-09T22:48:23.319Z"
         }
       ],
       "beforeState": "Les analytics sont prepares, mais les signaux doivent devenir des recommandations plus exploitables.",
       "afterState": "Le dashboard transforme davantage les signaux en prochaines actions priorisees."
+    },
+    {
+      "id": "audit-roadmap-site-builder-ameliorer-le-flow-site-builder-preview",
+      "title": "Ameliorer le flow Site Builder preview",
+      "module": "Site Builder",
+      "simpleSummary": "Site Builder: Rendre le chemin idee -> preview -> amelioration plus fluide avec microcopy et actions rapides. Impact eleve, risque faible.",
+      "priority": "Amelioration",
+      "impact": "Eleve",
+      "risk": "Faible",
+      "difficulty": "Moyenne",
+      "status": "Propose",
+      "inspiration": "Lovable / v0",
+      "decision": "auto_safe",
+      "description": "Rendre le chemin idee -> preview -> amelioration plus fluide avec microcopy et actions rapides.",
+      "scoreImpact": 30,
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-10.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/SiteBuilder.tsx",
+        "src/modules/creation-engine",
+        "supabase/functions/ai-orchestrator/index.ts"
+      ],
+      "evidenceSources": [
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-09T22:48:23.319Z"
+        }
+      ],
+      "beforeState": "Le builder cree deja une experience V2, mais le chemin idee -> preview -> amelioration peut encore gagner en fluidite.",
+      "afterState": "L'utilisateur comprend mieux quoi faire et comment ameliorer son projet sans casser le rendu."
     }
   ]
 }
