@@ -7,6 +7,7 @@ import type {
   PlanModeOutput,
   ProjectType,
 } from "./types";
+import { createNicheSiteProjectParts } from "./site-blueprints";
 
 const slugify = (value: string) =>
   value
@@ -64,13 +65,13 @@ export const createProjectPlan = (request: CreationRequest): PlanModeOutput => {
   };
 };
 
-export const createMockSiteProject = (input: Partial<NormalizedSiteProject["meta"]> & { offer?: string } = {}): NormalizedSiteProject => {
+export const createLegacyMockSiteProject = (input: Partial<NormalizedSiteProject["meta"]> & { offer?: string } = {}): NormalizedSiteProject => {
   const businessName = input.businessName || "Studio Pixel";
   const niche = input.niche || "service premium";
   const city = input.city || "France";
   const goal = input.goal || "générer des demandes qualifiées";
-  const cta = goal.includes("vendre") ? "Acheter maintenant" : "Demander un devis";
   const projectId = input.projectId || nowId("site");
+  const cta = goal.includes("vendre") ? "Acheter maintenant" : "Demander un devis";
 
   return {
     meta: {
@@ -210,6 +211,111 @@ export const createMockSiteProject = (input: Partial<NormalizedSiteProject["meta
         title: "Connecter les analytics",
         description: "Suivre les CTA aide à savoir quoi améliorer après publication.",
         action: "Préparer Analytics",
+      },
+    ],
+  };
+};
+
+export const createMockSiteProject = (
+  input: Partial<NormalizedSiteProject["meta"]> & { offer?: string } = {},
+): NormalizedSiteProject => {
+  const businessName = input.businessName || "Studio Pixel";
+  const niche = input.niche || "service premium";
+  const city = input.city || "France";
+  const goal = input.goal || "generer des demandes qualifiees";
+  const projectId = input.projectId || nowId("site");
+  const targetAudience = input.targetAudience || "clients exigeants";
+  const tier = input.tier || "premium";
+  const style = input.style || "dark gold premium";
+  const siteParts = createNicheSiteProjectParts({
+    businessName,
+    niche,
+    city,
+    goal,
+    offer: input.offer,
+    targetAudience,
+    tier,
+    style,
+  });
+  const sections = siteParts.sections;
+
+  return {
+    meta: {
+      projectId,
+      projectType: "site",
+      businessName,
+      niche,
+      goal,
+      targetAudience,
+      city,
+      tier,
+      style,
+      language: "fr",
+    },
+    strategy: {
+      mainPromise: siteParts.strategy.mainPromise,
+      marketingAngle: siteParts.strategy.marketingAngle,
+      conversionGoal: goal,
+      primaryCTA: siteParts.cta,
+      trustStrategy: siteParts.strategy.trustStrategy,
+      objectionsToHandle: siteParts.strategy.objectionsToHandle,
+    },
+    brand: {
+      name: businessName,
+      tagline: siteParts.brand.tagline,
+      colors: ["#050505", "#F5C542", "#FFFFFF"],
+      fonts: ["Sora", "Inter"],
+      tone: siteParts.brand.tone,
+    },
+    pages: [
+      {
+        slug: "/",
+        title: businessName,
+        sections,
+      },
+    ],
+    seo: {
+      title: `${businessName} | ${niche} premium ${city}`,
+      description: `${businessName} presente une offre ${niche} claire, specifique et orientee conversion pour ${city}.`,
+      keywords: [niche, businessName, "site professionnel", "conversion", siteParts.blueprint.key],
+      localKeywords: [city, `${niche} ${city}`],
+      h1: `${businessName}, ${niche} premium`,
+      h2: sections.slice(1, 4).map((section) => section.title),
+    },
+    business: {
+      offer: input.offer || sections[0].content,
+      valueProposition: siteParts.business.valueProposition,
+      pricingSuggestion: siteParts.business.pricingSuggestion,
+      leadCapture: siteParts.business.leadCapture,
+      trustElements: siteParts.business.trustElements,
+    },
+    conversion: {
+      primaryGoal: goal,
+      ctaStrategy: siteParts.conversion.ctaStrategy,
+      objections: siteParts.conversion.objections,
+      proofElements: siteParts.conversion.proofElements,
+      recommendedSections: siteParts.conversion.recommendedSections,
+    },
+    design: {
+      style,
+      layoutDirection: siteParts.design.layoutDirection,
+      spacing: "genereux",
+      radius: "large",
+      visualMood: siteParts.design.visualMood,
+      components: siteParts.design.components,
+    },
+    recommendations: [
+      {
+        priority: "high",
+        title: "Verifier la specificite de la niche",
+        description: `Chaque section doit parler de ${niche}, de ${city} et de l'objectif "${goal}" sans texte interchangeable.`,
+        action: "Relire les sections generiques",
+      },
+      {
+        priority: "medium",
+        title: "Tester une variation de layout",
+        description: "Changer l'ordre ou la mise en scene d'une section permet d'eviter l'effet template recopie.",
+        action: "Generer une variante",
       },
     ],
   };

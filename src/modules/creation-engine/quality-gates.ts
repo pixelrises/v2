@@ -6,9 +6,15 @@ import type {
   QualityGateCheck,
   QualityGateResult,
 } from "./types";
+import { genericSiteCopyPatterns, resolveSiteBlueprint } from "./site-blueprints";
 
 const hasText = (value: unknown) => typeof value === "string" && value.trim().length > 0;
 const hasItems = (value: unknown) => Array.isArray(value) && value.length > 0;
+const normalize = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
 const buildResult = (projectType: ProjectType, checks: QualityGateCheck[]): QualityGateResult => {
   const requiredChecks = checks.filter((check) => check.severity === "required");
@@ -34,6 +40,29 @@ export const validateSiteProject = (project: NormalizedSiteProject): QualityGate
   const sections = firstPage?.sections ?? [];
   const hero = sections.find((section) => section.type === "hero") ?? sections[0];
   const allVisibleText = JSON.stringify(project).toLowerCase();
+  const normalizedText = normalize(JSON.stringify(project));
+  const blueprint = resolveSiteBlueprint({
+    businessName: project.meta.businessName,
+    niche: project.meta.niche,
+    city: project.meta.city,
+    goal: project.meta.goal,
+    offer: project.business.offer,
+    targetAudience: project.meta.targetAudience,
+    style: project.meta.style,
+  });
+  const uniqueLayouts = new Set(sections.map((section) => section.layout).filter(Boolean));
+  const hasGenericCopy = genericSiteCopyPatterns.some((pattern) => pattern.test(allVisibleText));
+  const normalizedNicheWords = normalize(project.meta.niche)
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length >= 4);
+  const specificitySignals = [
+    normalize(project.meta.businessName),
+    normalize(project.meta.city),
+    ...normalizedNicheWords,
+    ...project.conversion.recommendedSections.map(normalize),
+  ].filter((value) => value.length >= 3);
+  const specificityHitCount = specificitySignals.filter((signal) => normalizedText.includes(signal)).length;
+  const blueprintLayoutHit = sections.some((section) => section.layout.includes(blueprint.key));
 
   return buildResult("site", [
     {
@@ -70,6 +99,34 @@ export const validateSiteProject = (project: NormalizedSiteProject): QualityGate
       passed: sections.length >= 5,
       severity: "recommended",
       message: "Ajouter au moins cinq sections renforce la crédibilité et la conversion.",
+    },
+    {
+      id: "site-no-generic-copy",
+      label: "Anti-template generique",
+      passed: !hasGenericCopy,
+      severity: "required",
+      message: "Le site contient une phrase trop generique ou un reste de template.",
+    },
+    {
+      id: "site-layout-diversity",
+      label: "Layouts varies par niche",
+      passed: uniqueLayouts.size >= Math.min(4, sections.length),
+      severity: "required",
+      message: "Les sections doivent utiliser plusieurs layouts adaptes a la niche, pas le meme template repete.",
+    },
+    {
+      id: "site-niche-specificity",
+      label: "Specificite niche",
+      passed: specificityHitCount >= 3,
+      severity: "required",
+      message: "Le contenu doit citer le business, la ville, la niche ou les enjeux concrets du brief.",
+    },
+    {
+      id: "site-blueprint-fit",
+      label: "Blueprint adapte",
+      passed: blueprintLayoutHit || project.design.components.some((component) => blueprint.components.includes(component)),
+      severity: "recommended",
+      message: "Le layout devrait suivre un blueprint vraiment adapte a la niche detectee.",
     },
     {
       id: "site-no-placeholder",

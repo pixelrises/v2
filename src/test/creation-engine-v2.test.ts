@@ -36,4 +36,50 @@ describe("Pixelrises V2 creation engine", () => {
     expect(gameQuality.passed).toBe(true);
     expect(gameQuality.requiredFixes).toEqual([]);
   });
+
+  it("creates different site blueprints for different niches", () => {
+    const restaurant = createMockSiteProject({
+      businessName: "Maison Riviera",
+      niche: "restaurant premium",
+      city: "Lyon",
+      goal: "obtenir des reservations",
+    });
+    const carRental = createMockSiteProject({
+      businessName: "Drive Elite",
+      niche: "location voiture premium",
+      city: "Paris",
+      goal: "recevoir des demandes de disponibilite",
+    });
+
+    const restaurantLayouts = restaurant.pages[0].sections.map((section) => section.layout);
+    const carRentalLayouts = carRental.pages[0].sections.map((section) => section.layout);
+
+    expect(restaurantLayouts).not.toEqual(carRentalLayouts);
+    expect(restaurant.conversion.recommendedSections.join(" ")).toContain("Menu");
+    expect(carRental.conversion.recommendedSections.join(" ")).toContain("Flotte");
+    expect(validateSiteProject(restaurant).passed).toBe(true);
+    expect(validateSiteProject(carRental).passed).toBe(true);
+  });
+
+  it("blocks generic template-like site output", () => {
+    const generic = createMockSiteProject({
+      businessName: "Projet Test",
+      niche: "service premium",
+      city: "France",
+    });
+
+    generic.pages[0].sections = generic.pages[0].sections.map((section) => ({
+      ...section,
+      title: "Bienvenue sur notre site",
+      subtitle: "Decouvrez nos services de qualite",
+      content: "Votre entreprise propose une solution sur mesure.",
+      layout: "same-template",
+    }));
+
+    const quality = validateSiteProject(generic);
+
+    expect(quality.passed).toBe(false);
+    expect(quality.requiredFixes.join(" ")).toContain("generique");
+    expect(quality.requiredFixes.join(" ")).toContain("layouts");
+  });
 });

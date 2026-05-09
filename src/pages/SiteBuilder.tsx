@@ -45,6 +45,28 @@ const deviceOptions = [
   { key: "mobile", icon: Smartphone },
 ] satisfies { key: Device; icon: typeof Monitor }[];
 
+const previewSectionClass = (layout: string, index: number) => {
+  const base = "p-4 sm:p-8";
+  if (index === 0) return `${base} bg-[radial-gradient(circle_at_top_left,rgba(245,197,66,0.20),transparent_34%),linear-gradient(135deg,rgba(245,197,66,0.08),transparent_55%)]`;
+  if (layout.includes("gallery")) return `${base} bg-white/[0.045]`;
+  if (layout.includes("comparison") || layout.includes("pricing") || layout.includes("cards")) return `${base} bg-black/30`;
+  if (layout.includes("timeline") || layout.includes("steps") || layout.includes("process")) return `${base} border-y border-[#F5C542]/10 bg-[#F5C542]/[0.035]`;
+  if (layout.includes("contact") || layout.includes("booking") || layout.includes("cta")) return `${base} bg-[linear-gradient(135deg,rgba(245,197,66,0.12),rgba(255,255,255,0.025))]`;
+  return base;
+};
+
+const previewItemsClass = (layout: string) => {
+  if (layout.includes("gallery")) return "mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4";
+  if (layout.includes("comparison") || layout.includes("pricing") || layout.includes("cards")) return "mt-5 grid gap-2 sm:grid-cols-3";
+  if (layout.includes("timeline") || layout.includes("steps") || layout.includes("process")) return "mt-5 grid gap-2 sm:grid-cols-4";
+  return "mt-5 flex flex-wrap gap-2";
+};
+
+const previewItemClass = (layout: string) =>
+  layout.includes("gallery") || layout.includes("comparison") || layout.includes("pricing") || layout.includes("timeline")
+    ? "rounded-2xl border border-white/[0.08] bg-black/30 px-3 py-3 text-xs text-white/66"
+    : "rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-xs text-white/62";
+
 const defaultSite = createMockSiteProject({
   businessName: "Atelier Nova",
   niche: "service local premium",
@@ -463,17 +485,15 @@ const SiteBuilder = () => {
             {siteProject.pages[0].sections.map((section, index) => (
               <section
                 key={section.id}
-                className={`p-4 sm:p-8 ${
-                  index === 0 ? "bg-[radial-gradient(circle_at_top_left,rgba(245,197,66,0.18),transparent_34%)]" : ""
-                }`}
+                className={previewSectionClass(section.layout, index)}
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">{section.type}</p>
                 <h3 className="mt-3 text-xl font-semibold tracking-tight sm:text-4xl">{section.title}</h3>
                 <p className="mt-3 text-sm leading-7 text-white/62">{section.subtitle}</p>
                 <p className="mt-3 text-sm leading-7 text-white/48">{section.content}</p>
-                <div className="mt-5 flex flex-wrap gap-2">
+                <div className={previewItemsClass(section.layout)}>
                   {section.items.map((item) => (
-                    <span key={item} className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-xs text-white/62">
+                    <span key={item} className={previewItemClass(section.layout)}>
                       {item}
                     </span>
                   ))}
