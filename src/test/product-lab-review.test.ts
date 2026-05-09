@@ -127,7 +127,7 @@ describe("Product Lab admin review", () => {
     };
 
     expect(isProductLabMissingTableError(error)).toBe(true);
-    expect(getProductLabMissingTableMessage("v1")).toContain("20260509190000_repair_product_lab_v1_decisions_cache.sql");
+    expect(getProductLabMissingTableMessage("v1")).toContain("20260509194500_repair_product_lab_all_admin_tables_cache.sql");
   });
 
   it("turns Supabase schema cache errors into a V2 migration hint", () => {
@@ -138,6 +138,6 @@ describe("Product Lab admin review", () => {
     };
 
     expect(isProductLabMissingTableError(error)).toBe(true);
-    expect(getProductLabMissingTableMessage("v2")).toContain("20260509193000_repair_product_lab_v2_admin_tables_cache.sql");
+    expect(getProductLabMissingTableMessage("v2")).toContain("20260509194500_repair_product_lab_all_admin_tables_cache.sql");
   });
 });
