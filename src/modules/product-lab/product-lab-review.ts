@@ -120,7 +120,7 @@ export const isProductLabMissingTableError = (error: unknown) => {
 export const getProductLabMissingTableMessage = (scope: ProductLabScope) =>
   scope === "v1"
     ? "Tables Product Lab V1 absentes ou cache Supabase non recharge. Applique la migration supabase/migrations/20260509190000_repair_product_lab_v1_decisions_cache.sql puis relance l'admin."
-    : "Tables Product Lab V2 absentes ou cache Supabase non recharge. Applique les migrations Product Lab V2 puis relance l'admin.";
+    : "Tables Product Lab V2 absentes ou cache Supabase non recharge. Applique la migration supabase/migrations/20260509193000_repair_product_lab_v2_admin_tables_cache.sql puis relance l'admin.";
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
