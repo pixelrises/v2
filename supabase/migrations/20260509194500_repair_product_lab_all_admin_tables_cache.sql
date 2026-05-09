@@ -41,7 +41,7 @@ as $$
     select 1
     from public.user_roles
     where user_id = _user_id
-      and role = _role
+      and role::text = _role::text
   );
 $$;
 
