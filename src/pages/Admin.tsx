@@ -85,6 +85,72 @@ const productLabQueueSourceMeta: Record<
   },
 };
 
+type ProductLabPersistenceState = "loading" | "supabase" | "localStorage";
+type ProductLabScopeDashboardStats = ReturnType<typeof getProductLabReviewStats>;
+
+interface ProductLabScopeDashboardState {
+  queue: ProductLabReviewQueue | null;
+  stats: ProductLabScopeDashboardStats;
+  source: ProductLabQueueSource;
+  persistence: ProductLabPersistenceState;
+  error: string | null;
+  generatedAtLabel: string;
+  freshness: string;
+}
+
+const productLabScopes = productLabScopeOptions.map((option) => option.id);
+
+const emptyProductLabStats: ProductLabScopeDashboardStats = {
+  total: 0,
+  pending: 0,
+  approved: 0,
+  rejected: 0,
+  needsReview: 0,
+};
+
+const formatProductLabGeneratedAt = (queue: ProductLabReviewQueue | null) => {
+  const timestamp = Date.parse(queue?.generatedAt ?? "");
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return "En attente";
+  return new Date(timestamp).toLocaleString("fr-FR");
+};
+
+const getProductLabFreshness = (queue: ProductLabReviewQueue | null) => {
+  const timestamp = Date.parse(queue?.generatedAt ?? "");
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return "Pas encore alimente";
+  const hours = Math.max(0, (Date.now() - timestamp) / 1000 / 60 / 60);
+  if (hours < 30) return "A jour";
+  if (hours < 168) return "Ancien, a surveiller";
+  return "Trop ancien, relancer le workflow";
+};
+
+const buildProductLabScopeDashboardState = (
+  queue: ProductLabReviewQueue | null,
+  decisions: ProductLabDecisionMap,
+  persistence: ProductLabPersistenceState,
+  error: string | null,
+): ProductLabScopeDashboardState => {
+  const mergedItems = queue ? mergeProductLabReviewItems(queue, decisions) : [];
+
+  return {
+    queue,
+    stats: queue ? getProductLabReviewStats(mergedItems) : emptyProductLabStats,
+    source: queue?.loadSource ?? "fallback",
+    persistence,
+    error,
+    generatedAtLabel: formatProductLabGeneratedAt(queue),
+    freshness: getProductLabFreshness(queue),
+  };
+};
+
+const createProductLabScopeDashboardDefaults = (): Record<ProductLabScope, ProductLabScopeDashboardState> =>
+  productLabScopes.reduce(
+    (accumulator, scope) => ({
+      ...accumulator,
+      [scope]: buildProductLabScopeDashboardState(null, {}, "loading", null),
+    }),
+    {} as Record<ProductLabScope, ProductLabScopeDashboardState>,
+  );
+
 interface UserRow {
   user_id: string;
   display_name: string | null;
@@ -293,9 +359,12 @@ const Admin = () => {
   );
   const [productLabNotes, setProductLabNotes] = useState<Record<string, string>>({});
   const [productLabCorrectionRequests, setProductLabCorrectionRequests] = useState<Record<string, string>>({});
-  const [productLabPersistence, setProductLabPersistence] = useState<"loading" | "supabase" | "localStorage">("loading");
+  const [productLabPersistence, setProductLabPersistence] = useState<ProductLabPersistenceState>("loading");
   const [productLabPersistenceError, setProductLabPersistenceError] = useState<string | null>(null);
   const [productLabDecisionSaving, setProductLabDecisionSaving] = useState<string | null>(null);
+  const [productLabScopeDashboard, setProductLabScopeDashboard] = useState<Record<ProductLabScope, ProductLabScopeDashboardState>>(
+    () => createProductLabScopeDashboardDefaults(),
+  );
   const productLabScopeConfig = getProductLabScopeConfig(productLabScope);
 
   const loadAdminData = useCallback(async () => {
@@ -415,6 +484,29 @@ const Admin = () => {
     setProductLabPersistenceError(result.error ?? null);
   }, [productLabScope]);
 
+  const loadProductLabScopeDashboard = useCallback(async () => {
+    const entries = await Promise.all(
+      productLabScopes.map(async (scope) => {
+        const [queue, decisionsResult] = await Promise.all([
+          loadProductLabReviewQueue(scope),
+          readProductLabDecisionsFromSupabase(scope),
+        ]);
+
+        return [
+          scope,
+          buildProductLabScopeDashboardState(
+            sanitizeTextDeep(queue),
+            sanitizeTextDeep(decisionsResult.decisions),
+            decisionsResult.persisted ? "supabase" : "localStorage",
+            decisionsResult.error ?? null,
+          ),
+        ] as const;
+      }),
+    );
+
+    setProductLabScopeDashboard(Object.fromEntries(entries) as Record<ProductLabScope, ProductLabScopeDashboardState>);
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       const sessionResult = await resolveWithTimeout(supabase.auth.getSession(), 2000);
@@ -479,7 +571,8 @@ const Admin = () => {
   useEffect(() => {
     void loadProductLabQueue();
     void loadProductLabDecisionsState();
-  }, [loadProductLabDecisionsState, loadProductLabQueue]);
+    void loadProductLabScopeDashboard();
+  }, [loadProductLabDecisionsState, loadProductLabQueue, loadProductLabScopeDashboard]);
 
   useEffect(() => {
     setProductLabNotes({});
@@ -489,7 +582,12 @@ const Admin = () => {
 
   const refreshAdminData = async () => {
     setRefreshing(true);
-    await Promise.all([loadAdminData(), loadProductLabQueue(), loadProductLabDecisionsState()]);
+    await Promise.all([
+      loadAdminData(),
+      loadProductLabQueue(),
+      loadProductLabDecisionsState(),
+      loadProductLabScopeDashboard(),
+    ]);
     setRefreshing(false);
     toast({
       title: "Admin actualisé",
@@ -775,19 +873,8 @@ const Admin = () => {
   const productLabReviewStats = useMemo(() => getProductLabReviewStats(productLabReviewItems), [productLabReviewItems]);
   const productLabQueueSource = productLabQueue?.loadSource ?? "fallback";
   const productLabQueueSourceInfo = productLabQueueSourceMeta[productLabQueueSource];
-  const productLabGeneratedAt = useMemo(() => {
-    const timestamp = Date.parse(productLabQueue?.generatedAt ?? "");
-    if (!Number.isFinite(timestamp) || timestamp <= 0) return "En attente";
-    return new Date(timestamp).toLocaleString("fr-FR");
-  }, [productLabQueue?.generatedAt]);
-  const productLabFreshness = useMemo(() => {
-    const timestamp = Date.parse(productLabQueue?.generatedAt ?? "");
-    if (!Number.isFinite(timestamp) || timestamp <= 0) return "Pas encore alimente";
-    const hours = Math.max(0, (Date.now() - timestamp) / 1000 / 60 / 60);
-    if (hours < 30) return "A jour";
-    if (hours < 168) return "Ancien, a surveiller";
-    return "Trop ancien, relancer le workflow";
-  }, [productLabQueue?.generatedAt]);
+  const productLabGeneratedAt = formatProductLabGeneratedAt(productLabQueue);
+  const productLabFreshness = getProductLabFreshness(productLabQueue);
   const productLabDisplayedCount = productLabReviewItems.length;
   const productLabExpectedCount = productLabQueue?.summary.total ?? productLabDisplayedCount;
 
@@ -853,6 +940,21 @@ const Admin = () => {
       });
     }
 
+    setProductLabScopeDashboard((previous) => ({
+      ...previous,
+      [productLabScope]: buildProductLabScopeDashboardState(
+        productLabQueue,
+        {
+          ...nextDecisions,
+          [itemId]: {
+            ...nextDecisions[itemId],
+            persisted: persistenceResult.persisted ? "supabase" : "localStorage",
+          },
+        },
+        persistenceResult.persisted ? "supabase" : "localStorage",
+        persistenceResult.error ?? null,
+      ),
+    }));
     setProductLabDecisionSaving(null);
   };
 
@@ -1408,23 +1510,83 @@ const Admin = () => {
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-3 md:grid-cols-2">
+              <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-muted-foreground">
+                <strong className="text-foreground">Centre commun, donnees separees.</strong> Tu pilotes V1 et V2 ici,
+                mais chaque Product Lab garde ses tables, son workflow GitHub et son dossier projet. L'admin ne copie
+                pas de code entre les deux versions.
+              </div>
+
+              <div className="mt-5 grid gap-3 lg:grid-cols-2">
                 {productLabScopeOptions.map((option) => {
                   const isActive = option.id === productLabScope;
+                  const status = productLabScopeDashboard[option.id];
+                  const statusMeta = productLabQueueSourceMeta[status.source];
+                  const optionConfig = getProductLabScopeConfig(option.id);
+                  const syncLabel =
+                    status.persistence === "supabase"
+                      ? "Sync live"
+                      : status.persistence === "loading"
+                        ? "Verification"
+                        : "Fallback local";
 
                   return (
                     <button
                       key={option.id}
                       type="button"
                       onClick={() => setProductLabScope(option.id)}
-                      className={`rounded-2xl border p-4 text-left transition hover:border-primary/40 hover:bg-primary/[0.05] ${
+                      className={`rounded-[24px] border p-4 text-left transition hover:border-primary/40 hover:bg-primary/[0.05] ${
                         isActive
                           ? "border-primary/45 bg-primary/[0.1] shadow-[0_0_0_1px_rgba(245,197,24,0.12)]"
                           : "border-white/10 bg-black/20"
                       }`}
                     >
-                      <span className="text-sm font-semibold text-foreground">{option.label}</span>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-foreground">{option.label}</span>
+                        {isActive ? (
+                          <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-primary">
+                            Ouvert
+                          </span>
+                        ) : null}
+                        <span className={`rounded-full border px-2 py-0.5 text-[10px] ${statusMeta.tone}`}>
+                          {statusMeta.label}
+                        </span>
+                      </span>
                       <span className="mt-1 block text-xs leading-5 text-muted-foreground">{option.description}</span>
+
+                      <span className="mt-4 grid gap-2 sm:grid-cols-3">
+                        <span className="rounded-2xl border border-white/10 bg-black/25 p-3">
+                          <span className="block text-lg font-bold text-primary">{status.stats.pending}</span>
+                          <span className="block text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                            A trancher
+                          </span>
+                        </span>
+                        <span className="rounded-2xl border border-white/10 bg-black/25 p-3">
+                          <span className="block text-lg font-bold text-green-300">{status.stats.approved}</span>
+                          <span className="block text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                            Validees
+                          </span>
+                        </span>
+                        <span className="rounded-2xl border border-white/10 bg-black/25 p-3">
+                          <span className="block text-lg font-bold text-foreground">{status.stats.total}</span>
+                          <span className="block text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                            Total
+                          </span>
+                        </span>
+                      </span>
+
+                      <span className="mt-4 block space-y-1 text-xs leading-5 text-muted-foreground">
+                        <span className="block">
+                          {syncLabel} - {status.freshness} - {status.generatedAtLabel}
+                        </span>
+                        <span className="block">
+                          Tables : {optionConfig.reviewTable} / {optionConfig.decisionsTable}
+                        </span>
+                        {status.error ? (
+                          <span className="block rounded-xl border border-amber-400/25 bg-amber-400/[0.08] px-3 py-2 text-amber-100">
+                            {status.error}
+                          </span>
+                        ) : null}
+                      </span>
                     </button>
                   );
                 })}

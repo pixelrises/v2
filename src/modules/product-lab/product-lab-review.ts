@@ -217,7 +217,7 @@ export const fallbackProductLabV1ReviewQueue: ProductLabReviewQueue = {
     maxAutoSafePatches: 2,
     sensitiveChangesRequireApproval: true,
     dailySummary:
-      "Le Product Lab V1 est pret cote admin. Les propositions apparaitront ici quand le workflow V1 alimentera Supabase.",
+      "Le Product Lab V1 est pilote depuis cet admin avec des tables separees. Si cette carte reste visible, verifier le workflow V1, la migration Supabase ou le cache schema.",
     averageScore: 0,
     lowestScore: {
       name: "Product Lab V1",
@@ -239,7 +239,7 @@ export const fallbackProductLabV1ReviewQueue: ProductLabReviewQueue = {
       inspiration: "Linear / Vercel",
       decision: "human_validation",
       description:
-        "La V1 doit utiliser product_lab_v1_review_items et product_lab_v1_decisions, sans melanger les donnees V2.",
+        "La V1 doit continuer a utiliser product_lab_v1_review_items et product_lab_v1_decisions, sans melanger les donnees V2.",
       scoreImpact: 30,
       sourceReport: "reports/product-lab-v1/daily/",
       automationPolicy:
@@ -249,8 +249,8 @@ export const fallbackProductLabV1ReviewQueue: ProductLabReviewQueue = {
         "product_lab_v1_review_items",
         "product_lab_v1_decisions",
       ],
-      beforeState: "La V1 n'alimente pas encore le centre de validation commun.",
-      afterState: "Les propositions V1 seront visibles et decidables depuis ce meme admin.",
+      beforeState: "Le centre commun peut basculer en fallback si les tables ou le cache Supabase V1 ne repondent pas.",
+      afterState: "Les propositions V1 restent visibles et decidables depuis ce meme admin, avec stockage V1 separe.",
     },
   ],
 };

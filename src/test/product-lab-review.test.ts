@@ -5,6 +5,7 @@ import {
   fallbackProductLabReviewQueue,
   getProductLabMissingTableMessage,
   getProductLabReviewStats,
+  getProductLabScopeConfig,
   isProductLabMissingTableError,
   mergeProductLabReviewItems,
   writeProductLabDecision,
@@ -105,6 +106,17 @@ describe("Product Lab admin review", () => {
     expect(v1Decisions[v1Item.id].status).toBe("needs_review");
     expect(v1Decisions[v2Item.id]).toBeUndefined();
     expect(fallbackProductLabV1ReviewQueue.sourceRun.theme).toContain("V1");
+  });
+
+  it("uses separate Product Lab tables for V1 and V2 in the shared admin", () => {
+    const v1 = getProductLabScopeConfig("v1");
+    const v2 = getProductLabScopeConfig("v2");
+
+    expect(v1.reviewTable).toBe("product_lab_v1_review_items");
+    expect(v1.decisionsTable).toBe("product_lab_v1_decisions");
+    expect(v2.reviewTable).toBe("product_lab_review_items");
+    expect(v2.decisionsTable).toBe("product_lab_decisions");
+    expect(v1.storageKey).not.toBe(v2.storageKey);
   });
 
   it("turns Supabase schema cache errors into a V1 migration hint", () => {
