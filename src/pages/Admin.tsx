@@ -391,8 +391,8 @@ const Admin = () => {
   const productLabScopeConfig = getProductLabScopeConfig(productLabScope);
 
   const loadAdminData = useCallback(async () => {
-    const [profilesRes, creditsRes, sitesRes, rolesRes, leadsRes, eventsRes, creditTransactionsRes] =
-      await Promise.all([
+    const adminResults = await resolveWithTimeout(
+      Promise.all([
         supabase.from("profiles").select("user_id, display_name, created_at"),
         supabase.from("user_credits").select("user_id, credits, total_used"),
         supabase
@@ -413,7 +413,24 @@ const Admin = () => {
           .select("id, user_id, delta, source_type, source_id, balance_after, metadata, created_at")
           .order("created_at", { ascending: false })
           .limit(200),
-      ]);
+      ]),
+      ADMIN_REQUEST_TIMEOUT_MS,
+    );
+
+    if (!adminResults) {
+      setUsers([]);
+      setSites([]);
+      setLeads([]);
+      setOrders([]);
+      setCreditTransactions([]);
+      toast({
+        title: "Admin en mode secours",
+        description: "Supabase met trop longtemps a repondre. L'interface reste accessible; clique Recharger pour retenter.",
+      });
+      return;
+    }
+
+    const [profilesRes, creditsRes, sitesRes, rolesRes, leadsRes, eventsRes, creditTransactionsRes] = adminResults;
 
     const profileMap: Record<string, string> = {};
     profilesRes.data?.forEach((profile: ProfileSummaryRow) => {
@@ -592,11 +609,11 @@ const Admin = () => {
       const sessionResult = await resolveWithTimeout(supabase.auth.getSession(), 2000);
       const sessionUser = sessionResult?.data?.session?.user ?? null;
 
-      const {
-        data: { user: fetchedUser },
-      } = sessionUser ? { data: { user: sessionUser } } : await supabase.auth.getUser();
+      const userResult = sessionUser
+        ? { data: { user: sessionUser } }
+        : await resolveWithTimeout(supabase.auth.getUser(), 2000);
 
-      const user = sessionUser ?? fetchedUser;
+      const user = sessionUser ?? userResult?.data?.user ?? null;
 
       if (!user) {
         navigate(buildAuthRoute(getCurrentRelativeUrl()), { replace: true });
@@ -621,12 +638,12 @@ const Admin = () => {
       }
 
       const [roleResult, bootstrapResult] = await Promise.allSettled([
-        fetchAdminRole(),
-        tryBootstrapAdmin(),
+        resolveWithTimeout(fetchAdminRole(), 2500),
+        resolveWithTimeout(tryBootstrapAdmin(), 2500),
       ]);
 
       const hasAdminRole =
-        (roleResult.status === "fulfilled" && Boolean(roleResult.value.data)) ||
+        (roleResult.status === "fulfilled" && Boolean(roleResult.value?.data)) ||
         (bootstrapResult.status === "fulfilled" && Boolean(bootstrapResult.value));
 
       if (!hasAdminRole && !cachedAdmin) {
