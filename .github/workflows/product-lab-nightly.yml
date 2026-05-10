@@ -16,18 +16,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  product-lab:
-    name: Daily Product Lab
+  preflight:
+    name: Product Lab preflight
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    outputs:
+      should_run: ${{ steps.guard.outputs.run }}
+      reason: ${{ steps.guard.outputs.reason }}
 
     steps:
-      - name: Guard midnight Europe/Paris
+      - name: Decide if Product Lab should run
         id: guard
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "reason=Manual run requested." >> "$GITHUB_OUTPUT"
             echo "Manual run requested."
             exit 0
           fi
@@ -35,31 +38,49 @@ jobs:
           paris_hour="$(TZ=Europe/Paris date +%H)"
           if [ "$paris_hour" = "00" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "reason=Running at midnight Europe/Paris." >> "$GITHUB_OUTPUT"
             echo "Running at midnight Europe/Paris."
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping because Europe/Paris hour is $paris_hour, not 00."
+            echo "reason=Skipped because Europe/Paris hour is $paris_hour, not 00." >> "$GITHUB_OUTPUT"
+            echo "Skipped because Europe/Paris hour is $paris_hour, not 00."
           fi
 
+  skip-notice:
+    name: Skip outside midnight Europe/Paris
+    needs: preflight
+    if: needs.preflight.outputs.should_run != 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Explain safe skip
+        run: |
+          echo "${{ needs.preflight.outputs.reason }}"
+          echo "No Product Lab work is expected outside midnight Europe/Paris."
+
+  product-lab:
+    name: Daily Product Lab
+    needs: preflight
+    if: needs.preflight.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
       - name: Checkout
-        if: steps.guard.outputs.run == 'true'
         uses: actions/checkout@v6
 
       - name: Setup Node
-        if: steps.guard.outputs.run == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: npm
 
       - name: Install dependencies
-        if: steps.guard.outputs.run == 'true'
         shell: bash
         run: |
           npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
       - name: Pull admin-approved Product Lab decisions
-        if: steps.guard.outputs.run == 'true'
         continue-on-error: true
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -67,14 +88,12 @@ jobs:
         run: npm run product-lab:decisions:pull
 
       - name: Verify trusted Product Lab research sources
-        if: steps.guard.outputs.run == 'true'
         continue-on-error: true
         env:
           PRODUCT_LAB_RESEARCH_TIMEOUT_MS: "7000"
         run: npm run product-lab:research
 
       - name: Run Product Lab
-        if: steps.guard.outputs.run == 'true'
         env:
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
           PRODUCT_LAB_MAX_PATCHES: "2"
@@ -85,7 +104,6 @@ jobs:
 
       - name: Check V2 generator smoke QA configuration
         id: smoke_preflight
-        if: steps.guard.outputs.run == 'true'
         shell: bash
         env:
           PIXELRISES_GENERATOR_REAL_QA: ${{ vars.PIXELRISES_GENERATOR_REAL_QA || '1' }}
@@ -129,7 +147,7 @@ jobs:
 
       - name: Run V2 generator smoke QA
         id: generator_smoke
-        if: steps.guard.outputs.run == 'true' && steps.smoke_preflight.outputs.ready == 'true'
+        if: steps.smoke_preflight.outputs.ready == 'true'
         continue-on-error: true
         env:
           PIXELRISES_GENERATOR_REAL_QA: ${{ vars.PIXELRISES_GENERATOR_REAL_QA || '1' }}
@@ -144,7 +162,7 @@ jobs:
 
       - name: Push Product Lab proposals to Supabase
         id: proposals_push
-        if: always() && steps.guard.outputs.run == 'true'
+        if: always()
         continue-on-error: true
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -154,25 +172,21 @@ jobs:
 
       - name: Lint
         id: lint
-        if: steps.guard.outputs.run == 'true'
         continue-on-error: true
         run: npm run lint
 
       - name: Test
         id: test
-        if: steps.guard.outputs.run == 'true'
         continue-on-error: true
         run: npm run test
 
       - name: Build
         id: build
-        if: steps.guard.outputs.run == 'true'
         continue-on-error: true
         run: npm run build
 
       - name: Check validation status
         id: validation
-        if: steps.guard.outputs.run == 'true'
         shell: bash
         run: |
           smoke_enabled="${{ steps.smoke_preflight.outputs.enabled }}"
@@ -211,7 +225,6 @@ jobs:
 
       - name: Prepare Product Lab branch name
         id: branch
-        if: steps.guard.outputs.run == 'true'
         shell: bash
         run: |
           paris_date="$(TZ=Europe/Paris date +%F)"
@@ -229,7 +242,6 @@ jobs:
 
       - name: Write validation failure report
         if: >
-          steps.guard.outputs.run == 'true' &&
           steps.validation.outputs.checks_passed == 'false'
         shell: bash
         run: |
@@ -272,7 +284,7 @@ EOF
           EOF
 
       - name: Upload Product Lab report
-        if: always() && steps.guard.outputs.run == 'true'
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: product-lab-report
@@ -290,7 +302,6 @@ EOF
       - name: Create Product Lab PR
         id: create-pr
         if: >
-          steps.guard.outputs.run == 'true' &&
           steps.validation.outputs.checks_passed == 'true' &&
           steps.validation.outputs.has_changes == 'true' &&
           steps.validation.outputs.has_approved_improvements == 'true'
@@ -316,7 +327,6 @@ EOF
 
       - name: Mark approved decisions as PR-ready
         if: >
-          steps.guard.outputs.run == 'true' &&
           steps.validation.outputs.checks_passed == 'true' &&
           steps.validation.outputs.has_approved_improvements == 'true' &&
           steps.create-pr.outcome == 'success'
@@ -328,14 +338,12 @@ EOF
 
       - name: Report blocked Product Lab PR
         if: >
-          steps.guard.outputs.run == 'true' &&
           steps.validation.outputs.checks_passed == 'false'
         run: |
           echo "::warning title=Product Lab PR blocked::No PR was created because smoke QA, lint, tests, or build did not pass. The report artifact explains the blocker."
 
       - name: Fail if Product Lab admin sync failed
         if: >
-          steps.guard.outputs.run == 'true' &&
           steps.proposals_push.outcome != 'success'
         run: |
           echo "::error title=Product Lab admin sync failed::The workflow could not push review proposals to Supabase, so the admin would not show the new suggestions."
