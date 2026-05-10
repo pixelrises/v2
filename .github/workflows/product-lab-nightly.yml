@@ -15,6 +15,12 @@ concurrency:
   group: pixelrises-product-lab
   cancel-in-progress: false
 
+env:
+  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL || 'https://hxbbktdqrswnuarbzhsl.supabase.co' }}
+  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_w-EqzKSgOru4Bfvlcprwjg_4Oq1o4jW' }}
+  PIXELRISES_GENERATOR_REAL_QA: ${{ vars.PIXELRISES_GENERATOR_REAL_QA || '1' }}
+  PIXELRISES_GENERATOR_DAILY_REAL_BUDGET: ${{ vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '20' }}
+
 jobs:
   product-lab:
     name: Daily Product Lab
@@ -69,7 +75,6 @@ jobs:
         continue-on-error: true
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
         run: npm run product-lab:decisions:pull
 
       - name: Verify trusted Product Lab research sources
@@ -94,13 +99,9 @@ jobs:
         if: steps.guard.outputs.run == 'true'
         shell: bash
         env:
-          PIXELRISES_GENERATOR_REAL_QA: ${{ vars.PIXELRISES_GENERATOR_REAL_QA || '1' }}
-          PIXELRISES_GENERATOR_DAILY_REAL_BUDGET: ${{ vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '20' }}
           PIXELRISES_SMOKE_BEARER_TOKEN: ${{ secrets.PIXELRISES_SMOKE_BEARER_TOKEN }}
           PIXELRISES_SMOKE_EMAIL: ${{ secrets.PIXELRISES_SMOKE_EMAIL }}
           PIXELRISES_SMOKE_PASSWORD: ${{ secrets.PIXELRISES_SMOKE_PASSWORD }}
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
           enabled="${PIXELRISES_GENERATOR_REAL_QA:-1}"
           budget="${PIXELRISES_GENERATOR_DAILY_REAL_BUDGET:-20}"
@@ -138,14 +139,10 @@ jobs:
         if: steps.guard.outputs.run == 'true' && steps.smoke_preflight.outputs.ready == 'true'
         continue-on-error: true
         env:
-          PIXELRISES_GENERATOR_REAL_QA: ${{ vars.PIXELRISES_GENERATOR_REAL_QA || '1' }}
-          PIXELRISES_GENERATOR_DAILY_REAL_BUDGET: ${{ vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '20' }}
           PIXELRISES_SMOKE_BEARER_TOKEN: ${{ secrets.PIXELRISES_SMOKE_BEARER_TOKEN }}
           PIXELRISES_SMOKE_EMAIL: ${{ secrets.PIXELRISES_SMOKE_EMAIL }}
           PIXELRISES_SMOKE_PASSWORD: ${{ secrets.PIXELRISES_SMOKE_PASSWORD }}
           PIXELRISES_SMOKE_ONLY: ${{ vars.PIXELRISES_SMOKE_ONLY }}
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: npm run smoke:generator
 
       - name: Push Product Lab proposals to Supabase
@@ -154,7 +151,6 @@ jobs:
         continue-on-error: true
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
           PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: "true"
         run: npm run product-lab:proposals:push
 
@@ -329,7 +325,6 @@ jobs:
         continue-on-error: true
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
         run: npm run product-lab:decisions:mark-processed
 
       - name: Report blocked Product Lab PR
