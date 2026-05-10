@@ -348,6 +348,177 @@ const themeModuleById = {
   "audit-roadmap": "Code Health",
 };
 
+const dailyReviewFocusByThemeId = {
+  dashboard: [
+    {
+      id: "activation-path",
+      short: "activation plus claire",
+      description: "mettre en avant la prochaine action qui transforme une idee en projet concret",
+    },
+    {
+      id: "decision-score",
+      short: "score decisionnel",
+      description: "rendre les scores plus utiles pour prioriser site, agent, jeu et integrations",
+    },
+    {
+      id: "empty-states",
+      short: "empty states utiles",
+      description: "remplacer les zones vides par des actions simples et business-first",
+    },
+  ],
+  "site-builder": [
+    {
+      id: "anti-generic-layout",
+      short: "anti-site generique",
+      description: "forcer une variation visible par niche, objectif, niveau de gamme et CTA",
+    },
+    {
+      id: "conversion-preview",
+      short: "preview conversion",
+      description: "rapprocher le flow prompt -> preview -> amelioration des standards Lovable/v0",
+    },
+    {
+      id: "seo-business",
+      short: "SEO business local",
+      description: "lier SEO, preuves, objections et CTA a la vraie intention client",
+    },
+  ],
+  "agent-builder": [
+    {
+      id: "safe-permissions",
+      short: "permissions visibles",
+      description: "rendre chaque action agent validable avant toute modification sensible",
+    },
+    {
+      id: "agent-roles",
+      short: "roles plus experts",
+      description: "clarifier les agents officiels comme une equipe Pixelrises business-first",
+    },
+    {
+      id: "test-chat",
+      short: "test agent utile",
+      description: "ameliorer le chemin configuration -> test -> sauvegarde sans complexite inutile",
+    },
+  ],
+  "game-builder": [
+    {
+      id: "beta-honest",
+      short: "beta plus honnete",
+      description: "rester clair sur blueprint, scripts, assets et checklist sans promettre de publication auto",
+    },
+    {
+      id: "platform-specific",
+      short: "plateformes plus nettes",
+      description: "separer Roblox, Minecraft, UEFN et Web Game avec des sorties mieux adaptees",
+    },
+    {
+      id: "gameplay-loop",
+      short: "gameplay loop",
+      description: "renforcer objectifs joueur, progression, economie et moments fun exploitables",
+    },
+  ],
+  "multi-ai": [
+    {
+      id: "role-routing",
+      short: "routing par expertise",
+      description: "confier strategie, design, code, normalisation et quality gate au meilleur role IA",
+    },
+    {
+      id: "fallback-trace",
+      short: "fallback lisible",
+      description: "rendre les fallbacks Gateway et mock visibles sans exposer de secret",
+    },
+    {
+      id: "cost-quality",
+      short: "qualite cout",
+      description: "garder un bon rapport qualite/prix sans degrader la sortie finale",
+    },
+  ],
+  "templates-integrations": [
+    {
+      id: "registry-actions",
+      short: "registries actionnables",
+      description: "transformer templates et integrations en prochaines actions utiles",
+    },
+    {
+      id: "honest-status",
+      short: "statuts honnetes",
+      description: "separer clairement connecte, disponible, beta, mock et a configurer",
+    },
+    {
+      id: "business-connectors",
+      short: "connecteurs business",
+      description: "prioriser les integrations qui aident a lancer, mesurer ou vendre",
+    },
+  ],
+  "audit-roadmap": [
+    {
+      id: "ci-blockers",
+      short: "CI sans surprise",
+      description: "bloquer les PR Product Lab si lint, tests, build ou sync admin echouent",
+    },
+    {
+      id: "technical-debt",
+      short: "dette technique utile",
+      description: "cibler les refactors legers qui reduisent bugs et duplication",
+    },
+    {
+      id: "roadmap-week",
+      short: "roadmap semaine",
+      description: "classer les prochains chantiers par impact, risque et validation humaine",
+    },
+  ],
+  global: [
+    {
+      id: "pixelrises-vision",
+      short: "vision Pixelrises",
+      description: "renforcer la promesse idee -> projet digital concret dans chaque module V2",
+    },
+    {
+      id: "premium-ux",
+      short: "UX premium",
+      description: "rendre l'experience plus claire, plus rapide, plus business et plus stable",
+    },
+    {
+      id: "safe-growth",
+      short: "croissance sure",
+      description: "ameliorer fort sans toucher auth, paiement, secrets, prod ou migrations sensibles",
+    },
+  ],
+};
+
+const hashForDailyFocus = (value) =>
+  String(value ?? "")
+    .split("")
+    .reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 7);
+
+const pickDailyReviewFocus = (theme, date, index) => {
+  const focusPool = dailyReviewFocusByThemeId[theme?.id] ?? dailyReviewFocusByThemeId.global;
+  const offset = hashForDailyFocus(`${date ?? ""}:${theme?.id ?? "global"}`);
+  return focusPool[(offset + index) % focusPool.length];
+};
+
+const applyDailyReviewFocus = (finding, result, index) => {
+  const runFocus = pickDailyReviewFocus(result.theme, result.date, index);
+  const title = String(finding.title ?? "Amelioration Product Lab");
+  const focusedTitle = title.includes(runFocus.short) ? title : `${title} - ${runFocus.short}`;
+  const focusSentence = `Focus du run: ${runFocus.description}.`;
+
+  return {
+    ...finding,
+    title: focusedTitle,
+    originalTitle: title,
+    runFocus,
+    description: `${String(finding.description ?? title).trim()} ${focusSentence}`,
+    beforeState:
+      finding.beforeState ||
+      `La proposition existe deja, mais elle doit etre reliee au focus quotidien "${runFocus.short}" pour eviter les cartes repetitives.`,
+    afterState:
+      finding.afterState ||
+      `La prochaine iteration cible "${runFocus.short}" avec une action concrete, mesurable et limitee au scope V2.`,
+  };
+};
+
 export const findApprovedAdminDecision = (adminDecisions, finding, theme) => {
   const exactId = getProductLabReviewItemId(finding, theme);
   const exactDecision = adminDecisions[exactId];
@@ -1203,7 +1374,9 @@ export const selectProductLabReviewFindings = (findings, theme) => {
 
 export const buildProductLabReviewQueue = (result) => {
   const reportPath = path.join("reports", "product-lab", "daily", `daily-${result.date}.md`).replace(/\\/g, "/");
-  const reviewItems = selectProductLabReviewFindings(result.findings, result.theme);
+  const reviewItems = selectProductLabReviewFindings(result.findings, result.theme).map((finding, index) =>
+    applyDailyReviewFocus(finding, result, index),
+  );
   const queueTheme = { ...result.theme, date: result.date, runDate: result.date };
   const scoreEntries = Object.entries(result.scores).map(([name, score]) => ({ name, note: score.note }));
   const averageScore = scoreEntries.length
@@ -1251,6 +1424,7 @@ export const buildProductLabReviewQueue = (result) => {
       decision: finding.decision,
       description: finding.description,
       scoreImpact: finding.scoreImpact,
+      runFocus: finding.runFocus,
       sourceReport: reportPath,
       automationPolicy:
         "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
@@ -1302,6 +1476,7 @@ const buildReviewSimpleSummary = (finding) =>
   `${finding.module}: ${finding.description} Impact ${finding.impact.toLowerCase()}, risque ${finding.risk.toLowerCase()}.`;
 
 const buildReviewBeforeState = (finding) => {
+  if (finding.beforeState) return finding.beforeState;
   if (finding.module === "Dashboard") return "Le dashboard contient deja la base V2, mais certains signaux restent mockes ou trop peu actionnables.";
   if (finding.module === "Site Builder") return "Le builder cree deja une experience V2, mais le chemin idee -> preview -> amelioration peut encore gagner en fluidite.";
   if (finding.module === "Agent Builder") return "Les agents existent, mais les actions sensibles doivent rester encore plus visibles et validables.";
@@ -1315,6 +1490,7 @@ const buildReviewBeforeState = (finding) => {
 };
 
 const buildReviewAfterState = (finding) => {
+  if (finding.afterState) return finding.afterState;
   if (finding.module === "Dashboard") return "Le dashboard donne une prochaine action plus claire, avec moins de friction et plus de valeur percue.";
   if (finding.module === "Site Builder") return "L'utilisateur comprend mieux quoi faire et comment ameliorer son projet sans casser le rendu.";
   if (finding.module === "Agent Builder") return "Chaque permission ou action sensible est explicite avant que le Product Lab puisse appliquer un patch.";

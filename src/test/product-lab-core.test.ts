@@ -205,7 +205,38 @@ describe("Pixelrises Product Lab core", () => {
     expect(queue.items.length).toBeGreaterThanOrEqual(5);
     expect(queue.items.length).toBeLessThanOrEqual(8);
     expect(modules.size).toBeGreaterThanOrEqual(5);
+    expect(queue.items.every((item: { title: string; runFocus?: unknown }) => item.title.includes(" - ") && item.runFocus)).toBe(true);
     expect(queue.summary.total).toBe(queue.items.length);
+  });
+
+  it("varies admin review proposals by daily focus so the same cards do not repeat", () => {
+    const firstRoot = createTempProject();
+    const secondRoot = createTempProject();
+
+    runProductLab({
+      root: firstRoot,
+      action: "daily",
+      dryRun: true,
+      forcedTheme: "site-builder",
+      date: new Date("2026-05-05T10:00:00.000Z"),
+    });
+
+    runProductLab({
+      root: secondRoot,
+      action: "daily",
+      dryRun: true,
+      forcedTheme: "site-builder",
+      date: new Date("2026-05-06T10:00:00.000Z"),
+    });
+
+    const firstQueue = JSON.parse(fs.readFileSync(path.join(firstRoot, "public/product-lab-review.json"), "utf8"));
+    const secondQueue = JSON.parse(fs.readFileSync(path.join(secondRoot, "public/product-lab-review.json"), "utf8"));
+
+    expect(firstQueue.items.map((item: { title: string }) => item.title)).not.toEqual(
+      secondQueue.items.map((item: { title: string }) => item.title),
+    );
+    expect(firstQueue.items.length).toBeGreaterThanOrEqual(5);
+    expect(secondQueue.items.length).toBeGreaterThanOrEqual(5);
   });
 
   it("caps review findings at eight while keeping module diversity", () => {
