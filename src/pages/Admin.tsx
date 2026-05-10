@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
@@ -367,6 +367,7 @@ const Admin = () => {
   const [productLabScopeDashboard, setProductLabScopeDashboard] = useState<Record<ProductLabScope, ProductLabScopeDashboardState>>(
     () => createProductLabScopeDashboardDefaults(),
   );
+  const activeProductLabScopeRef = useRef<ProductLabScope>("v2");
   const productLabScopeConfig = getProductLabScopeConfig(productLabScope);
 
   const loadAdminData = useCallback(async () => {
@@ -471,20 +472,37 @@ const Admin = () => {
     setCreditTransactions(sanitizeTextDeep(parsedTransactions));
   }, []);
 
-  const loadProductLabQueue = useCallback(async () => {
+  const loadProductLabStateForScope = useCallback(async (scope: ProductLabScope) => {
     setProductLabLoading(true);
-    const queue = await loadProductLabReviewQueue(productLabScope);
-    setProductLabQueue(sanitizeTextDeep(queue));
-    setProductLabLoading(false);
-  }, [productLabScope]);
-
-  const loadProductLabDecisionsState = useCallback(async () => {
     setProductLabPersistence("loading");
-    const result = await readProductLabDecisionsFromSupabase(productLabScope);
-    setProductLabDecisions(sanitizeTextDeep(result.decisions));
-    setProductLabPersistence(result.persisted ? "supabase" : "localStorage");
-    setProductLabPersistenceError(result.error ?? null);
-  }, [productLabScope]);
+    setProductLabPersistenceError(null);
+    const [queue, decisionsResult] = await Promise.all([
+      loadProductLabReviewQueue(scope),
+      readProductLabDecisionsFromSupabase(scope),
+    ]);
+
+    if (activeProductLabScopeRef.current !== scope) return;
+
+    setProductLabQueue(sanitizeTextDeep(queue));
+    setProductLabDecisions(sanitizeTextDeep(decisionsResult.decisions));
+    setProductLabPersistence(decisionsResult.persisted ? "supabase" : "localStorage");
+    setProductLabPersistenceError(decisionsResult.error ?? null);
+    setProductLabLoading(false);
+    setProductLabScopeDashboard((previous) => ({
+      ...previous,
+      [scope]: buildProductLabScopeDashboardState(
+        sanitizeTextDeep(queue),
+        sanitizeTextDeep(decisionsResult.decisions),
+        decisionsResult.persisted ? "supabase" : "localStorage",
+        decisionsResult.error ?? null,
+      ),
+    }));
+  }, []);
+
+  const loadProductLabQueue = useCallback(
+    async () => loadProductLabStateForScope(productLabScope),
+    [loadProductLabStateForScope, productLabScope],
+  );
 
   const loadProductLabScopeDashboard = useCallback(async () => {
     const entries = await Promise.all(
@@ -571,10 +589,14 @@ const Admin = () => {
   }, [loadAdminData, navigate]);
 
   useEffect(() => {
-    void loadProductLabQueue();
-    void loadProductLabDecisionsState();
+    activeProductLabScopeRef.current = productLabScope;
+    setProductLabQueue(null);
+    setProductLabDecisions(readProductLabDecisions(productLabScope));
+    setProductLabPersistence("loading");
+    setProductLabPersistenceError(null);
+    void loadProductLabStateForScope(productLabScope);
     void loadProductLabScopeDashboard();
-  }, [loadProductLabDecisionsState, loadProductLabQueue, loadProductLabScopeDashboard]);
+  }, [loadProductLabStateForScope, loadProductLabScopeDashboard, productLabScope]);
 
   useEffect(() => {
     setProductLabNotes({});
@@ -587,7 +609,6 @@ const Admin = () => {
     await Promise.all([
       loadAdminData(),
       loadProductLabQueue(),
-      loadProductLabDecisionsState(),
       loadProductLabScopeDashboard(),
     ]);
     setRefreshing(false);
@@ -880,8 +901,8 @@ const Admin = () => {
   const productLabDisplayedCount = productLabReviewItems.length;
   const productLabExpectedCount = productLabQueue?.summary.total ?? productLabDisplayedCount;
   const unsyncedProductLabDecisions = useMemo(
-    () => getUnsyncedProductLabDecisions(productLabDecisions),
-    [productLabDecisions],
+    () => getUnsyncedProductLabDecisions(productLabDecisions, productLabQueue),
+    [productLabDecisions, productLabQueue],
   );
   const unsyncedProductLabDecisionCount = unsyncedProductLabDecisions.length;
 
@@ -894,6 +915,8 @@ const Admin = () => {
       automationAction?: ProductLabAutomationAction;
     } = {},
   ) => {
+    if (!(await ensureAdminRoleForAction())) return;
+
     const itemId = item.id;
     const note = productLabNotes[itemId]?.trim() || fallbackNote;
     const correctionRequest = productLabCorrectionRequests[itemId]?.trim() || "";
@@ -914,55 +937,67 @@ const Admin = () => {
     setProductLabCorrectionRequests((previous) => ({ ...previous, [itemId]: correctionRequest }));
     setProductLabDecisionSaving(itemId);
 
-    const decision = nextDecisions[itemId];
-    const persistenceResult = productLabQueue
-      ? await persistProductLabDecisionToSupabase(decision, item, productLabQueue, productLabScope)
-      : { persisted: false };
+    try {
+      const decision = nextDecisions[itemId];
+      const persistenceResult = productLabQueue
+        ? await persistProductLabDecisionToSupabase(decision, item, productLabQueue, productLabScope)
+        : { persisted: false, error: "File Product Lab absente ou en cours de chargement." };
 
-    if (persistenceResult.persisted) {
-      setProductLabPersistence("supabase");
-      setProductLabPersistenceError(null);
-      setProductLabDecisions((previous) => ({
+      if (persistenceResult.persisted) {
+        setProductLabPersistence("supabase");
+        setProductLabPersistenceError(null);
+        setProductLabDecisions((previous) => ({
+          ...previous,
+          [itemId]: {
+            ...previous[itemId],
+            persisted: "supabase",
+          },
+        }));
+        toast({
+          title: "Decision Product Lab sauvegardee",
+          description:
+            status === "approved"
+              ? "Validation enregistree dans Supabase. Le prochain run peut l'utiliser comme autorisation."
+              : "Decision enregistree dans Supabase pour guider le prochain run Product Lab.",
+        });
+      } else {
+        setProductLabPersistence("localStorage");
+        setProductLabPersistenceError(persistenceResult.error ?? null);
+        toast({
+          title: "Decision gardee en local",
+          description:
+            persistenceResult.error ||
+            "Supabase n'est pas encore disponible pour cette table. GitHub Actions ne verra pas ce choix tant qu'il n'est pas synchronise.",
+        });
+      }
+
+      setProductLabScopeDashboard((previous) => ({
         ...previous,
-        [itemId]: {
-          ...previous[itemId],
-          persisted: "supabase",
-        },
+        [productLabScope]: buildProductLabScopeDashboardState(
+          productLabQueue,
+          {
+            ...nextDecisions,
+            [itemId]: {
+              ...nextDecisions[itemId],
+              persisted: persistenceResult.persisted ? "supabase" : "localStorage",
+            },
+          },
+          persistenceResult.persisted ? "supabase" : "localStorage",
+          persistenceResult.error ?? null,
+        ),
       }));
-      toast({
-        title: "Decision Product Lab sauvegardee",
-        description:
-          status === "approved"
-            ? "Validation enregistree dans Supabase. Le prochain run peut l'utiliser comme autorisation."
-            : "Decision enregistree dans Supabase pour guider le prochain run Product Lab.",
-      });
-    } else {
+    } catch (error) {
+      const message = getReadableAdminError(error, "Sauvegarde Product Lab impossible.");
       setProductLabPersistence("localStorage");
-      setProductLabPersistenceError(persistenceResult.error ?? null);
+      setProductLabPersistenceError(message);
       toast({
         title: "Decision gardee en local",
-        description:
-          persistenceResult.error ||
-          "Supabase n'est pas encore disponible pour cette table. GitHub Actions ne verra pas ce choix tant qu'il n'est pas synchronise.",
+        description: message,
+        variant: "destructive",
       });
+    } finally {
+      setProductLabDecisionSaving(null);
     }
-
-    setProductLabScopeDashboard((previous) => ({
-      ...previous,
-      [productLabScope]: buildProductLabScopeDashboardState(
-        productLabQueue,
-        {
-          ...nextDecisions,
-          [itemId]: {
-            ...nextDecisions[itemId],
-            persisted: persistenceResult.persisted ? "supabase" : "localStorage",
-          },
-        },
-        persistenceResult.persisted ? "supabase" : "localStorage",
-        persistenceResult.error ?? null,
-      ),
-    }));
-    setProductLabDecisionSaving(null);
   };
 
   const syncLocalProductLabDecisions = async () => {
@@ -983,48 +1018,62 @@ const Admin = () => {
       return;
     }
 
+    if (!(await ensureAdminRoleForAction())) return;
+
     setProductLabDecisionSaving("__sync__");
-    const result = await syncProductLabDecisionsToSupabase(productLabDecisions, productLabQueue, productLabScope);
-    const syncedIds = new Set(result.synced.map((decision) => decision.itemId));
-    const nextDecisions = Object.fromEntries(
-      Object.entries(productLabDecisions).map(([itemId, decision]) => [
-        itemId,
-        syncedIds.has(itemId)
-          ? {
-              ...decision,
-              persisted: "supabase" as const,
-            }
-          : decision,
-      ]),
-    );
+    try {
+      const result = await syncProductLabDecisionsToSupabase(productLabDecisions, productLabQueue, productLabScope);
+      const syncedIds = new Set(result.synced.map((decision) => decision.itemId));
+      const nextDecisions = Object.fromEntries(
+        Object.entries(productLabDecisions).map(([itemId, decision]) => [
+          itemId,
+          syncedIds.has(itemId)
+            ? {
+                ...decision,
+                persisted: "supabase" as const,
+              }
+            : decision,
+        ]),
+      );
 
-    setProductLabDecisions(nextDecisions);
-    setProductLabPersistence(result.failed.length ? "localStorage" : "supabase");
-    setProductLabPersistenceError(result.failed[0]?.error ?? null);
-    setProductLabScopeDashboard((previous) => ({
-      ...previous,
-      [productLabScope]: buildProductLabScopeDashboardState(
-        productLabQueue,
-        nextDecisions,
-        result.failed.length ? "localStorage" : "supabase",
-        result.failed[0]?.error ?? null,
-      ),
-    }));
-    setProductLabDecisionSaving(null);
+      setProductLabDecisions(nextDecisions);
+      setProductLabPersistence(result.failed.length ? "localStorage" : "supabase");
+      setProductLabPersistenceError(result.failed[0]?.error ?? null);
+      setProductLabScopeDashboard((previous) => ({
+        ...previous,
+        [productLabScope]: buildProductLabScopeDashboardState(
+          productLabQueue,
+          nextDecisions,
+          result.failed.length ? "localStorage" : "supabase",
+          result.failed[0]?.error ?? null,
+        ),
+      }));
 
-    if (result.failed.length) {
+      if (result.failed.length) {
+        toast({
+          title: "Synchronisation incomplete",
+          description: `${result.synced.length} decision(s) synchronisee(s), ${result.failed.length} encore en local. Detail: ${result.failed[0].error}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
-        title: "Synchronisation incomplete",
-        description: `${result.synced.length} decision(s) synchronisee(s), ${result.failed.length} encore en local. Detail: ${result.failed[0].error}`,
+        title: "Validations synchronisees",
+        description: `${result.synced.length} decision(s) envoyee(s) dans Supabase. GitHub Actions pourra les lire au prochain run.`,
+      });
+    } catch (error) {
+      const message = getReadableAdminError(error, "Synchronisation Product Lab impossible.");
+      setProductLabPersistence("localStorage");
+      setProductLabPersistenceError(message);
+      toast({
+        title: "Synchronisation impossible",
+        description: message,
         variant: "destructive",
       });
-      return;
+    } finally {
+      setProductLabDecisionSaving(null);
     }
-
-    toast({
-      title: "Validations synchronisees",
-      description: `${result.synced.length} decision(s) envoyee(s) dans Supabase. GitHub Actions pourra les lire au prochain run.`,
-    });
   };
 
   const copyProductLabDecisions = async () => {
@@ -1569,7 +1618,7 @@ const Admin = () => {
                   <Button
                     variant="outline"
                     className="w-full sm:w-auto"
-                    onClick={() => void Promise.all([loadProductLabQueue(), loadProductLabDecisionsState()])}
+                    onClick={() => void loadProductLabQueue()}
                   >
                     <FileText className="h-4 w-4" />
                     Recharger

@@ -5,9 +5,11 @@ import {
   fallbackProductLabReviewQueue,
   getUnsyncedProductLabDecisions,
   getProductLabMissingTableMessage,
+  getProductLabRlsMessage,
   getProductLabReviewStats,
   getProductLabScopeConfig,
   isProductLabMissingTableError,
+  isProductLabRlsError,
   mergeProductLabReviewItems,
   writeProductLabDecision,
   type ProductLabDecisionMap,
@@ -85,7 +87,37 @@ describe("Product Lab admin review", () => {
       },
     };
 
-    expect(getUnsyncedProductLabDecisions(decisions).map((decision) => decision.itemId)).toEqual([item.id]);
+    expect(getUnsyncedProductLabDecisions(decisions, fallbackProductLabReviewQueue).map((decision) => decision.itemId)).toEqual([item.id]);
+  });
+
+  it("ignores local decisions that do not belong to the visible Product Lab queue", () => {
+    const item = fallbackProductLabReviewQueue.items[0];
+    const decisions: ProductLabDecisionMap = {
+      [item.id]: {
+        itemId: item.id,
+        status: "approved",
+        note: "OK visible.",
+        correctionRequest: "",
+        rejectionMode: null,
+        automationAction: "authorize_next_run",
+        decidedAt: "2026-05-10T00:00:00.000Z",
+        applicationStatus: "pending",
+        persisted: "localStorage",
+      },
+      "old-run-item": {
+        itemId: "old-run-item",
+        status: "approved",
+        note: "Ancienne file.",
+        correctionRequest: "",
+        rejectionMode: null,
+        automationAction: "authorize_next_run",
+        decidedAt: "2026-05-09T00:00:00.000Z",
+        applicationStatus: "pending",
+        persisted: "localStorage",
+      },
+    };
+
+    expect(getUnsyncedProductLabDecisions(decisions, fallbackProductLabReviewQueue).map((decision) => decision.itemId)).toEqual([item.id]);
   });
 
   it("counts review states for the admin dashboard", () => {
@@ -170,5 +202,16 @@ describe("Product Lab admin review", () => {
 
     expect(isProductLabMissingTableError(error)).toBe(true);
     expect(getProductLabMissingTableMessage("v2")).toContain("20260509194500_repair_product_lab_all_admin_tables_cache.sql");
+  });
+
+  it("turns Supabase RLS errors into an admin-role repair hint", () => {
+    const error = {
+      code: "42501",
+      message: 'new row violates row-level security policy for table "product_lab_v1_decisions"',
+    };
+
+    expect(isProductLabRlsError(error)).toBe(true);
+    expect(getProductLabRlsMessage("v1")).toContain("public.user_roles");
+    expect(getProductLabRlsMessage("v1")).toContain("20260509200000_repair_product_lab_rls_policies.sql");
   });
 });

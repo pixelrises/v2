@@ -122,6 +122,20 @@ export const getProductLabMissingTableMessage = (scope: ProductLabScope) =>
     ? "Tables Product Lab V1 absentes ou cache Supabase non recharge. Applique la migration unique supabase/migrations/20260509194500_repair_product_lab_all_admin_tables_cache.sql en entier, puis relance l'admin."
     : "Tables Product Lab V2 absentes ou cache Supabase non recharge. Applique la migration unique supabase/migrations/20260509194500_repair_product_lab_all_admin_tables_cache.sql en entier, puis relance l'admin.";
 
+export const isProductLabRlsError = (error: unknown) => {
+  if (!error || typeof error !== "object") return false;
+  const record = error as Record<string, unknown>;
+  const text = [record.message, record.details, record.hint, record.code]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLowerCase();
+
+  return text.includes("row-level security") || text.includes("42501") || text.includes("permission denied");
+};
+
+export const getProductLabRlsMessage = (scope: ProductLabScope) =>
+  `Synchronisation ${getProductLabScopeConfig(scope).label} bloquee par Supabase RLS. Verifie que ton compte connecte a le role admin dans public.user_roles et applique la migration supabase/migrations/20260509200000_repair_product_lab_rls_policies.sql.`;
+
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -364,7 +378,9 @@ export const readProductLabDecisionsFromSupabase = async (scope: ProductLabScope
         persisted: false,
         error: isProductLabMissingTableError(error)
           ? getProductLabMissingTableMessage(config.scope)
-          : error?.message,
+          : isProductLabRlsError(error)
+            ? getProductLabRlsMessage(config.scope)
+            : error?.message,
       };
     }
 
@@ -459,7 +475,9 @@ export const persistProductLabDecisionToSupabase = async (
         persisted: false,
         error: isProductLabMissingTableError(error)
           ? getProductLabMissingTableMessage(config.scope)
-          : error.message,
+          : isProductLabRlsError(error)
+            ? getProductLabRlsMessage(config.scope)
+            : error.message,
       };
     }
     return { persisted: true };
@@ -471,10 +489,19 @@ export const persistProductLabDecisionToSupabase = async (
   }
 };
 
-export const getUnsyncedProductLabDecisions = (decisions: ProductLabDecisionMap) =>
-  Object.values(decisions).filter(
-    (decision) => decision.status !== "pending" && decision.persisted !== "supabase",
+export const getUnsyncedProductLabDecisions = (
+  decisions: ProductLabDecisionMap,
+  queue?: ProductLabReviewQueue | null,
+) => {
+  const visibleItemIds = queue ? new Set(queue.items.map((item) => item.id)) : null;
+
+  return Object.values(decisions).filter(
+    (decision) =>
+      decision.status !== "pending" &&
+      decision.persisted !== "supabase" &&
+      (!visibleItemIds || visibleItemIds.has(decision.itemId)),
   );
+};
 
 export const syncProductLabDecisionsToSupabase = async (
   decisions: ProductLabDecisionMap,
@@ -485,7 +512,7 @@ export const syncProductLabDecisionsToSupabase = async (
   failed: Array<{ decision: ProductLabDecision; error: string }>;
 }> => {
   const itemsById = new Map(queue.items.map((item) => [item.id, item]));
-  const unsyncedDecisions = getUnsyncedProductLabDecisions(decisions);
+  const unsyncedDecisions = getUnsyncedProductLabDecisions(decisions, queue);
   const synced: ProductLabDecision[] = [];
   const failed: Array<{ decision: ProductLabDecision; error: string }> = [];
 
