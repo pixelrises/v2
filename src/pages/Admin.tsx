@@ -289,6 +289,10 @@ const MONTHLY_CREDIT_PRESETS: MonthlyCreditPreset[] = [
 
 const ADMIN_CACHE_PREFIX = "pixelrises:isAdmin:";
 const ADMIN_REQUEST_TIMEOUT_MS = 4000;
+const PRODUCT_LAB_LOAD_TIMEOUT_MS = 6500;
+
+type ProductLabDecisionsLoadResult = Awaited<ReturnType<typeof readProductLabDecisionsFromSupabase>>;
+type ProductLabStateLoadResult = [ProductLabReviewQueue, ProductLabDecisionsLoadResult];
 
 const resolveWithTimeout = async <T,>(promise: Promise<T>, timeoutMs = ADMIN_REQUEST_TIMEOUT_MS) => {
   let timer: number | null = null;
@@ -339,6 +343,18 @@ const getReadableAdminError = (error: unknown, fallback: string) => {
 
   return fallback;
 };
+
+const createProductLabLocalFallbackState = (
+  scope: ProductLabScope,
+  error: string,
+): ProductLabStateLoadResult => [
+  getProductLabScopeConfig(scope).fallbackQueue,
+  {
+    decisions: readProductLabDecisions(scope),
+    persisted: false,
+    error,
+  },
+];
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -476,26 +492,46 @@ const Admin = () => {
     setProductLabLoading(true);
     setProductLabPersistence("loading");
     setProductLabPersistenceError(null);
-    const [queue, decisionsResult] = await Promise.all([
-      loadProductLabReviewQueue(scope),
-      readProductLabDecisionsFromSupabase(scope),
-    ]);
+    let queue: ProductLabReviewQueue;
+    let decisionsResult: ProductLabDecisionsLoadResult;
+
+    try {
+      const loadedState = await resolveWithTimeout<ProductLabStateLoadResult>(
+        Promise.all([
+          loadProductLabReviewQueue(scope),
+          readProductLabDecisionsFromSupabase(scope),
+        ]) as Promise<ProductLabStateLoadResult>,
+        PRODUCT_LAB_LOAD_TIMEOUT_MS,
+      );
+
+      [queue, decisionsResult] =
+        loadedState ??
+        createProductLabLocalFallbackState(
+          scope,
+          "Chargement Product Lab trop long. Fallback local actif; clique Recharger pour retenter Supabase.",
+        );
+    } catch (error) {
+      [queue, decisionsResult] = createProductLabLocalFallbackState(
+        scope,
+        getReadableAdminError(error, "Chargement Product Lab impossible. Fallback local actif."),
+      );
+    }
 
     if (activeProductLabScopeRef.current !== scope) return;
 
-    setProductLabQueue(sanitizeTextDeep(queue));
-    setProductLabDecisions(sanitizeTextDeep(decisionsResult.decisions));
-    setProductLabPersistence(decisionsResult.persisted ? "supabase" : "localStorage");
-    setProductLabPersistenceError(decisionsResult.error ?? null);
+    const cleanQueue = sanitizeTextDeep(queue);
+    const cleanDecisions = sanitizeTextDeep(decisionsResult.decisions);
+    const nextPersistence = decisionsResult.persisted ? "supabase" : "localStorage";
+    const nextError = decisionsResult.error ?? null;
+
+    setProductLabQueue(cleanQueue);
+    setProductLabDecisions(cleanDecisions);
+    setProductLabPersistence(nextPersistence);
+    setProductLabPersistenceError(nextError);
     setProductLabLoading(false);
     setProductLabScopeDashboard((previous) => ({
       ...previous,
-      [scope]: buildProductLabScopeDashboardState(
-        sanitizeTextDeep(queue),
-        sanitizeTextDeep(decisionsResult.decisions),
-        decisionsResult.persisted ? "supabase" : "localStorage",
-        decisionsResult.error ?? null,
-      ),
+      [scope]: buildProductLabScopeDashboardState(cleanQueue, cleanDecisions, nextPersistence, nextError),
     }));
   }, []);
 
@@ -507,10 +543,30 @@ const Admin = () => {
   const loadProductLabScopeDashboard = useCallback(async () => {
     const entries = await Promise.all(
       productLabScopes.map(async (scope) => {
-        const [queue, decisionsResult] = await Promise.all([
-          loadProductLabReviewQueue(scope),
-          readProductLabDecisionsFromSupabase(scope),
-        ]);
+        let queue: ProductLabReviewQueue;
+        let decisionsResult: ProductLabDecisionsLoadResult;
+
+        try {
+          const loadedState = await resolveWithTimeout<ProductLabStateLoadResult>(
+            Promise.all([
+              loadProductLabReviewQueue(scope),
+              readProductLabDecisionsFromSupabase(scope),
+            ]) as Promise<ProductLabStateLoadResult>,
+            PRODUCT_LAB_LOAD_TIMEOUT_MS,
+          );
+
+          [queue, decisionsResult] =
+            loadedState ??
+            createProductLabLocalFallbackState(
+              scope,
+              "Dashboard Product Lab trop long a synchroniser. Fallback local affiche.",
+            );
+        } catch (error) {
+          [queue, decisionsResult] = createProductLabLocalFallbackState(
+            scope,
+            getReadableAdminError(error, "Dashboard Product Lab impossible a charger."),
+          );
+        }
 
         return [
           scope,
