@@ -243,25 +243,25 @@ jobs:
           paris_date="$(TZ=Europe/Paris date +%F)"
           failure_report="reports/product-lab/daily/daily-${paris_date}-validation-failure.md"
           cat > "$failure_report" <<EOF
-# Pixelrises V2 - Product Lab Validation Failure
+          # Pixelrises V2 - Product Lab Validation Failure
 
-## Resume
-Le Product Lab a termine son run, mais la PR automatique est bloquee car une validation n'est pas verte.
+          ## Resume
+          Le Product Lab a termine son run, mais la PR automatique est bloquee car une validation n'est pas verte.
 
-## Tests lances
-- generator smoke QA: ${{ steps.generator_smoke.outcome }}
-- smoke QA preflight: ready=${{ steps.smoke_preflight.outputs.ready }}, missing=${{ steps.smoke_preflight.outputs.missing }}
-- Supabase proposals sync: ${{ steps.proposals_push.outcome }}
-- lint: ${{ steps.lint.outcome }}
-- test: ${{ steps.test.outcome }}
-- build: ${{ steps.build.outcome }}
+          ## Tests lances
+          - generator smoke QA: ${{ steps.generator_smoke.outcome }}
+          - smoke QA preflight: ready=${{ steps.smoke_preflight.outputs.ready }}, missing=${{ steps.smoke_preflight.outputs.missing }}
+          - Supabase proposals sync: ${{ steps.proposals_push.outcome }}
+          - lint: ${{ steps.lint.outcome }}
+          - test: ${{ steps.test.outcome }}
+          - build: ${{ steps.build.outcome }}
 
-## Resultat
-Aucune PR Product Lab ne sera creee tant que smoke QA, lint, tests et build ne sont pas verts.
+          ## Resultat
+          Aucune PR Product Lab ne sera creee tant que smoke QA, lint, tests et build ne sont pas verts.
 
-## Priorite critique
-Corriger la validation bloquante avant toute PR Product Lab.
-EOF
+          ## Priorite critique
+          Corriger la validation bloquante avant toute PR Product Lab.
+          EOF
           cat >> product-lab/backlog.md <<'EOF'
 
           ## Critique - Validation CI
