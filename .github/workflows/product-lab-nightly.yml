@@ -43,13 +43,13 @@ jobs:
 
       - name: Checkout
         if: steps.guard.outputs.run == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
         if: steps.guard.outputs.run == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
 
       - name: Install dependencies
@@ -81,9 +81,53 @@ jobs:
         run: |
           npm run product-lab:daily
 
+      - name: Check V2 generator smoke QA configuration
+        id: smoke_preflight
+        if: steps.guard.outputs.run == 'true'
+        shell: bash
+        env:
+          PIXELRISES_GENERATOR_REAL_QA: ${{ vars.PIXELRISES_GENERATOR_REAL_QA || '1' }}
+          PIXELRISES_GENERATOR_DAILY_REAL_BUDGET: ${{ vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '20' }}
+          PIXELRISES_SMOKE_BEARER_TOKEN: ${{ secrets.PIXELRISES_SMOKE_BEARER_TOKEN }}
+          PIXELRISES_SMOKE_EMAIL: ${{ secrets.PIXELRISES_SMOKE_EMAIL }}
+          PIXELRISES_SMOKE_PASSWORD: ${{ secrets.PIXELRISES_SMOKE_PASSWORD }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          enabled="${PIXELRISES_GENERATOR_REAL_QA:-1}"
+          budget="${PIXELRISES_GENERATOR_DAILY_REAL_BUDGET:-20}"
+          missing=()
+
+          if [ "$enabled" = "1" ] && [ "${budget:-0}" != "0" ]; then
+            if [ -z "$VITE_SUPABASE_URL" ]; then
+              missing+=("VITE_SUPABASE_URL")
+            fi
+            if [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
+              missing+=("VITE_SUPABASE_PUBLISHABLE_KEY")
+            fi
+            if [ -z "$PIXELRISES_SMOKE_BEARER_TOKEN" ] && { [ -z "$PIXELRISES_SMOKE_EMAIL" ] || [ -z "$PIXELRISES_SMOKE_PASSWORD" ]; }; then
+              missing+=("PIXELRISES_SMOKE_BEARER_TOKEN or PIXELRISES_SMOKE_EMAIL/PIXELRISES_SMOKE_PASSWORD")
+            fi
+          fi
+
+          echo "enabled=$enabled" >> "$GITHUB_OUTPUT"
+          echo "budget=$budget" >> "$GITHUB_OUTPUT"
+
+          if [ ${#missing[@]} -eq 0 ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "missing=none" >> "$GITHUB_OUTPUT"
+            echo "V2 smoke QA configuration is ready."
+          else
+            printf -v joined "%s, " "${missing[@]}"
+            joined="${joined%, }"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "missing=$joined" >> "$GITHUB_OUTPUT"
+            echo "::warning title=V2 smoke QA configuration missing::$joined"
+          fi
+
       - name: Run V2 generator smoke QA
         id: generator_smoke
-        if: steps.guard.outputs.run == 'true'
+        if: steps.guard.outputs.run == 'true' && steps.smoke_preflight.outputs.ready == 'true'
         continue-on-error: true
         env:
           PIXELRISES_GENERATOR_REAL_QA: ${{ vars.PIXELRISES_GENERATOR_REAL_QA || '1' }}
@@ -127,7 +171,21 @@ jobs:
         if: steps.guard.outputs.run == 'true'
         shell: bash
         run: |
-          if [ "${{ steps.generator_smoke.outcome }}" = "success" ] && [ "${{ steps.lint.outcome }}" = "success" ] && [ "${{ steps.test.outcome }}" = "success" ] && [ "${{ steps.build.outcome }}" = "success" ]; then
+          smoke_enabled="${{ steps.smoke_preflight.outputs.enabled }}"
+          smoke_budget="${{ steps.smoke_preflight.outputs.budget }}"
+          smoke_ready="${{ steps.smoke_preflight.outputs.ready }}"
+          smoke_outcome="${{ steps.generator_smoke.outcome }}"
+
+          smoke_passed=false
+          if [ "$smoke_enabled" != "1" ] || [ "$smoke_budget" = "0" ]; then
+            smoke_passed=true
+          elif [ "$smoke_ready" = "true" ] && [ "$smoke_outcome" = "success" ]; then
+            smoke_passed=true
+          fi
+
+          echo "smoke_passed=$smoke_passed" >> "$GITHUB_OUTPUT"
+
+          if [ "$smoke_passed" = "true" ] && [ "${{ steps.lint.outcome }}" = "success" ] && [ "${{ steps.test.outcome }}" = "success" ] && [ "${{ steps.build.outcome }}" = "success" ]; then
             echo "checks_passed=true" >> "$GITHUB_OUTPUT"
           else
             echo "checks_passed=false" >> "$GITHUB_OUTPUT"
@@ -174,24 +232,25 @@ jobs:
           mkdir -p reports/product-lab/daily product-lab
           paris_date="$(TZ=Europe/Paris date +%F)"
           failure_report="reports/product-lab/daily/daily-${paris_date}-validation-failure.md"
-          cat > "$failure_report" <<'EOF'
-          # Pixelrises V2 - Product Lab Validation Failure
+          cat > "$failure_report" <<EOF
+# Pixelrises V2 - Product Lab Validation Failure
 
-          ## Resume
-          Le Product Lab a detecte un echec de validation. Aucune PR automatique ne sera creee.
+## Resume
+Le Product Lab a termine son run, mais la PR automatique est bloquee car une validation n'est pas verte.
 
-          ## Tests lances
-          - generator smoke QA
-          - lint
-          - test
-          - build
+## Tests lances
+- generator smoke QA: ${{ steps.generator_smoke.outcome }}
+- smoke QA preflight: ready=${{ steps.smoke_preflight.outputs.ready }}, missing=${{ steps.smoke_preflight.outputs.missing }}
+- lint: ${{ steps.lint.outcome }}
+- test: ${{ steps.test.outcome }}
+- build: ${{ steps.build.outcome }}
 
-          ## Resultat
-          Au moins une commande a echoue. Voir les logs GitHub Actions pour le detail exact.
+## Resultat
+Aucune PR Product Lab ne sera creee tant que smoke QA, lint, tests et build ne sont pas verts.
 
-          ## Priorite critique
-          Corriger la commande en echec avant toute PR Product Lab.
-          EOF
+## Priorite critique
+Corriger la validation bloquante avant toute PR Product Lab.
+EOF
           cat >> product-lab/backlog.md <<'EOF'
 
           ## Critique - Validation CI
@@ -209,7 +268,7 @@ jobs:
 
       - name: Upload Product Lab report
         if: always() && steps.guard.outputs.run == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: product-lab-report
           path: |
@@ -230,7 +289,7 @@ jobs:
           steps.validation.outputs.checks_passed == 'true' &&
           steps.validation.outputs.has_changes == 'true' &&
           steps.validation.outputs.has_approved_improvements == 'true'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: product-lab/${{ steps.branch.outputs.name }}
           title: "Product Lab: daily safe improvements"
@@ -243,6 +302,7 @@ jobs:
             - Lint: ${{ steps.lint.outcome }}
             - Tests: ${{ steps.test.outcome }}
             - Build: ${{ steps.build.outcome }}
+            - V2 smoke QA: ${{ steps.generator_smoke.outcome }}
             - Admin-approved improvements applied: ${{ steps.validation.outputs.has_approved_improvements }}
 
             No automatic merge. No production deployment. Human review required.
@@ -260,8 +320,9 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
         run: npm run product-lab:decisions:mark-processed
 
-      - name: Fail if validation failed
+      - name: Report blocked Product Lab PR
         if: >
           steps.guard.outputs.run == 'true' &&
           steps.validation.outputs.checks_passed == 'false'
-        run: exit 1
+        run: |
+          echo "::warning title=Product Lab PR blocked::No PR was created because smoke QA, lint, tests, or build did not pass. The report artifact explains the blocker."

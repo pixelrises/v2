@@ -386,12 +386,34 @@ describe("Pixelrises Product Lab core", () => {
   it("runs V2 generator smoke QA in the nightly workflow before PR creation", () => {
     const workflow = fs.readFileSync(path.join(process.cwd(), ".github/workflows/product-lab-nightly.yml"), "utf8");
 
+    expect(workflow).toContain("actions/checkout@v6");
+    expect(workflow).toContain("actions/setup-node@v6");
+    expect(workflow).toContain('node-version: "24"');
+    expect(workflow).toContain("actions/upload-artifact@v7");
+    expect(workflow).toContain("peter-evans/create-pull-request@v8");
     expect(workflow).toContain("Run V2 generator smoke QA");
+    expect(workflow).toContain("Check V2 generator smoke QA configuration");
     expect(workflow).toContain("npm run smoke:generator");
     expect(workflow).toContain("vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '20'");
+    expect(workflow).toContain("steps.smoke_preflight.outputs.ready == 'true'");
     expect(workflow).toContain("steps.generator_smoke.outcome");
     expect(workflow).toContain("tmp/generator-smoke-last.json");
+    expect(workflow).toContain("Report blocked Product Lab PR");
     expect(workflow).toContain("(s.approvedFindings||[]).length > 0 && (s.appliedImprovements||[]).length > 0");
+  });
+
+  it("keeps all V2 GitHub Actions on the Node 24 action generation", () => {
+    const workflowsDir = path.join(process.cwd(), ".github/workflows");
+    const workflowBundle = fs
+      .readdirSync(workflowsDir)
+      .filter((file) => file.endsWith(".yml") || file.endsWith(".yaml"))
+      .map((file) => fs.readFileSync(path.join(workflowsDir, file), "utf8"))
+      .join("\n");
+
+    expect(workflowBundle).not.toMatch(/actions\/checkout@v4/);
+    expect(workflowBundle).not.toMatch(/actions\/setup-node@v4/);
+    expect(workflowBundle).not.toMatch(/actions\/upload-artifact@v4/);
+    expect(workflowBundle).not.toContain('node-version: "20"');
   });
 
   it("does not silently skip enabled V2 real QA when smoke credentials are missing", () => {
