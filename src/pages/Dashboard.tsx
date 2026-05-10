@@ -609,6 +609,18 @@ const Dashboard = () => {
       description="Suivez l'état de votre présence en ligne, voyez ce qui manque, puis lancez la prochaine action utile : créer, améliorer, publier, connecter ou analyser."
       action={
         <div className="flex flex-wrap gap-2">
+          {isAdmin ? (
+            <Button
+              asChild
+              variant="outline"
+              className="rounded-2xl border-[#F5C542]/30 bg-[#F5C542]/10 text-[#F5C542] hover:bg-[#F5C542]/15"
+            >
+              <Link to="/admin">
+                <ShieldCheck className="h-4 w-4" />
+                Admin
+              </Link>
+            </Button>
+          ) : null}
           <Button asChild variant="outline" className="rounded-2xl border-white/[0.10] bg-transparent text-white/80">
             <Link to="/templates">Templates</Link>
           </Button>
@@ -631,6 +643,39 @@ const Dashboard = () => {
         <div className="mb-6 rounded-[24px] border border-[#F5C542]/20 bg-[#F5C542]/[0.07] p-4 text-sm leading-6 text-white/70">
           Mode démo V2 actif : aucun `.env` V1 n'est utilisé. Branchez un backend V2 plus tard pour retrouver auth, projets réels, checkout et analytics live.
         </div>
+      ) : null}
+
+      {isAdmin ? (
+        <section className="mb-6 overflow-hidden rounded-[32px] border border-[#F5C542]/20 bg-[radial-gradient(circle_at_top_left,rgba(245,197,66,0.16),transparent_34%),rgba(255,255,255,0.035)] p-5 sm:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-3xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="border-[#F5C542]/25 bg-[#F5C542]/10 text-[#F5C542] hover:bg-[#F5C542]/10">
+                  Espace fondateur
+                </Badge>
+                <span className="text-xs font-medium text-white/42">V1 + V2 pilotes depuis le meme centre</span>
+              </div>
+              <h2 className="mt-4 text-2xl font-semibold tracking-tight">Centre admin Pixelrises</h2>
+              <p className="mt-2 text-sm leading-7 text-white/58">
+                Gere les credits, utilisateurs, paiements, sites et Product Lab depuis un seul endroit. Les Product Lab V1
+                et V2 restent separes cote dossiers, tables et workflows, mais leurs validations arrivent ici pour
+                accepter, modifier ou refuser les ameliorations.
+              </p>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[430px]">
+              <Button asChild className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
+                <Link to="/admin">
+                  <ShieldCheck className="h-4 w-4" />
+                  Ouvrir l'admin
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-2xl border-white/[0.10] bg-black/20 text-white/80">
+                <Link to="/admin">Product Lab V1/V2</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       <section className="mb-6 rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
