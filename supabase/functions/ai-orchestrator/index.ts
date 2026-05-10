@@ -48,6 +48,64 @@ type ChatUsage = {
   total_tokens?: number;
 };
 
+type AITaskType =
+  | "project_type_detection"
+  | "brief_analysis"
+  | "strategy_analysis"
+  | "business_positioning"
+  | "offer_generation"
+  | "site_structure"
+  | "site_copywriting"
+  | "site_design"
+  | "site_seo"
+  | "site_conversion"
+  | "site_improvement"
+  | "design_system"
+  | "ui_layout"
+  | "component_suggestion"
+  | "agent_config"
+  | "agent_prompt"
+  | "agent_permissions"
+  | "game_design"
+  | "game_mechanics"
+  | "game_level_design"
+  | "game_script"
+  | "game_assets"
+  | "game_publishing"
+  | "integration_mapping"
+  | "dashboard_recommendations"
+  | "analytics_insights"
+  | "code_generation"
+  | "code_review"
+  | "bug_fix"
+  | "refactor"
+  | "quality_gate"
+  | "output_normalization"
+  | "final_fusion";
+
+type AIRole = "gemini" | "openai" | "claude" | "cloud-design" | "cloud-code" | "mistral";
+
+type MultiAITaskResult = {
+  taskType: AITaskType;
+  role: AIRole;
+  model: string;
+  success: boolean;
+  output: unknown;
+  usage: ChatUsage;
+  durationMs: number;
+  error?: string;
+};
+
+type MultiAIExecution = {
+  output: unknown;
+  provider: string;
+  model: string;
+  usage: ChatUsage;
+  source: "real" | "mock-fallback";
+  taskResults: MultiAITaskResult[];
+  errors: string[];
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === "object" && !Array.isArray(value));
 
@@ -65,6 +123,171 @@ const toArray = (value: unknown, fallback: string[]) =>
 const nowIso = () => new Date().toISOString();
 
 const makeId = () => crypto.randomUUID();
+
+const readEnv = (key: string, fallback = "") => (Deno.env.get(key) ?? fallback).trim();
+
+const taskPlans: Record<ProjectType, Record<GenerationMode, AITaskType[]>> = {
+  site: {
+    plan: ["brief_analysis", "strategy_analysis", "site_structure", "site_design", "site_seo", "quality_gate", "final_fusion"],
+    build: [
+      "brief_analysis",
+      "strategy_analysis",
+      "site_structure",
+      "site_design",
+      "site_copywriting",
+      "site_seo",
+      "site_conversion",
+      "quality_gate",
+      "final_fusion",
+    ],
+    improve: ["brief_analysis", "site_improvement", "site_design", "site_copywriting", "site_conversion", "quality_gate", "final_fusion"],
+  },
+  agent: {
+    plan: ["brief_analysis", "agent_config", "agent_permissions", "quality_gate", "final_fusion"],
+    build: ["brief_analysis", "agent_config", "agent_prompt", "agent_permissions", "quality_gate", "final_fusion"],
+    improve: ["brief_analysis", "agent_config", "agent_prompt", "agent_permissions", "quality_gate", "final_fusion"],
+  },
+  game: {
+    plan: ["brief_analysis", "game_design", "game_mechanics", "game_level_design", "game_publishing", "quality_gate", "final_fusion"],
+    build: [
+      "brief_analysis",
+      "game_design",
+      "game_mechanics",
+      "game_level_design",
+      "game_script",
+      "game_assets",
+      "game_publishing",
+      "quality_gate",
+      "final_fusion",
+    ],
+    improve: ["brief_analysis", "game_design", "game_mechanics", "game_script", "game_assets", "quality_gate", "final_fusion"],
+  },
+};
+
+const roleForTask = (taskType: AITaskType): AIRole => {
+  if (["project_type_detection", "brief_analysis", "integration_mapping", "dashboard_recommendations", "output_normalization", "final_fusion"].includes(taskType)) {
+    return "gemini";
+  }
+  if ([
+    "strategy_analysis",
+    "business_positioning",
+    "offer_generation",
+    "site_copywriting",
+    "site_seo",
+    "site_conversion",
+    "agent_prompt",
+    "analytics_insights",
+  ].includes(taskType)) {
+    return "openai";
+  }
+  if ([
+    "site_structure",
+    "site_improvement",
+    "agent_config",
+    "agent_permissions",
+    "game_design",
+    "game_mechanics",
+    "game_publishing",
+    "quality_gate",
+  ].includes(taskType)) {
+    return "claude";
+  }
+  if (["site_design", "design_system", "ui_layout", "component_suggestion", "game_level_design", "game_assets"].includes(taskType)) {
+    return "cloud-design";
+  }
+  if (["game_script", "code_generation", "code_review", "bug_fix", "refactor"].includes(taskType)) {
+    return "cloud-code";
+  }
+  return "mistral";
+};
+
+const modelForRole = (role: AIRole) => {
+  if (role === "openai") {
+    return readEnv("AI_GATEWAY_OPENAI_MODEL") || readEnv("AI_GATEWAY_COPY_MODEL") || readEnv("AI_GATEWAY_MODEL") || "openai/gpt-5.4-mini";
+  }
+  if (role === "claude") {
+    return readEnv("AI_GATEWAY_CLAUDE_MODEL") || readEnv("AI_GATEWAY_REASONING_MODEL") || "anthropic/claude-sonnet-4.6";
+  }
+  if (role === "cloud-design") {
+    return readEnv("AI_GATEWAY_DESIGN_MODEL") || readEnv("AI_GATEWAY_CLAUDE_MODEL") || readEnv("AI_GATEWAY_REASONING_MODEL") || "anthropic/claude-sonnet-4.6";
+  }
+  if (role === "cloud-code") {
+    return readEnv("AI_GATEWAY_CODE_MODEL") || "deepseek/deepseek-v3.1-terminus";
+  }
+  if (role === "mistral") {
+    return readEnv("AI_GATEWAY_FAST_MODEL") || "mistral/mistral-medium";
+  }
+  return readEnv("AI_GATEWAY_GEMINI_MODEL") || readEnv("AI_GATEWAY_BALANCED_MODEL") || "google/gemini-3-flash";
+};
+
+const taskMaxTokens = (taskType: AITaskType) => {
+  if (taskType === "final_fusion") return 5200;
+  if (["site_copywriting", "site_structure", "game_script", "game_design"].includes(taskType)) return 2200;
+  if (["site_design", "game_assets", "game_level_design"].includes(taskType)) return 1700;
+  return 1300;
+};
+
+const taskTemperature = (taskType: AITaskType) => {
+  if (["site_design", "game_assets", "game_level_design"].includes(taskType)) return 0.72;
+  if (["site_copywriting", "site_conversion", "offer_generation"].includes(taskType)) return 0.62;
+  if (taskType === "quality_gate") return 0.2;
+  if (taskType === "final_fusion") return 0.35;
+  return 0.45;
+};
+
+const taskInstruction = (taskType: AITaskType, projectType: ProjectType) => {
+  const instructions: Partial<Record<AITaskType, string>> = {
+    brief_analysis: "Analyse le brief utilisateur, la cible, la niche, l'objectif, les contraintes et les signaux de differenciation. Extrais uniquement des decisions utiles.",
+    strategy_analysis: "Produit une strategie business concise: promesse, positionnement, cible, offre, objections, preuves et priorites de conversion.",
+    site_structure: "Structure le site par sections adaptees a la niche. Evite les templates generiques. Priorise parcours client, clarte et conversion.",
+    site_design: "Cree une direction artistique premium: layout, mood, spacing, composants, variations visuelles par niche et signature anti-template.",
+    site_copywriting: "Redige les angles de copywriting: hero, titres, sous-titres, preuves, CTA et microcopy. Le texte doit etre specifique a la niche.",
+    site_seo: "Prepare SEO: title, description, H1/H2, mots-cles, SEO local, intentions de recherche et contenu utile non generique.",
+    site_conversion: "Optimise conversion: CTA, friction, objections, preuves, lead capture, reassurance et prochaine action.",
+    site_improvement: "Propose un patch cible sans tout regenerer. Priorise ce qui augmente clarte, premium, conversion ou specificite.",
+    agent_config: "Structure l'agent: role, objectif, domaine, contexte projet, limites, ton et workflow.",
+    agent_prompt: "Redige les instructions systeme de l'agent, ses exemples d'actions et son style de reponse.",
+    agent_permissions: "Definis permissions sures. Toute action sensible doit rester sous validation utilisateur.",
+    game_design: "Cree le concept de jeu: pitch, univers, core fantasy, public, objectif joueur et contraintes de plateforme.",
+    game_mechanics: "Definis gameplay loop, regles, progression, economie, recompenses, retention et equilibre.",
+    game_level_design: "Prepare map structure, zones, flow, rythme, UI utile et assets visuels necessaires.",
+    game_script: "Genere snippets de depart adaptes a la plateforme: Luau Roblox, JSON Minecraft, Verse UEFN ou JS web game. Explique les limites.",
+    game_assets: "Liste assets, UI, prompts visuels, thumbnails, ambiance et priorites de production.",
+    game_publishing: "Cree checklist de creation/publication sans promesse de publication automatique.",
+    quality_gate: "Critique la sortie attendue: coherence, manque, risques, generique, placeholders, secrets, securite et validations obligatoires.",
+    final_fusion: `Fusionne toutes les sorties en un JSON ${projectType} final conforme au schema Pixelrises. Le brief utilisateur est prioritaire. Supprime contradictions, doublons, placeholders, secrets et contenu generique.`,
+  };
+
+  return instructions[taskType] ?? "Execute la tache Pixelrises demandee en JSON structure et exploitable.";
+};
+
+const roleSystemPrompt = (role: AIRole) => {
+  const prompts: Record<AIRole, string> = {
+    gemini:
+      "Tu es l'IA generale Pixelrises: detection, enrichissement de brief, normalisation, fusion finale et coherence globale. Reponds uniquement en JSON valide.",
+    openai:
+      "Tu es l'IA business, strategie, copywriting, SEO et conversion de Pixelrises. Tu optimises valeur, clarte, objections et CTA sans promesse mensongere. Reponds uniquement en JSON valide.",
+    claude:
+      "Tu es l'IA logique et raisonnement de Pixelrises. Tu structures, critiques, detectes les incoherences et renforces la qualite. Reponds uniquement en JSON valide.",
+    "cloud-design":
+      "Tu es l'IA design Pixelrises. Tu proposes direction artistique, UI, UX, layout, spacing, composants et variation premium sans copier de marque. Reponds uniquement en JSON valide.",
+    "cloud-code":
+      "Tu es l'IA code Pixelrises. Tu produis snippets, architecture, securite, tests et scripts de base sans sortir du scope. Reponds uniquement en JSON valide.",
+    mistral:
+      "Tu es l'IA rapide Pixelrises. Tu fais classification, resume, extraction, tags et pre-analyse. Reponds uniquement en JSON valide.",
+  };
+
+  return `${prompts[role]} Ne revele jamais de secret. Ne dis jamais qu'une integration est connectee si elle ne l'est pas.`;
+};
+
+const publicTaskResult = (result: MultiAITaskResult) => ({
+  taskType: result.taskType,
+  role: result.role,
+  model: result.model,
+  success: result.success,
+  output: result.output,
+  error: result.error,
+});
 
 const getBriefValue = (
   request: OrchestratorRequest,
@@ -528,19 +751,14 @@ const schemaInstruction = (projectType: ProjectType) => {
   return "Retourne un JSON NormalizedSiteProject avec meta, strategy, brand, pages[0].sections, seo, business, conversion, design, recommendations.";
 };
 
-const modelForRequest = (request: OrchestratorRequest) => {
-  const configured = Deno.env.get("AI_GATEWAY_MODEL")?.trim();
-  if (configured) return configured;
-  if (request.projectType === "game") return "anthropic/claude-haiku-4.5";
-  if (request.projectType === "agent") return "openai/gpt-5.4-mini";
-  return "openai/gpt-5.4-mini";
-};
-
-const callGateway = async (
+const callGatewayTask = async (
   request: OrchestratorRequest,
   projectId: string,
+  taskType: AITaskType,
+  previousResults: MultiAITaskResult[] = [],
 ) => {
-  const model = modelForRequest(request);
+  const role = roleForTask(taskType);
+  const model = modelForRole(role);
   const prompt = request.prompt?.trim() || "Creer un projet digital Pixelrises.";
   const safeRequest = {
     projectType: request.projectType,
@@ -550,24 +768,28 @@ const callGateway = async (
     brief: request.brief,
     options: request.options,
   };
+  const startedAt = performance.now();
 
   const response = await createAIChatCompletion({
     model,
     stream: false,
-    temperature: 0.45,
-    max_tokens: 4096,
+    temperature: taskTemperature(taskType),
+    max_tokens: taskMaxTokens(taskType),
     messages: [
       {
         role: "system",
-        content:
-          "Tu es Pixelrises AI Orchestrator. Reponds uniquement en JSON valide, sans Markdown, sans texte autour. Respecte strictement le brief utilisateur. Ne mets jamais de cle API, secret, token ou donnee sensible dans la sortie.",
+        content: roleSystemPrompt(role),
       },
       {
         role: "user",
         content: JSON.stringify({
-          instruction: schemaInstruction(request.projectType ?? "site"),
+          taskType,
+          role,
+          instruction: taskInstruction(taskType, request.projectType ?? "site"),
+          finalSchema: taskType === "final_fusion" ? schemaInstruction(request.projectType ?? "site") : undefined,
           projectId,
           request: safeRequest,
+          previousResults: taskType === "final_fusion" ? previousResults.map(publicTaskResult) : undefined,
         }),
       },
     ],
@@ -587,10 +809,130 @@ const callGateway = async (
   }
 
   return {
+    taskType,
+    role,
     model: String(payload?.model ?? model),
     provider: getAIProviderName(),
     usage: (payload?.usage ?? {}) as ChatUsage,
     output: parsed,
+    durationMs: Math.round(performance.now() - startedAt),
+  };
+};
+
+const buildTaskFallback = (
+  request: OrchestratorRequest,
+  taskType: AITaskType,
+  error: string,
+): MultiAITaskResult => {
+  const role = roleForTask(taskType);
+  return {
+    taskType,
+    role,
+    model: "pixelrises-task-fallback",
+    success: true,
+    output: {
+      taskType,
+      role,
+      summary: `Fallback structure pour ${taskType}.`,
+      decisions: [],
+      warnings: [error],
+      request: {
+        projectType: request.projectType,
+        mode: request.mode,
+      },
+    },
+    usage: {},
+    durationMs: 0,
+    error,
+  };
+};
+
+const aggregateUsage = (results: Array<{ usage?: ChatUsage }>): ChatUsage => {
+  const totals = results.reduce(
+    (acc, result) => {
+      acc.prompt_tokens += result.usage?.prompt_tokens ?? 0;
+      acc.completion_tokens += result.usage?.completion_tokens ?? 0;
+      acc.total_tokens += result.usage?.total_tokens ?? ((result.usage?.prompt_tokens ?? 0) + (result.usage?.completion_tokens ?? 0));
+      return acc;
+    },
+    { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+  );
+
+  return totals.total_tokens > 0 ? totals : {};
+};
+
+const compactModelTrace = (results: MultiAITaskResult[]) => {
+  const byTask = results.map((result) => `${result.taskType}:${result.model}`);
+  const trace = Array.from(new Set(byTask)).join(" | ");
+  return trace.length > 900 ? `${trace.slice(0, 897)}...` : trace;
+};
+
+const runMultiAI = async (
+  request: OrchestratorRequest,
+  projectId: string,
+  allowMockFallback: boolean,
+): Promise<MultiAIExecution> => {
+  const projectType = request.projectType ?? "site";
+  const mode = request.mode ?? "build";
+  const plan = taskPlans[projectType][mode] ?? taskPlans[projectType].build;
+  const analysisTasks = plan.filter((taskType) => taskType !== "final_fusion");
+  const errors: string[] = [];
+
+  const taskResults = await Promise.all(
+    analysisTasks.map(async (taskType) => {
+      try {
+        const generated = await callGatewayTask(request, projectId, taskType);
+        return {
+          taskType,
+          role: generated.role,
+          model: generated.model,
+          success: true,
+          output: generated.output,
+          usage: generated.usage,
+          durationMs: generated.durationMs,
+        } satisfies MultiAITaskResult;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : `Echec task ${taskType}.`;
+        errors.push(`${taskType}: ${message}`);
+        if (!allowMockFallback) throw error;
+        return buildTaskFallback(request, taskType, message);
+      }
+    }),
+  );
+
+  let fusion: MultiAITaskResult;
+  try {
+    const generated = await callGatewayTask(request, projectId, "final_fusion", taskResults);
+    fusion = {
+      taskType: "final_fusion",
+      role: generated.role,
+      model: generated.model,
+      success: true,
+      output: generated.output,
+      usage: generated.usage,
+      durationMs: generated.durationMs,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Echec final_fusion.";
+    errors.push(`final_fusion: ${message}`);
+    if (!allowMockFallback) throw error;
+    fusion = {
+      ...buildTaskFallback(request, "final_fusion", message),
+      output: fallbackByType(request, projectId),
+    };
+  }
+
+  const allResults = [...taskResults, fusion];
+  const realResults = allResults.filter((result) => result.model !== "pixelrises-task-fallback");
+
+  return {
+    output: fusion.output,
+    provider: realResults.length ? "vercel-gateway" : "mock",
+    model: realResults.length ? `multi-ai:${compactModelTrace(realResults)}` : "pixelrises-dev-fallback",
+    usage: aggregateUsage(allResults),
+    source: realResults.length ? "real" : "mock-fallback",
+    taskResults: allResults,
+    errors,
   };
 };
 
@@ -774,18 +1116,10 @@ serve(async (request) => {
     };
     const projectId = makeId();
     const allowMockFallback = (Deno.env.get("AI_ENABLE_MOCK") ?? "true").toLowerCase() !== "false";
-    let source: "real" | "mock-fallback" = "real";
-    let provider = "vercel-gateway";
-    let model = modelForRequest(normalizedRequest);
-    let usage: ChatUsage = {};
-    let rawOutput: unknown;
+    let execution: MultiAIExecution;
 
     try {
-      const generated = await callGateway(normalizedRequest, projectId);
-      rawOutput = generated.output;
-      provider = generated.provider;
-      model = generated.model;
-      usage = generated.usage;
+      execution = await runMultiAI(normalizedRequest, projectId, allowMockFallback);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Generation IA indisponible.";
       errors.push(message);
@@ -797,13 +1131,18 @@ serve(async (request) => {
         );
       }
 
-      source = "mock-fallback";
-      provider = "mock";
-      model = "pixelrises-dev-fallback";
-      rawOutput = fallbackByType(normalizedRequest, projectId);
+      execution = {
+        output: fallbackByType(normalizedRequest, projectId),
+        provider: "mock",
+        model: "pixelrises-dev-fallback",
+        usage: {},
+        source: "mock-fallback",
+        taskResults: [],
+        errors: [message],
+      };
     }
 
-    const normalizedOutput = normalizeOutput(normalizedRequest, rawOutput, projectId);
+    const normalizedOutput = normalizeOutput(normalizedRequest, execution.output, projectId);
     const qualityGateResult = qualityGate(projectType, normalizedOutput);
     const userId = await getAuthenticatedUserId(request);
     const durationMs = Math.round(performance.now() - startedAt);
@@ -812,12 +1151,12 @@ serve(async (request) => {
       output: normalizedOutput,
       quality: qualityGateResult,
       userId,
-      provider,
-      model,
-      usage,
+      provider: execution.provider,
+      model: execution.model,
+      usage: execution.usage,
       durationMs,
-      success: errors.length === 0,
-      errorMessage: errors[0],
+      success: [...errors, ...execution.errors].length === 0,
+      errorMessage: [...errors, ...execution.errors][0],
     });
 
     return new Response(
@@ -830,10 +1169,17 @@ serve(async (request) => {
         generationId: persistence.generationId,
         projectId: persistence.projectId ?? projectId,
         persisted: persistence.persisted,
-        provider,
-        model,
-        source,
-        errors: [...errors, ...persistence.errors],
+        provider: execution.provider,
+        model: execution.model,
+        source: execution.source,
+        routingTrace: execution.taskResults.map(({ taskType, role, model, success, error }) => ({
+          taskType,
+          role,
+          model,
+          success,
+          error,
+        })),
+        errors: [...errors, ...execution.errors, ...persistence.errors],
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

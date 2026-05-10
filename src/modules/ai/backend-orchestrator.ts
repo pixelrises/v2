@@ -43,6 +43,13 @@ export type BackendAIOrchestratorResponse = {
   provider?: string;
   model?: string;
   source?: BackendGenerationSource;
+  routingTrace?: Array<{
+    taskType: string;
+    role: string;
+    model: string;
+    success: boolean;
+    error?: string;
+  }>;
   errors?: string[];
 };
 

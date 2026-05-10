@@ -74,7 +74,6 @@ const isGatewayModelName = (model: unknown) =>
 
 const normalizeVercelGatewayModelName = (model: unknown) => {
   const configuredModel = readOptionalEnv("AI_GATEWAY_MODEL") || readOptionalEnv("VERCEL_AI_GATEWAY_MODEL");
-  if (configuredModel) return configuredModel;
 
   if (typeof model === "string" && /gemini-2\.5-flash/i.test(model)) {
     return readOptionalEnv("AI_GATEWAY_BALANCED_MODEL") || DEFAULT_GATEWAY_BALANCED_MODEL;
@@ -85,6 +84,8 @@ const normalizeVercelGatewayModelName = (model: unknown) => {
   }
 
   if (isGatewayModelName(model)) return String(model);
+
+  if (configuredModel) return configuredModel;
 
   return DEFAULT_GATEWAY_MODEL;
 };
