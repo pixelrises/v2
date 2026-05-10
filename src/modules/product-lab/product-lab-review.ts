@@ -471,6 +471,48 @@ export const persistProductLabDecisionToSupabase = async (
   }
 };
 
+export const getUnsyncedProductLabDecisions = (decisions: ProductLabDecisionMap) =>
+  Object.values(decisions).filter(
+    (decision) => decision.status !== "pending" && decision.persisted !== "supabase",
+  );
+
+export const syncProductLabDecisionsToSupabase = async (
+  decisions: ProductLabDecisionMap,
+  queue: ProductLabReviewQueue,
+  scope: ProductLabScope = "v2",
+): Promise<{
+  synced: ProductLabDecision[];
+  failed: Array<{ decision: ProductLabDecision; error: string }>;
+}> => {
+  const itemsById = new Map(queue.items.map((item) => [item.id, item]));
+  const unsyncedDecisions = getUnsyncedProductLabDecisions(decisions);
+  const synced: ProductLabDecision[] = [];
+  const failed: Array<{ decision: ProductLabDecision; error: string }> = [];
+
+  for (const decision of unsyncedDecisions) {
+    const item = itemsById.get(decision.itemId);
+    if (!item) {
+      failed.push({
+        decision,
+        error: "Proposition introuvable dans la file Product Lab actuelle.",
+      });
+      continue;
+    }
+
+    const result = await persistProductLabDecisionToSupabase(decision, item, queue, scope);
+    if (result.persisted) {
+      synced.push({ ...decision, persisted: "supabase" });
+    } else {
+      failed.push({
+        decision,
+        error: result.error ?? "Synchronisation Supabase impossible.",
+      });
+    }
+  }
+
+  return { synced, failed };
+};
+
 export const readProductLabReviewQueueFromSupabase = async (scope: ProductLabScope = "v2"): Promise<ProductLabReviewQueue | null> => {
   const config = getProductLabScopeConfig(scope);
   if (!isSupabaseConfigured) return null;

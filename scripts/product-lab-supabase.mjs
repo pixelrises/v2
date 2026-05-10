@@ -20,6 +20,15 @@ const isConfigured = () => {
   return Boolean(url && serviceRoleKey);
 };
 
+const requireSync = () => process.env.PRODUCT_LAB_REQUIRE_SUPABASE_SYNC === "true";
+
+const skipOrFail = (message) => {
+  if (requireSync()) {
+    throw new Error(message);
+  }
+  console.log(message);
+};
+
 const restFetch = async (resource, options = {}) => {
   const { url, serviceRoleKey } = getSupabaseConfig();
   if (!url || !serviceRoleKey) {
@@ -62,13 +71,13 @@ const isObject = (value) => typeof value === "object" && value !== null && !Arra
 
 const pushProposals = async () => {
   if (!isConfigured()) {
-    console.log("Product Lab Supabase proposal sync skipped: missing service role configuration.");
+    skipOrFail("Product Lab Supabase proposal sync failed: missing service role configuration.");
     return;
   }
 
   const queue = readJson("public/product-lab-review.json", null);
   if (!queue?.items?.length) {
-    console.log("Product Lab Supabase proposal sync skipped: no review queue found.");
+    skipOrFail("Product Lab Supabase proposal sync failed: no review queue found.");
     return;
   }
 

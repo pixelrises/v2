@@ -3,6 +3,7 @@ import {
   exportProductLabDecisions,
   fallbackProductLabV1ReviewQueue,
   fallbackProductLabReviewQueue,
+  getUnsyncedProductLabDecisions,
   getProductLabMissingTableMessage,
   getProductLabReviewStats,
   getProductLabScopeConfig,
@@ -55,6 +56,36 @@ describe("Product Lab admin review", () => {
 
     expect(items[0].localDecision.applicationStatus).toBe("pr_ready");
     expect(items[0].localDecision.automationAction).toBe("hold");
+  });
+
+  it("detects local Product Lab decisions that still need Supabase sync", () => {
+    const item = fallbackProductLabReviewQueue.items[0];
+    const decisions: ProductLabDecisionMap = {
+      [item.id]: {
+        itemId: item.id,
+        status: "approved",
+        note: "OK local.",
+        correctionRequest: "",
+        rejectionMode: null,
+        automationAction: "authorize_next_run",
+        decidedAt: "2026-05-10T00:00:00.000Z",
+        applicationStatus: "pending",
+        persisted: "localStorage",
+      },
+      "already-synced": {
+        itemId: "already-synced",
+        status: "approved",
+        note: "OK sync.",
+        correctionRequest: "",
+        rejectionMode: null,
+        automationAction: "authorize_next_run",
+        decidedAt: "2026-05-10T00:00:00.000Z",
+        applicationStatus: "pending",
+        persisted: "supabase",
+      },
+    };
+
+    expect(getUnsyncedProductLabDecisions(decisions).map((decision) => decision.itemId)).toEqual([item.id]);
   });
 
   it("counts review states for the admin dashboard", () => {

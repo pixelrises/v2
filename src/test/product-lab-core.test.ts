@@ -397,6 +397,9 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '20'");
     expect(workflow).toContain("steps.smoke_preflight.outputs.ready == 'true'");
     expect(workflow).toContain("steps.generator_smoke.outcome");
+    expect(workflow).toContain("PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: \"true\"");
+    expect(workflow).toContain("steps.proposals_push.outcome");
+    expect(workflow).toContain("Fail if Product Lab admin sync failed");
     expect(workflow).toContain("tmp/generator-smoke-last.json");
     expect(workflow).toContain("Report blocked Product Lab PR");
     expect(workflow).toContain("(s.approvedFindings||[]).length > 0 && (s.appliedImprovements||[]).length > 0");

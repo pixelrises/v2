@@ -34,6 +34,8 @@ import {
   persistProductLabDecisionToSupabase,
   readProductLabDecisionsFromSupabase,
   readProductLabDecisions,
+  getUnsyncedProductLabDecisions,
+  syncProductLabDecisionsToSupabase,
   writeProductLabDecision,
   type ProductLabAutomationAction,
   type ProductLabDecisionMap,
@@ -877,6 +879,11 @@ const Admin = () => {
   const productLabFreshness = getProductLabFreshness(productLabQueue);
   const productLabDisplayedCount = productLabReviewItems.length;
   const productLabExpectedCount = productLabQueue?.summary.total ?? productLabDisplayedCount;
+  const unsyncedProductLabDecisions = useMemo(
+    () => getUnsyncedProductLabDecisions(productLabDecisions),
+    [productLabDecisions],
+  );
+  const unsyncedProductLabDecisionCount = unsyncedProductLabDecisions.length;
 
   const updateProductLabDecision = async (
     item: ProductLabReviewItemWithDecision,
@@ -956,6 +963,68 @@ const Admin = () => {
       ),
     }));
     setProductLabDecisionSaving(null);
+  };
+
+  const syncLocalProductLabDecisions = async () => {
+    if (!productLabQueue) {
+      toast({
+        title: "File Product Lab absente",
+        description: "Recharge la file avant de synchroniser les validations locales.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!unsyncedProductLabDecisionCount) {
+      toast({
+        title: "Aucune decision locale",
+        description: "Toutes les validations visibles sont deja synchronisees ou aucune decision n'a ete prise.",
+      });
+      return;
+    }
+
+    setProductLabDecisionSaving("__sync__");
+    const result = await syncProductLabDecisionsToSupabase(productLabDecisions, productLabQueue, productLabScope);
+    const syncedIds = new Set(result.synced.map((decision) => decision.itemId));
+    const nextDecisions = Object.fromEntries(
+      Object.entries(productLabDecisions).map(([itemId, decision]) => [
+        itemId,
+        syncedIds.has(itemId)
+          ? {
+              ...decision,
+              persisted: "supabase" as const,
+            }
+          : decision,
+      ]),
+    );
+
+    setProductLabDecisions(nextDecisions);
+    setProductLabPersistence(result.failed.length ? "localStorage" : "supabase");
+    setProductLabPersistenceError(result.failed[0]?.error ?? null);
+    setProductLabScopeDashboard((previous) => ({
+      ...previous,
+      [productLabScope]: buildProductLabScopeDashboardState(
+        productLabQueue,
+        nextDecisions,
+        result.failed.length ? "localStorage" : "supabase",
+        result.failed[0]?.error ?? null,
+      ),
+    }));
+    setProductLabDecisionSaving(null);
+
+    if (result.failed.length) {
+      toast({
+        title: "Synchronisation incomplete",
+        description: `${result.synced.length} decision(s) synchronisee(s), ${result.failed.length} encore en local. Detail: ${result.failed[0].error}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Validations synchronisees",
+      description: `${result.synced.length} decision(s) envoyee(s) dans Supabase. GitHub Actions pourra les lire au prochain run.`,
+    });
   };
 
   const copyProductLabDecisions = async () => {
@@ -1481,7 +1550,9 @@ const Admin = () => {
                       }`}
                     >
                       {productLabPersistence === "supabase"
-                        ? "Sync Supabase active"
+                        ? unsyncedProductLabDecisionCount
+                          ? `${unsyncedProductLabDecisionCount} decision(s) locales a synchroniser`
+                          : "Sync Supabase active"
                         : productLabPersistence === "loading"
                           ? "Sync en verification"
                           : "Non synchronise GitHub"}
@@ -1502,6 +1573,19 @@ const Admin = () => {
                   >
                     <FileText className="h-4 w-4" />
                     Recharger
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full border-green-400/25 bg-green-400/[0.08] text-green-100 hover:bg-green-400/[0.14] sm:w-auto"
+                    disabled={!unsyncedProductLabDecisionCount || productLabDecisionSaving === "__sync__"}
+                    onClick={() => void syncLocalProductLabDecisions()}
+                  >
+                    {productLabDecisionSaving === "__sync__" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                    Synchroniser
                   </Button>
                   <Button className="w-full sm:w-auto" onClick={() => void copyProductLabDecisions()}>
                     <ClipboardCheck className="h-4 w-4" />
@@ -1600,6 +1684,22 @@ const Admin = () => {
                   {productLabPersistenceError ? (
                     <span className="mt-1 block text-amber-200/80">Detail: {productLabPersistenceError}</span>
                   ) : null}
+                </div>
+              )}
+
+              {unsyncedProductLabDecisionCount > 0 && (
+                <div className="mt-4 rounded-2xl border border-blue-400/25 bg-blue-400/[0.08] p-4 text-sm leading-6 text-blue-100">
+                  <strong>{unsyncedProductLabDecisionCount} validation(s) locale(s) a synchroniser.</strong> Clique
+                  sur Synchroniser pour envoyer ces choix dans Supabase. Sinon GitHub Actions ne peut pas les appliquer
+                  au prochain run.
+                </div>
+              )}
+
+              {productLabQueueSource !== "supabase" && (
+                <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/[0.08] p-4 text-sm leading-6 text-amber-100">
+                  <strong>File non live:</strong> cette liste vient de {productLabQueueSourceInfo.label}. Le prochain
+                  workflow doit pousser les propositions dans Supabase; sinon il doit echouer clairement au lieu de
+                  laisser l'admin vide.
                 </div>
               )}
 
