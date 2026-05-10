@@ -145,9 +145,38 @@ jobs:
           PIXELRISES_SMOKE_ONLY: ${{ vars.PIXELRISES_SMOKE_ONLY }}
         run: npm run smoke:generator
 
+      - name: Check Product Lab admin sync configuration
+        id: admin_sync_preflight
+        if: steps.guard.outputs.run == 'true'
+        shell: bash
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          missing=()
+
+          if [ -z "$VITE_SUPABASE_URL" ]; then
+            missing+=("VITE_SUPABASE_URL")
+          fi
+
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            missing+=("SUPABASE_SERVICE_ROLE_KEY")
+          fi
+
+          if [ ${#missing[@]} -eq 0 ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "missing=none" >> "$GITHUB_OUTPUT"
+            echo "Product Lab admin sync configuration is ready."
+          else
+            printf -v joined "%s, " "${missing[@]}"
+            joined="${joined%, }"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "missing=$joined" >> "$GITHUB_OUTPUT"
+            echo "::error title=Product Lab admin sync configuration missing::$joined"
+          fi
+
       - name: Push Product Lab proposals to Supabase
         id: proposals_push
-        if: always() && steps.guard.outputs.run == 'true'
+        if: always() && steps.guard.outputs.run == 'true' && steps.admin_sync_preflight.outputs.ready == 'true'
         continue-on-error: true
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -337,7 +366,13 @@ jobs:
       - name: Fail if Product Lab admin sync failed
         if: >
           steps.guard.outputs.run == 'true' &&
-          steps.proposals_push.outcome != 'success'
+          (
+            steps.admin_sync_preflight.outputs.ready != 'true' ||
+            steps.proposals_push.outcome != 'success'
+          )
         run: |
+          if [ "${{ steps.admin_sync_preflight.outputs.ready }}" != "true" ]; then
+            echo "::error title=Product Lab admin sync configuration missing::Missing: ${{ steps.admin_sync_preflight.outputs.missing }}. Add the missing value in GitHub repo pixelrises/v2 > Settings > Secrets and variables > Actions."
+          fi
           echo "::error title=Product Lab admin sync failed::The workflow could not push review proposals to Supabase, so the admin would not show the new suggestions."
           exit 1
