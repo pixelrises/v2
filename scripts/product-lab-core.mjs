@@ -355,15 +355,89 @@ export const findApprovedAdminDecision = (adminDecisions, finding, theme) => {
 
   const findingTitle = normalize(finding?.title);
   const findingModule = normalize(finding?.module);
-  const themeIds = new Set([normalize(theme?.id), normalize(theme?.label)].filter(Boolean));
 
   return Object.values(adminDecisions).find((decision) => {
     if (decision?.status !== "approved" || decision?.automationAction !== "authorize_next_run") return false;
     if (normalize(decision?.title) !== findingTitle || normalize(decision?.module) !== findingModule) return false;
-
-    const sourceTheme = normalize(decision?.sourceTheme ?? decision?.theme ?? decision?.themeId);
-    return !sourceTheme || themeIds.has(sourceTheme);
+    return true;
   });
+};
+
+const isApprovedAdminDecision = (decision) =>
+  decision?.status === "approved" && decision?.automationAction === "authorize_next_run";
+
+const buildApprovedFindingFromDecision = (decision) => {
+  const reviewItem = decision?.reviewItem && typeof decision.reviewItem === "object" ? decision.reviewItem : {};
+  const title = decision?.title || reviewItem.title || decision?.itemId || "Amelioration validee";
+  const module = decision?.module || reviewItem.module || "Product Lab";
+  const description =
+    decision?.correctionRequest ||
+    decision?.note ||
+    decision?.description ||
+    reviewItem.description ||
+    reviewItem.simpleSummary ||
+    `Appliquer l'amelioration validee depuis l'admin: ${title}.`;
+
+  return {
+    title,
+    module,
+    impact: decision?.impact || reviewItem.impact || "Moyen",
+    risk: decision?.risk || reviewItem.risk || "Faible",
+    difficulty: decision?.difficulty || reviewItem.difficulty || "Faible",
+    priority: decision?.priority || reviewItem.priority || "Important",
+    status: "Validee admin",
+    inspiration: decision?.inspiration || reviewItem.inspiration || "Pixelrises Product Lab",
+    description,
+    decision: decision?.decisionKind || reviewItem.decision || "human_validation",
+    scoreImpact: Number.isFinite(Number(decision?.scoreImpact || reviewItem.scoreImpact))
+      ? Number(decision?.scoreImpact || reviewItem.scoreImpact)
+      : 12,
+    approvedItemId: decision?.itemId,
+    approvedDecision: decision,
+    beforeState: decision?.beforeState || reviewItem.beforeState || "",
+    afterState: decision?.afterState || reviewItem.afterState || "",
+    concernedFiles: Array.isArray(decision?.concernedFiles)
+      ? decision.concernedFiles
+      : Array.isArray(reviewItem.concernedFiles)
+        ? reviewItem.concernedFiles
+        : [],
+  };
+};
+
+export const mergeApprovedAdminFindings = (findings, adminDecisions, theme) => {
+  const approvedFindings = [];
+  const seenKeys = new Set();
+
+  const remember = (finding) => {
+    const itemId = finding.approvedItemId || getProductLabReviewItemId(finding, theme);
+    const key = `${itemId}:${normalize(finding.module)}:${normalize(finding.title)}`;
+    if (seenKeys.has(key)) return;
+    seenKeys.add(key);
+    approvedFindings.push(finding);
+  };
+
+  for (const finding of findings) {
+    const decision = findApprovedAdminDecision(adminDecisions, finding, theme);
+    if (decision) {
+      remember({
+        ...finding,
+        approvedItemId: decision.itemId || getProductLabReviewItemId(finding, theme),
+        approvedDecision: decision,
+      });
+    }
+  }
+
+  for (const decision of Object.values(adminDecisions)) {
+    if (!isApprovedAdminDecision(decision)) continue;
+    const decisionKey = `${decision.itemId}:${normalize(decision.module)}:${normalize(decision.title)}`;
+    if ([...seenKeys].some((key) => key.startsWith(`${decision.itemId}:`) || key.endsWith(`:${normalize(decision.module)}:${normalize(decision.title)}`))) {
+      continue;
+    }
+    seenKeys.add(decisionKey);
+    approvedFindings.push(buildApprovedFindingFromDecision(decision));
+  }
+
+  return approvedFindings;
 };
 
 const exists = (root, relativePath) => fs.existsSync(path.join(root, relativePath));
@@ -1308,9 +1382,7 @@ export const runProductLab = ({
     process.env.PRODUCT_LAB_APPLY_SAFE_FIXES === "true" &&
     fs.existsSync(approvalFile) &&
     maxPatches > 0;
-  const approvedFindings = findings.filter((finding) => {
-    return Boolean(findApprovedAdminDecision(adminDecisions, finding, theme));
-  });
+  const approvedFindings = mergeApprovedAdminFindings(findings, adminDecisions, theme);
   const patchResult = canApplyPatches
     ? applySafeImprovements(root, approvedFindings, maxPatches, theme, dateLabel)
     : { appliedImprovements: [], modifiedFiles: [] };
@@ -1362,7 +1434,7 @@ export const runProductLab = ({
         theme: theme.id,
         dryRun,
         approvedFindings: approvedFindings.map((finding) => ({
-          itemId: getProductLabReviewItemId(finding, theme),
+          itemId: finding.approvedItemId || getProductLabReviewItemId(finding, theme),
           title: finding.title,
           module: finding.module,
         })),

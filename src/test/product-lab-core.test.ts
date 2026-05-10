@@ -8,6 +8,7 @@ import {
   findApprovedAdminDecision,
   getProductLabReviewItemId,
   getThemeForParisDate,
+  mergeApprovedAdminFindings,
   redactSecrets,
   renderBacklog,
   renderDailyReport,
@@ -347,6 +348,57 @@ describe("Pixelrises Product Lab core", () => {
     );
 
     expect(decision?.itemId).toBe("2026-05-06-agent-builder-agent-builder-1");
+  });
+
+  it("keeps approved admin decisions actionable even when the daily theme changes", () => {
+    const approvedFindings = mergeApprovedAdminFindings(
+      [],
+      {
+        "2026-05-06-agent-builder-agent-builder-1": {
+          itemId: "2026-05-06-agent-builder-agent-builder-1",
+          title: "Durcir la securite des actions agents",
+          module: "Agent Builder",
+          sourceTheme: "Agent Builder / Agents IA",
+          status: "approved",
+          automationAction: "authorize_next_run",
+          reviewItem: {
+            title: "Durcir la securite des actions agents",
+            module: "Agent Builder",
+            impact: "Eleve",
+            risk: "Moyen",
+            difficulty: "Moyenne",
+            priority: "Important",
+            afterState: "Chaque permission sensible reste visible et validable.",
+          },
+        },
+      },
+      {
+        id: "site-builder",
+        label: "Site Builder / Conversion",
+      },
+    );
+
+    expect(approvedFindings).toHaveLength(1);
+    expect(approvedFindings[0].approvedItemId).toBe("2026-05-06-agent-builder-agent-builder-1");
+    expect(approvedFindings[0].module).toBe("Agent Builder");
+  });
+
+  it("runs V2 generator smoke QA in the nightly workflow before PR creation", () => {
+    const workflow = fs.readFileSync(path.join(process.cwd(), ".github/workflows/product-lab-nightly.yml"), "utf8");
+
+    expect(workflow).toContain("Run V2 generator smoke QA");
+    expect(workflow).toContain("npm run smoke:generator");
+    expect(workflow).toContain("vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '20'");
+    expect(workflow).toContain("steps.generator_smoke.outcome");
+    expect(workflow).toContain("tmp/generator-smoke-last.json");
+    expect(workflow).toContain("(s.approvedFindings||[]).length > 0 && (s.appliedImprovements||[]).length > 0");
+  });
+
+  it("does not silently skip enabled V2 real QA when smoke credentials are missing", () => {
+    const smokeScript = fs.readFileSync(path.join(process.cwd(), "scripts/smoke-generate-site.mjs"), "utf8");
+
+    expect(smokeScript).toContain("Generator smoke test requires PIXELRISES_SMOKE_BEARER_TOKEN");
+    expect(smokeScript).not.toContain("smoke credentials are not configured. No credits were consumed.");
   });
 
   it("removes the first dry-run proposal after human approval", () => {

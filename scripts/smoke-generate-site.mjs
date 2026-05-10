@@ -777,8 +777,9 @@ const run = async () => {
 
   const bearerToken = await getSmokeBearerToken();
   if (!bearerToken) {
-    console.warn("Generator smoke test skipped: smoke credentials are not configured. No credits were consumed.");
-    return;
+    throw new Error(
+      "Generator smoke test requires PIXELRISES_SMOKE_BEARER_TOKEN or PIXELRISES_SMOKE_EMAIL/PIXELRISES_SMOKE_PASSWORD when PIXELRISES_GENERATOR_REAL_QA=1.",
+    );
   }
 
   const endpoint = `${supabaseUrl.replace(/\/$/, "")}/generate-site`;
