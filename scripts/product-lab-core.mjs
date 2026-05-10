@@ -311,10 +311,12 @@ const slugify = (value) => normalize(value).replace(/\s+/g, "-") || "item";
 
 export const getProductLabReviewItemId = (finding, theme) =>
   [
+    theme?.date ?? theme?.runDate ?? theme?.sourceRun?.date,
     theme?.id ?? "global",
     finding?.module ?? "module",
     finding?.title ?? finding?.description ?? "improvement",
   ]
+    .filter(Boolean)
     .map(slugify)
     .join("-");
 
@@ -1202,6 +1204,7 @@ export const selectProductLabReviewFindings = (findings, theme) => {
 export const buildProductLabReviewQueue = (result) => {
   const reportPath = path.join("reports", "product-lab", "daily", `daily-${result.date}.md`).replace(/\\/g, "/");
   const reviewItems = selectProductLabReviewFindings(result.findings, result.theme);
+  const queueTheme = { ...result.theme, date: result.date, runDate: result.date };
   const scoreEntries = Object.entries(result.scores).map(([name, score]) => ({ name, note: score.note }));
   const averageScore = scoreEntries.length
     ? Math.round(scoreEntries.reduce((total, score) => total + score.note, 0) / scoreEntries.length)
@@ -1218,6 +1221,7 @@ export const buildProductLabReviewQueue = (result) => {
       week: result.week,
       theme: result.theme.label,
       reportPath,
+      runId: `${result.date}-${result.theme.id}`,
     },
     summary: {
       total: reviewItems.length,
@@ -1234,7 +1238,7 @@ export const buildProductLabReviewQueue = (result) => {
       },
     },
     items: reviewItems.map((finding) => ({
-      id: getProductLabReviewItemId(finding, result.theme),
+      id: getProductLabReviewItemId(finding, queueTheme),
       title: finding.title,
       module: finding.module,
       simpleSummary: buildReviewSimpleSummary(finding),

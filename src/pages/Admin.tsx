@@ -27,6 +27,7 @@ import { sanitizeTextDeep } from "@/lib/text-sanitize";
 import { resolvePublishedSiteUrl } from "@/lib/published-site";
 import {
   exportProductLabDecisions,
+  getProductLabQueueRunKey,
   getProductLabScopeConfig,
   getProductLabReviewStats,
   loadProductLabReviewQueue,
@@ -662,12 +663,15 @@ const Admin = () => {
 
   const refreshAdminData = async () => {
     setRefreshing(true);
-    await Promise.all([
-      loadAdminData(),
-      loadProductLabQueue(),
-      loadProductLabScopeDashboard(),
-    ]);
-    setRefreshing(false);
+    try {
+      await Promise.all([
+        loadAdminData(),
+        loadProductLabQueue(),
+        loadProductLabScopeDashboard(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
     toast({
       title: "Admin actualisé",
       description: "Les données les plus récentes sont maintenant affichées.",
@@ -971,11 +975,10 @@ const Admin = () => {
       automationAction?: ProductLabAutomationAction;
     } = {},
   ) => {
-    if (!(await ensureAdminRoleForAction())) return;
-
     const itemId = item.id;
     const note = productLabNotes[itemId]?.trim() || fallbackNote;
     const correctionRequest = productLabCorrectionRequests[itemId]?.trim() || "";
+    const sourceRunKey = getProductLabQueueRunKey(productLabQueue);
     const nextDecisions = writeProductLabDecision(
       productLabDecisions,
       itemId,
@@ -985,6 +988,8 @@ const Admin = () => {
         correctionRequest,
         rejectionMode: options.rejectionMode,
         automationAction: options.automationAction,
+        sourceRunKey,
+        sourceRun: productLabQueue?.sourceRun,
       },
       productLabScope,
     );
@@ -994,6 +999,24 @@ const Admin = () => {
     setProductLabDecisionSaving(itemId);
 
     try {
+      const canSyncSupabase = await ensureAdminRoleForAction();
+      if (!canSyncSupabase) {
+        setProductLabPersistence("localStorage");
+        setProductLabPersistenceError(
+          "Decision gardee localement: ton role admin Supabase doit etre confirme avant synchronisation.",
+        );
+        setProductLabScopeDashboard((previous) => ({
+          ...previous,
+          [productLabScope]: buildProductLabScopeDashboardState(
+            productLabQueue,
+            nextDecisions,
+            "localStorage",
+            "Decision gardee localement: role admin Supabase non confirme.",
+          ),
+        }));
+        return;
+      }
+
       const decision = nextDecisions[itemId];
       const persistenceResult = productLabQueue
         ? await persistProductLabDecisionToSupabase(decision, item, productLabQueue, productLabScope)
@@ -1006,6 +1029,8 @@ const Admin = () => {
           ...previous,
           [itemId]: {
             ...previous[itemId],
+            sourceRunKey,
+            sourceRun: productLabQueue?.sourceRun,
             persisted: "supabase",
           },
         }));
@@ -1035,6 +1060,8 @@ const Admin = () => {
             ...nextDecisions,
             [itemId]: {
               ...nextDecisions[itemId],
+              sourceRunKey,
+              sourceRun: productLabQueue?.sourceRun,
               persisted: persistenceResult.persisted ? "supabase" : "localStorage",
             },
           },
@@ -1079,15 +1106,12 @@ const Admin = () => {
     setProductLabDecisionSaving("__sync__");
     try {
       const result = await syncProductLabDecisionsToSupabase(productLabDecisions, productLabQueue, productLabScope);
-      const syncedIds = new Set(result.synced.map((decision) => decision.itemId));
+      const syncedById = new Map(result.synced.map((decision) => [decision.itemId, decision]));
       const nextDecisions = Object.fromEntries(
         Object.entries(productLabDecisions).map(([itemId, decision]) => [
           itemId,
-          syncedIds.has(itemId)
-            ? {
-                ...decision,
-                persisted: "supabase" as const,
-              }
+          syncedById.has(itemId)
+            ? syncedById.get(itemId) ?? decision
             : decision,
         ]),
       );

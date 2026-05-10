@@ -3,6 +3,7 @@ import {
   exportProductLabDecisions,
   fallbackProductLabV1ReviewQueue,
   fallbackProductLabReviewQueue,
+  getProductLabQueueRunKey,
   getUnsyncedProductLabDecisions,
   getProductLabMissingTableMessage,
   getProductLabRlsMessage,
@@ -16,6 +17,8 @@ import {
 } from "@/modules/product-lab/product-lab-review";
 
 describe("Product Lab admin review", () => {
+  const v2RunKey = getProductLabQueueRunKey(fallbackProductLabReviewQueue);
+
   it("merges review items with pending decisions by default", () => {
     const items = mergeProductLabReviewItems(fallbackProductLabReviewQueue, {});
 
@@ -50,6 +53,7 @@ describe("Product Lab admin review", () => {
         applicationStatus: "pr_ready",
         processedAt: "2026-05-07T00:10:00.000Z",
         processedRun: { theme: "agent-builder" },
+        sourceRunKey: v2RunKey,
         persisted: "supabase",
       },
     };
@@ -72,6 +76,7 @@ describe("Product Lab admin review", () => {
         automationAction: "authorize_next_run",
         decidedAt: "2026-05-10T00:00:00.000Z",
         applicationStatus: "pending",
+        sourceRunKey: v2RunKey,
         persisted: "localStorage",
       },
       "already-synced": {
@@ -83,6 +88,7 @@ describe("Product Lab admin review", () => {
         automationAction: "authorize_next_run",
         decidedAt: "2026-05-10T00:00:00.000Z",
         applicationStatus: "pending",
+        sourceRunKey: v2RunKey,
         persisted: "supabase",
       },
     };
@@ -102,6 +108,7 @@ describe("Product Lab admin review", () => {
         automationAction: "authorize_next_run",
         decidedAt: "2026-05-10T00:00:00.000Z",
         applicationStatus: "pending",
+        sourceRunKey: v2RunKey,
         persisted: "localStorage",
       },
       "old-run-item": {
@@ -113,6 +120,7 @@ describe("Product Lab admin review", () => {
         automationAction: "authorize_next_run",
         decidedAt: "2026-05-09T00:00:00.000Z",
         applicationStatus: "pending",
+        sourceRunKey: "old|run|item",
         persisted: "localStorage",
       },
     };
@@ -120,9 +128,34 @@ describe("Product Lab admin review", () => {
     expect(getUnsyncedProductLabDecisions(decisions, fallbackProductLabReviewQueue).map((decision) => decision.itemId)).toEqual([item.id]);
   });
 
+  it("does not reuse an old validation when the same item id belongs to another run", () => {
+    const item = fallbackProductLabReviewQueue.items[0];
+    const decisions: ProductLabDecisionMap = {
+      [item.id]: {
+        itemId: item.id,
+        status: "approved",
+        note: "Ancienne validation.",
+        correctionRequest: "",
+        rejectionMode: null,
+        automationAction: "authorize_next_run",
+        decidedAt: "2026-05-09T00:00:00.000Z",
+        applicationStatus: "pending",
+        sourceRunKey: "2026-05-09|2026-W19|Ancien theme",
+        persisted: "supabase",
+      },
+    };
+
+    const items = mergeProductLabReviewItems(fallbackProductLabReviewQueue, decisions);
+
+    expect(items[0].localDecision.status).toBe("pending");
+  });
+
   it("counts review states for the admin dashboard", () => {
     const item = fallbackProductLabReviewQueue.items[0];
-    const decisions = writeProductLabDecision({} as ProductLabDecisionMap, item.id, "needs_review", "A preciser.");
+    const decisions = writeProductLabDecision({} as ProductLabDecisionMap, item.id, "needs_review", "A preciser.", {
+      sourceRunKey: v2RunKey,
+      sourceRun: fallbackProductLabReviewQueue.sourceRun,
+    });
     const items = mergeProductLabReviewItems(fallbackProductLabReviewQueue, decisions);
     const stats = getProductLabReviewStats(items);
 

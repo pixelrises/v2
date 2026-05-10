@@ -64,6 +64,8 @@ export interface ProductLabDecision {
   applicationStatus?: ProductLabApplicationStatus;
   processedAt?: string;
   processedRun?: Record<string, unknown>;
+  sourceRunKey?: string;
+  sourceRun?: ProductLabReviewQueue["sourceRun"];
   persisted?: "supabase" | "localStorage";
   persistedError?: string;
 }
@@ -138,6 +140,16 @@ export const getProductLabRlsMessage = (scope: ProductLabScope) =>
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+export const getProductLabSourceRunKey = (sourceRun: unknown) => {
+  if (!isObject(sourceRun)) return "";
+  return [sourceRun.date, sourceRun.week, sourceRun.theme]
+    .filter((value) => typeof value === "string" && value.trim().length > 0)
+    .join("|");
+};
+
+export const getProductLabQueueRunKey = (queue: ProductLabReviewQueue | null | undefined) =>
+  getProductLabSourceRunKey(queue?.sourceRun);
 
 const normalizeReviewItem = (value: unknown, fallbackId: string): ProductLabReviewItem | null => {
   if (!isObject(value)) return null;
@@ -314,9 +326,17 @@ export const writeProductLabDecision = (
     correctionRequest?: string;
     rejectionMode?: ProductLabRejectionMode;
     automationAction?: ProductLabAutomationAction;
+    sourceRunKey?: string;
+    sourceRun?: ProductLabReviewQueue["sourceRun"];
   } = {},
   scope: ProductLabScope = "v2",
 ) => {
+  const sourceRunKey =
+    options.sourceRunKey ||
+    getProductLabSourceRunKey(options.sourceRun) ||
+    decisions[itemId]?.sourceRunKey ||
+    "";
+
   const nextDecisions: ProductLabDecisionMap = {
     ...decisions,
     [itemId]: {
@@ -338,6 +358,8 @@ export const writeProductLabDecision = (
       applicationStatus: "pending",
       processedAt: "",
       processedRun: {},
+      sourceRunKey,
+      sourceRun: options.sourceRun ?? decisions[itemId]?.sourceRun,
       persisted: "localStorage",
     },
   };
@@ -366,8 +388,8 @@ export const readProductLabDecisionsFromSupabase = async (scope: ProductLabScope
       .from(config.decisionsTable)
       .select(
         config.scope === "v1"
-          ? "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,pr_url,pr_number,pr_ready_at"
-          : "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,application_status,processed_at,processed_run",
+          ? "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,source_run,pr_url,pr_number,pr_ready_at"
+          : "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,source_run,application_status,processed_at,processed_run",
       )
       .order("decided_at", { ascending: false })
       .limit(500);
@@ -392,6 +414,9 @@ export const readProductLabDecisionsFromSupabase = async (scope: ProductLabScope
       const prUrl = typeof record.pr_url === "string" ? record.pr_url : "";
       const prNumber = typeof record.pr_number === "number" ? record.pr_number : null;
       const prReadyAt = typeof record.pr_ready_at === "string" ? record.pr_ready_at : "";
+      const sourceRun = isObject(record.source_run)
+        ? (record.source_run as ProductLabReviewQueue["sourceRun"])
+        : undefined;
 
       accumulator[itemId] = {
         itemId,
@@ -412,6 +437,8 @@ export const readProductLabDecisionsFromSupabase = async (scope: ProductLabScope
           : prUrl
             ? { prUrl, prNumber }
             : {},
+        sourceRunKey: getProductLabSourceRunKey(sourceRun),
+        sourceRun,
         persisted: "supabase",
       };
       return accumulator;
@@ -494,12 +521,14 @@ export const getUnsyncedProductLabDecisions = (
   queue?: ProductLabReviewQueue | null,
 ) => {
   const visibleItemIds = queue ? new Set(queue.items.map((item) => item.id)) : null;
+  const queueRunKey = getProductLabQueueRunKey(queue);
 
   return Object.values(decisions).filter(
     (decision) =>
       decision.status !== "pending" &&
       decision.persisted !== "supabase" &&
-      (!visibleItemIds || visibleItemIds.has(decision.itemId)),
+      (!visibleItemIds || visibleItemIds.has(decision.itemId)) &&
+      (!queueRunKey || decision.sourceRunKey === queueRunKey),
   );
 };
 
@@ -528,7 +557,12 @@ export const syncProductLabDecisionsToSupabase = async (
 
     const result = await persistProductLabDecisionToSupabase(decision, item, queue, scope);
     if (result.persisted) {
-      synced.push({ ...decision, persisted: "supabase" });
+      synced.push({
+        ...decision,
+        sourceRunKey: getProductLabQueueRunKey(queue),
+        sourceRun: queue.sourceRun,
+        persisted: "supabase",
+      });
     } else {
       failed.push({
         decision,
@@ -559,9 +593,9 @@ export const readProductLabReviewQueueFromSupabase = async (scope: ProductLabSco
     const rows = data.filter(isObject);
     const latest = rows[0] ?? {};
     const sourceRun = isObject(latest.source_run) ? latest.source_run : {};
-    const currentRunKey = getSourceRunKey(sourceRun);
+    const currentRunKey = getProductLabSourceRunKey(sourceRun);
     const currentRows = currentRunKey
-      ? rows.filter((row) => getSourceRunKey(isObject(row.source_run) ? row.source_run : {}) === currentRunKey)
+      ? rows.filter((row) => getProductLabSourceRunKey(isObject(row.source_run) ? row.source_run : {}) === currentRunKey)
       : rows;
 
     const items = currentRows
@@ -645,9 +679,7 @@ export const loadProductLabReviewQueue = async (scope: ProductLabScope = "v2"): 
   ]);
 
   if (remoteQueue && publicQueue) {
-    return getQueueTimestamp(publicQueue) > getQueueTimestamp(remoteQueue)
-      ? withQueueLoadMeta(publicQueue, "public")
-      : withQueueLoadMeta(remoteQueue, "supabase");
+    return withQueueLoadMeta(remoteQueue, "supabase");
   }
 
   if (remoteQueue) return withQueueLoadMeta(remoteQueue, "supabase");
@@ -658,22 +690,34 @@ export const loadProductLabReviewQueue = async (scope: ProductLabScope = "v2"): 
 export const mergeProductLabReviewItems = (
   queue: ProductLabReviewQueue,
   decisions: ProductLabDecisionMap,
-): ProductLabReviewItemWithDecision[] =>
-  queue.items.map((item) => ({
-    ...item,
-    localDecision: decisions[item.id] ?? {
-      itemId: item.id,
-      status: "pending",
-      note: "",
-      correctionRequest: "",
-      rejectionMode: null,
-      automationAction: "hold",
-      decidedAt: "",
-      applicationStatus: "pending",
-      processedAt: "",
-      processedRun: {},
-    },
-  }));
+): ProductLabReviewItemWithDecision[] => {
+  const queueRunKey = getProductLabQueueRunKey(queue);
+
+  return queue.items.map((item) => {
+    const decision = decisions[item.id];
+    const isDecisionForCurrentRun = decision && (!queueRunKey || decision.sourceRunKey === queueRunKey);
+
+    return {
+      ...item,
+      localDecision: isDecisionForCurrentRun
+        ? decision
+        : {
+            itemId: item.id,
+            status: "pending",
+            note: "",
+            correctionRequest: "",
+            rejectionMode: null,
+            automationAction: "hold",
+            decidedAt: "",
+            applicationStatus: "pending",
+            processedAt: "",
+            processedRun: {},
+            sourceRunKey: queueRunKey,
+            sourceRun: queue.sourceRun,
+          },
+    };
+  });
+};
 
 export const getProductLabReviewStats = (items: ProductLabReviewItemWithDecision[]) => ({
   total: items.length,
@@ -719,9 +763,6 @@ const normalizeApplicationStatus = (status: unknown): ProductLabApplicationStatu
   if (status === "pr_ready" || status === "skipped" || status === "validation_failed") return status;
   return "pending";
 };
-
-const getSourceRunKey = (sourceRun: Record<string, unknown>) =>
-  [sourceRun.date, sourceRun.week, sourceRun.theme].filter((value) => typeof value === "string").join("|");
 
 const getQueueTimestamp = (queue: ProductLabReviewQueue | null) => {
   const timestamp = Date.parse(queue?.generatedAt ?? "");

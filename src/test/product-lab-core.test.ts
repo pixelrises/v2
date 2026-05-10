@@ -325,6 +325,23 @@ describe("Pixelrises Product Lab core", () => {
     ).toBe(true);
   });
 
+  it("creates run-scoped review item ids so old validations do not hide new proposals", () => {
+    const root = createTempProject();
+    const result = runProductLab({
+      root,
+      action: "daily",
+      dryRun: true,
+      forcedTheme: "site-builder",
+      date: new Date("2026-05-05T10:00:00.000Z"),
+    });
+    const queue = JSON.parse(fs.readFileSync(path.join(root, "public/product-lab-review.json"), "utf8"));
+
+    expect(result.date).toBe("2026-05-05");
+    expect(queue.items.length).toBeGreaterThanOrEqual(5);
+    expect(queue.items.every((item: { id: string }) => item.id.startsWith("2026-05-05-site-builder-"))).toBe(true);
+    expect(queue.sourceRun.runId).toBe("2026-05-05-site-builder");
+  });
+
   it("keeps legacy admin approvals valid by matching title and module", () => {
     const decision = findApprovedAdminDecision(
       {
