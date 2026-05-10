@@ -671,6 +671,11 @@ const readProductLabReviewQueueFromPublic = async (scope: ProductLabScope): Prom
   }
 };
 
+const getQueueGeneratedTime = (queue: ProductLabReviewQueue | null | undefined) => {
+  const timestamp = Date.parse(queue?.generatedAt ?? "");
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
 export const loadProductLabReviewQueue = async (scope: ProductLabScope = "v2"): Promise<ProductLabReviewQueue> => {
   const config = getProductLabScopeConfig(scope);
   const [remoteQueue, publicQueue] = await Promise.all([
@@ -679,7 +684,8 @@ export const loadProductLabReviewQueue = async (scope: ProductLabScope = "v2"): 
   ]);
 
   if (remoteQueue && publicQueue) {
-    return withQueueLoadMeta(remoteQueue, "supabase");
+    const publicIsFresher = getQueueGeneratedTime(publicQueue) > getQueueGeneratedTime(remoteQueue);
+    return withQueueLoadMeta(publicIsFresher ? publicQueue : remoteQueue, publicIsFresher ? "public" : "supabase");
   }
 
   if (remoteQueue) return withQueueLoadMeta(remoteQueue, "supabase");
