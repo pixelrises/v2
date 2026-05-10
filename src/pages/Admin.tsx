@@ -54,16 +54,19 @@ const productLabScopeOptions: Array<{
   id: ProductLabScope;
   label: string;
   description: string;
+  workflowUrl: string;
 }> = [
   {
     id: "v2",
     label: "Pixelrises V2",
     description: "Plateforme SaaS, builders, Multi-IA, Supabase et Vercel AI Gateway.",
+    workflowUrl: "https://github.com/pixelrises/v2/actions/workflows/product-lab-nightly.yml",
   },
   {
     id: "v1",
     label: "Pixelrises V1",
     description: "Generateur V1 separe, suivi depuis le meme admin sans melanger les tables.",
+    workflowUrl: "https://github.com/pixelrises/lancement-v1/actions/workflows/generator-nightly-audit.yml",
   },
 ];
 
@@ -1727,6 +1730,27 @@ const Admin = () => {
                 <strong className="text-foreground">Centre commun, donnees separees.</strong> Tu pilotes V1 et V2 ici,
                 mais chaque Product Lab garde ses tables, son workflow GitHub et son dossier projet. L'admin ne copie
                 pas de code entre les deux versions.
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/[0.06] p-4 text-sm leading-6 text-muted-foreground">
+                <strong className="text-foreground">Fonctionnement valide.</strong> Chaque soir a 00h Europe/Paris,
+                V1 et V2 lancent leur workflow separe, executent jusqu'a 20 tests generateur, transforment les
+                resultats en 5 a 8 propositions utiles maximum, puis les envoient ici. Tu peux valider, modifier,
+                demander une alternative ou refuser. Le prochain run applique uniquement les validations admin et
+                ouvre une PR GitHub si smoke QA, lint, tests et build sont verts. Aucun merge ni deploy automatique.
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {productLabScopeOptions.map((option) => (
+                    <a
+                      key={option.id}
+                      href={option.workflowUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs text-foreground transition hover:border-primary/40 hover:text-primary"
+                    >
+                      Workflow {option.label}
+                    </a>
+                  ))}
+                </div>
               </div>
 
               <div className="mt-5 grid gap-3 lg:grid-cols-2">
