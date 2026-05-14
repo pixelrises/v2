@@ -3,282 +3,468 @@ import { Link } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
-  Cable,
   CheckCircle2,
   Clock3,
-  LockKeyhole,
+  Eye,
+  Link as LinkIcon,
+  MoreVertical,
+  Play,
   Plus,
-  Settings2,
+  Search,
   ShieldCheck,
+  Sparkles,
   Workflow,
+  Zap,
 } from "lucide-react";
 import SEOHead from "@/components/SEOHead";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataBadge, DataSourceLabel, EmptyState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { V2PageShell } from "@/components/v2/V2PageShell";
-import { dashboardAutomations, type DashboardAutomation } from "@/v2/mock-data";
+import {
+  approveAutomationRun,
+  automationEngineSteps,
+  automationScenarios,
+  automationTriggerLabels,
+  createPreparedAutomation,
+  simulateAutomationRun,
+  type AutomationRunLog,
+  type AutomationScenario,
+  type AutomationStatus,
+} from "@/modules/automations/automation-system";
 
-const statusFilters: Array<DashboardAutomation["statusTone"] | "all"> = [
-  "all",
-  "ready",
-  "development",
-  "blocked",
-];
+type AutomationPanel = "overview" | "runs" | "observability" | "create" | "templates";
+type AutomationFilter = AutomationStatus | "all";
 
-const filterCopy: Record<(typeof statusFilters)[number], string> = {
+const statusFilters: AutomationFilter[] = ["all", "ready", "beta", "soon", "blocked"];
+
+const filterCopy: Record<AutomationFilter, string> = {
   all: "Tous",
-  ready: "Préparés",
-  development: "En développement",
-  blocked: "À connecter",
+  ready: "Prêts",
+  beta: "Bêta",
+  soon: "Bientôt",
+  blocked: "Bloqués",
+  draft: "Brouillons",
 };
 
-const statusToneClass: Record<DashboardAutomation["statusTone"], string> = {
+const statusCopy: Record<AutomationStatus, string> = {
+  ready: "Prêt",
+  beta: "Bêta",
+  soon: "Bientôt",
+  blocked: "Bloqué",
+  draft: "Brouillon",
+};
+
+const statusToneClass: Record<AutomationStatus, string> = {
   ready: "border-emerald-300/20 bg-emerald-300/10 text-emerald-100",
-  development: "border-[#F5C542]/20 bg-[#F5C542]/10 text-[#F5C542]",
-  blocked: "border-white/[0.10] bg-white/[0.04] text-white/58",
+  beta: "border-[#F5C542]/20 bg-[#F5C542]/10 text-[#F5C542]",
+  soon: "border-white/[0.10] bg-white/[0.04] text-white/58",
+  blocked: "border-red-300/20 bg-red-300/10 text-red-100",
+  draft: "border-sky-300/20 bg-sky-300/10 text-sky-100",
 };
 
-const approvalRules = [
-  "Aucune publication sans validation utilisateur.",
-  "Aucun message envoyé automatiquement sans confirmation.",
-  "Aucune intégration connectée ou modifiée sans accord explicite.",
-  "Les agents proposent des brouillons, patchs et recommandations validables.",
+const riskClass = {
+  low: "border-emerald-300/20 bg-emerald-300/10 text-emerald-100",
+  medium: "border-[#F5C542]/20 bg-[#F5C542]/10 text-[#F5C542]",
+  high: "border-red-300/20 bg-red-300/10 text-red-100",
+};
+
+const connectionStatuses = [
+  { name: "Gmail", status: "Bientôt", dataState: "empty" as const },
+  { name: "Google Sheets", status: "À configurer", dataState: "example" as const },
+  { name: "Notion", status: "Bientôt", dataState: "empty" as const },
+  { name: "HubSpot", status: "Bientôt", dataState: "empty" as const },
+  { name: "Slack", status: "Bientôt", dataState: "empty" as const },
+  { name: "Make", status: "Bientôt", dataState: "empty" as const },
 ];
+
+const panelContent: Record<Exclude<AutomationPanel, "overview">, { title: string; description: string; items: string[]; cta: string; target: string }> = {
+  runs: {
+    title: "Runs et validations",
+    description: "Suivez les dry runs, les validations nécessaires et les blocages de sécurité avant toute exécution réelle.",
+    items: ["Aucun email réel envoyé", "Actions externes bloquées", "Logs redacted", "Fallback local explicite"],
+    cta: "Voir les derniers logs",
+    target: "/automations",
+  },
+  observability: {
+    title: "Observabilité & sécurité",
+    description: "Chaque scénario garde un statut clair : préparé, validation requise, bloqué ou exécuté en interne.",
+    items: ["Pas de secrets dans les logs", "Validation humaine", "DataState affiché", "Erreur utilisateur propre"],
+    cta: "Voir les garde-fous",
+    target: "/security",
+  },
+  create: {
+    title: "Créer une automatisation",
+    description: "Préparez un scénario contrôlé avec déclencheur, conditions, analyse IA, action proposée et validation.",
+    items: ["Choisir un déclencheur", "Définir une condition", "Préparer l'action IA", "Exiger une validation"],
+    cta: "Préparer depuis un modèle",
+    target: "/automations",
+  },
+  templates: {
+    title: "Scénarios prêts à adapter",
+    description: "Démarrez depuis des scénarios utiles, sans activer d'intégration réelle tant que tout n'est pas validé.",
+    items: ["SEO après génération", "Checklist projet", "Relance lead", "Support client"],
+    cta: "Explorer les scénarios",
+    target: "/automations",
+  },
+};
 
 const Automations = () => {
-  const [filter, setFilter] = useState<(typeof statusFilters)[number]>("all");
-  const [scenarioName, setScenarioName] = useState("Relance nouveau lead");
-  const [savedScenario, setSavedScenario] = useState<string | null>(null);
+  const [filter, setFilter] = useState<AutomationFilter>("all");
+  const [query, setQuery] = useState("");
+  const [activePanel, setActivePanel] = useState<AutomationPanel>("overview");
+  const [selectedScenarioId, setSelectedScenarioId] = useState(automationScenarios[0]?.id ?? "");
+  const [preparedScenarioId, setPreparedScenarioId] = useState<string | null>(null);
+  const [runLogs, setRunLogs] = useState<AutomationRunLog[]>([]);
 
   const visibleAutomations = useMemo(() => {
-    if (filter === "all") return dashboardAutomations;
-    return dashboardAutomations.filter((automation) => automation.statusTone === filter);
-  }, [filter]);
+    const cleanQuery = query.trim().toLowerCase();
+    return automationScenarios.filter((automation) => {
+      const filterMatch = filter === "all" || automation.status === filter;
+      const queryMatch =
+        !cleanQuery ||
+        [automation.name, automation.description, automation.proposedAction, automationTriggerLabels[automation.trigger]]
+          .join(" ")
+          .toLowerCase()
+          .includes(cleanQuery);
+      return filterMatch && queryMatch;
+    });
+  }, [filter, query]);
 
-  const preparedCount = dashboardAutomations.filter((item) => item.statusTone === "ready").length;
-  const pendingCount = dashboardAutomations.length - preparedCount;
+  const selectedScenario = automationScenarios.find((scenario) => scenario.id === selectedScenarioId) ?? automationScenarios[0];
+  const preparedAutomation = selectedScenario ? createPreparedAutomation(selectedScenario) : null;
+  const openedPanel = activePanel === "overview" ? null : panelContent[activePanel];
+
+  const prepareScenario = (scenario: AutomationScenario) => {
+    setSelectedScenarioId(scenario.id);
+    setPreparedScenarioId(scenario.id);
+    setActivePanel("create");
+  };
+
+  const runScenario = (scenario: AutomationScenario) => {
+    const run = simulateAutomationRun(scenario);
+    setRunLogs((current) => [run, ...current].slice(0, 6));
+    setSelectedScenarioId(scenario.id);
+    setActivePanel("runs");
+  };
+
+  const approveRun = (run: AutomationRunLog) => {
+    setRunLogs((current) => current.map((item) => (item.id === run.id ? approveAutomationRun(run) : item)));
+  };
 
   return (
     <V2PageShell
-      title="Automatisations business sous contrôle"
-      description="Préparez des scénarios qui accélèrent le suivi, la publication et les décisions, sans jamais exécuter d'action sensible sans validation."
+      eyebrow="Automatisations"
+      title="Centre d'automatisation"
+      description="Créez des scénarios utiles avec déclencheur, analyse IA, validation humaine, logs et garde-fous. Aucune action externe sensible ne part automatiquement."
       action={
-        <Button className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
-          <Plus className="h-4 w-4" />
-          Créer un scénario
-        </Button>
+        <>
+          <Button type="button" variant="outline" onClick={() => setActivePanel("runs")} className="rounded-2xl border-white/[0.10] bg-black/25 text-white/82">
+            <Eye className="h-4 w-4" />
+            Voir mes runs
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setActivePanel("observability")} className="rounded-2xl border-white/[0.10] bg-black/25 text-white/82">
+            <LinkIcon className="h-4 w-4" />
+            Observabilité
+          </Button>
+          <Button type="button" onClick={() => setActivePanel("create")} className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
+            <Plus className="h-4 w-4" />
+            Créer une automatisation
+          </Button>
+        </>
       }
     >
-      <SEOHead
-        title="Automatisations | Pixelrises V2"
-        description="Automatisations business préparées pour Pixelrises V2."
-        noIndex
+      <SEOHead title="Automatisations | Pixelrises V2" description="Automatisations business Pixelrises V2." noIndex />
+
+      <DataSourceLabel
+        state="example"
+        label="Scénarios préparés"
+        description="Les scénarios affichés sont une bibliothèque contrôlée. Une automatisation devient réelle uniquement après configuration, connexion d'outils et validation humaine."
+        className="mb-5"
       />
 
-      <section className="grid gap-4 lg:grid-cols-[1fr_380px]">
-        <div className="rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      {openedPanel ? (
+        <section className="mb-5 rounded-[30px] border border-[#F5C542]/20 bg-[#F5C542]/[0.055] p-5">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             <div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-[#F5C542]/10 text-[#F5C542]">
-                <Workflow className="h-6 w-6" />
-              </div>
-              <h2 className="mt-5 text-2xl font-semibold tracking-tight">Votre moteur de croissance assistée</h2>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-white/58">
-                Pixelrises prépare les bonnes actions au bon moment : relancer, vérifier, résumer, synchroniser et recommander. Pour V2, l'interface et les garde-fous sont prêts; les connexions réelles arriveront via les intégrations.
-              </p>
-            </div>
-            <div className="grid min-w-[260px] grid-cols-2 gap-3">
-              <div className="rounded-3xl border border-[#F5C542]/15 bg-[#F5C542]/[0.07] p-4">
-                <p className="text-3xl font-semibold text-[#F5C542]">{preparedCount}</p>
-                <p className="mt-1 text-xs text-white/48">scénarios préparés</p>
-              </div>
-              <div className="rounded-3xl border border-white/[0.08] bg-black/20 p-4">
-                <p className="text-3xl font-semibold">{pendingCount}</p>
-                <p className="mt-1 text-xs text-white/48">à connecter</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Configuration active</p>
+              <h2 className="mt-3 text-2xl font-semibold">{openedPanel.title}</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">{openedPanel.description}</p>
+              <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {openedPanel.items.map((item) => (
+                  <div key={item} className="rounded-2xl border border-white/[0.08] bg-black/25 p-3 text-sm text-white/70">
+                    <CheckCircle2 className="mb-2 h-4 w-4 text-[#F5C542]" />
+                    {item}
+                  </div>
+                ))}
               </div>
             </div>
+            <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+              <Button asChild className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
+                <Link to={openedPanel.target}>{openedPanel.cta}</Link>
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setActivePanel("overview")} className="rounded-2xl border-white/[0.10] bg-transparent text-white/82">
+                Retour au centre
+              </Button>
+            </div>
           </div>
+        </section>
+      ) : null}
 
-          <div className="mt-6 grid gap-3 md:grid-cols-4">
-            {[
-              ["Déclencheur", "Lead, publication, rapport, formulaire"],
-              ["Agent", "Analyse, vérifie ou prépare un brouillon"],
-              ["Validation", "L'utilisateur confirme l'action sensible"],
-              ["Exécution", "Envoi, sync ou publication après accord"],
-            ].map(([label, value], index) => (
-              <div key={label} className="rounded-2xl border border-white/[0.08] bg-black/20 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#F5C542]">
-                  Étape {index + 1}
-                </p>
-                <p className="mt-3 font-semibold">{label}</p>
-                <p className="mt-2 text-sm leading-6 text-white/52">{value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <aside className="rounded-[32px] border border-[#F5C542]/15 bg-[#F5C542]/[0.06] p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-[#F5C542]" />
-            <h2 className="text-xl font-semibold">Garde-fous V2</h2>
-          </div>
-          <div className="mt-5 space-y-3">
-            {approvalRules.map((rule) => (
-              <div key={rule} className="flex gap-3 rounded-2xl border border-white/[0.08] bg-black/20 p-3">
-                <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-[#F5C542]" />
-                <p className="text-sm leading-6 text-white/64">{rule}</p>
-              </div>
-            ))}
-          </div>
-        </aside>
-      </section>
-
-      <section className="mt-6 rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Scénarios</p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight">Automatisations disponibles</h2>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {statusFilters.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setFilter(item)}
-                className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition ${
-                  filter === item
-                    ? "border-[#F5C542]/35 bg-[#F5C542]/10 text-[#F5C542]"
-                    : "border-white/[0.08] bg-white/[0.03] text-white/55 hover:text-white"
-                }`}
-              >
-                {filterCopy[item]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {visibleAutomations.map((automation) => {
-            const Icon = automation.icon;
+      <section className="rounded-[30px] border border-white/[0.08] bg-white/[0.035] p-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Moteur d'automatisation sous contrôle</p>
+        <p className="mt-2 text-sm leading-6 text-white/56">Chaque scénario suit un pipeline clair avant toute exécution.</p>
+        <div className="mt-5 grid gap-4 xl:grid-cols-[repeat(5,minmax(0,1fr))]">
+          {automationEngineSteps.map((step, index) => {
+            const icons = [Zap, Workflow, Sparkles, ShieldCheck, Play];
+            const Icon = icons[index] ?? Workflow;
             return (
-              <article
-                key={automation.id}
-                className="rounded-[28px] border border-white/[0.08] bg-black/20 p-5 transition hover:-translate-y-1 hover:border-[#F5C542]/25"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F5C542]/10 text-[#F5C542]">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <Badge className={`${statusToneClass[automation.statusTone]} hover:bg-transparent`}>
-                    {automation.statusLabel}
-                  </Badge>
+              <div key={step.id} className="rounded-[24px] border border-white/[0.08] bg-black/25 p-5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#F5C542]/30 bg-[#F5C542]/[0.08] text-[#F5C542]">
+                  <Icon className="h-5 w-5" />
                 </div>
-                <h3 className="mt-5 text-lg font-semibold">{automation.name}</h3>
-                <p className="mt-3 text-sm leading-7 text-white/56">{automation.action}</p>
-                <div className="mt-5 space-y-3">
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
-                    <p className="text-xs text-white/38">Déclencheur</p>
-                    <p className="mt-1 text-sm text-white/76">{automation.trigger}</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
-                    <p className="text-xs text-white/38">Prochaine étape</p>
-                    <p className="mt-1 text-sm text-white/76">{automation.nextStep}</p>
-                  </div>
-                </div>
-                <div className="mt-5 flex items-center justify-between gap-3 text-xs">
-                  <span className="inline-flex items-center gap-1 text-white/42">
-                    <Clock3 className="h-3.5 w-3.5" />
-                    {automation.lastActivity}
-                  </span>
-                  <span className="text-[#F5C542]">{automation.impact}</span>
-                </div>
-              </article>
+                <h3 className="mt-4 font-semibold">
+                  {index + 1}. {step.title}
+                </h3>
+                <p className="mt-3 text-sm leading-6 text-white/52">{step.description}</p>
+                {step.requiresValidation ? <DataBadge state="example" label="Validation" className="mt-4" /> : null}
+              </div>
             );
           })}
         </div>
       </section>
 
-      <section className="mt-6 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <Settings2 className="h-5 w-5 text-[#F5C542]" />
-            <h2 className="text-xl font-semibold">Créer une automatisation personnalisée</h2>
-          </div>
-          <div className="mt-5 space-y-3">
-            <Input
-              value={scenarioName}
-              onChange={(event) => setScenarioName(event.target.value)}
-              className="rounded-2xl border-white/[0.10] bg-black/30 text-white"
-              placeholder="Nom du scénario"
-            />
-            <select className="h-11 w-full rounded-2xl border border-white/[0.10] bg-black/30 px-3 text-sm text-white outline-none">
-              <option>Nouveau lead créé</option>
-              <option>Site prêt à publier</option>
-              <option>Clic CTA détecté</option>
-              <option>Rapport hebdomadaire</option>
-            </select>
-            <Textarea
-              className="min-h-[120px] rounded-2xl border-white/[0.10] bg-black/30 text-white"
-              placeholder="Décrivez l'action à préparer. Exemple : rédiger un message de relance personnalisé, puis demander validation avant envoi."
-            />
-            <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#F5C542]" />
-                <p className="text-sm leading-6 text-white/58">
-                  Les permissions sensibles restent désactivées par défaut : modifier, publier, envoyer ou connecter demande une validation utilisateur.
-                </p>
+      <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="rounded-[30px] border border-white/[0.08] bg-white/[0.035] p-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Scénarios prêts</p>
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                {statusFilters.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setFilter(item)}
+                    className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition ${
+                      filter === item
+                        ? "border-[#F5C542]/35 bg-[#F5C542] text-black"
+                        : "border-white/[0.08] bg-white/[0.04] text-white/58 hover:text-white"
+                    }`}
+                  >
+                    {filterCopy[item]}
+                  </button>
+                ))}
               </div>
             </div>
-            <Button
-              className="w-full rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]"
-              onClick={() => setSavedScenario(scenarioName.trim() || "Nouveau scénario")}
-            >
-              Préparer le scénario
-            </Button>
-            {savedScenario ? (
-              <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm text-emerald-100">
-                “{savedScenario}” est préparé côté UI. Connexions réelles à brancher via Integration Hub.
-              </div>
-            ) : null}
+            <div className="flex min-w-[280px] items-center gap-3 rounded-2xl border border-white/[0.08] bg-black/25 px-4">
+              <Search className="h-4 w-4 text-white/42" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Rechercher un scénario..."
+                className="h-12 border-0 bg-transparent px-0 text-white shadow-none placeholder:text-white/35 focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+            </div>
           </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            {visibleAutomations.map((automation) => (
+              <article key={automation.id} className="rounded-[26px] border border-white/[0.08] bg-black/25 p-5 transition hover:-translate-y-1 hover:border-[#F5C542]/25">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F5C542]/10 text-[#F5C542]">
+                    <Workflow className="h-5 w-5" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className={`${statusToneClass[automation.status]} hover:bg-transparent`}>{statusCopy[automation.status]}</Badge>
+                    <MoreVertical className="h-4 w-4 text-white/42" />
+                  </div>
+                </div>
+                <h3 className="mt-5 text-lg font-semibold">{automation.name}</h3>
+                <p className="mt-3 text-sm leading-6 text-white/56">{automation.description}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-xs text-white/58">
+                    {automationTriggerLabels[automation.trigger]}
+                  </span>
+                  <Badge className={`${riskClass[automation.riskLevel]} hover:bg-transparent`}>Risque {automation.riskLevel}</Badge>
+                  <DataBadge state={automation.dataState} label="Exemple" />
+                </div>
+                <div className="mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.035] p-3">
+                  <p className="text-xs font-semibold text-[#F5C542]">Action proposée</p>
+                  <p className="mt-1 text-sm leading-6 text-white/70">{automation.proposedAction}</p>
+                </div>
+                <div className="mt-5 grid grid-cols-3 gap-3 border-t border-white/[0.08] pt-4 text-xs">
+                  <div>
+                    <p className="text-white/38">Dernier run</p>
+                    <p className="mt-1 text-white/70">{automation.lastRunLabel}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/38">Validation</p>
+                    <p className="mt-1 text-[#F5C542]">{automation.validationRequired ? "Oui" : "Interne"}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/38">Statut</p>
+                    <p className="mt-1 text-emerald-300">{automation.successRateLabel}</p>
+                  </div>
+                </div>
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  <Button type="button" onClick={() => prepareScenario(automation)} className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
+                    Préparer
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => runScenario(automation)} className="rounded-2xl border-white/[0.10] bg-transparent text-white/82">
+                    Dry run
+                  </Button>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {!visibleAutomations.length ? (
+            <EmptyState
+              title="Aucun scénario trouvé"
+              description="Change le filtre ou prépare un nouveau scénario depuis le builder."
+              className="mt-5"
+            />
+          ) : null}
         </div>
 
-        <div className="rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <Cable className="h-5 w-5 text-[#F5C542]" />
-            <h2 className="text-xl font-semibold">Connexions prévues</h2>
-          </div>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-white/56">
-            Une automatisation devient réellement utile quand elle reçoit un événement fiable et qu'elle peut préparer une action dans le bon outil.
-          </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {[
-              ["WhatsApp", "Préparer une relance lead"],
-              ["Gmail", "Créer un brouillon email"],
-              ["Google Sheets", "Centraliser les leads"],
-              ["Webhooks", "Déclencher un scénario externe"],
-              ["Analytics", "Identifier les pages à améliorer"],
-              ["Stripe", "Suivre checkout_start et conversions"],
-            ].map(([name, helper]) => (
-              <div key={name} className="rounded-2xl border border-white/[0.08] bg-black/20 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold">{name}</p>
-                  <CheckCircle2 className="h-4 w-4 text-[#F5C542]" />
+        <aside className="space-y-5">
+          <div className="rounded-[30px] border border-[#F5C542]/20 bg-[#F5C542]/[0.055] p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Automation Builder</p>
+            {preparedAutomation && selectedScenario ? (
+              <>
+                <h2 className="mt-3 text-2xl font-semibold">{preparedAutomation.name}</h2>
+                <p className="mt-2 text-sm leading-6 text-white/58">{selectedScenario.description}</p>
+                <div className="mt-5 space-y-3">
+                  {[
+                    ["Déclencheur", automationTriggerLabels[preparedAutomation.trigger]],
+                    ["Condition", preparedAutomation.condition],
+                    ["Analyse IA", preparedAutomation.aiAnalysis],
+                    ["Action proposée", preparedAutomation.proposedAction],
+                  ].map(([title, value]) => (
+                    <div key={title} className="rounded-2xl border border-white/[0.08] bg-black/25 p-3">
+                      <p className="text-xs font-semibold text-[#F5C542]">{title}</p>
+                      <p className="mt-1 text-sm leading-6 text-white/66">{value}</p>
+                    </div>
+                  ))}
                 </div>
-                <p className="mt-2 text-sm leading-6 text-white/50">{helper}</p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <DataBadge state={preparedAutomation.dataState} label={preparedAutomation.dataState === "example" ? "Exemple" : undefined} />
+                  <Badge className={`${riskClass[preparedAutomation.riskLevel]} hover:bg-transparent`}>Risque {preparedAutomation.riskLevel}</Badge>
+                  <Badge className="border-white/[0.10] bg-white/[0.05] text-white/70 hover:bg-white/[0.05]">
+                    {preparedAutomation.validationRequired ? "Validation requise" : "Action interne"}
+                  </Badge>
+                </div>
+                <Button type="button" onClick={() => runScenario(selectedScenario)} className="mt-5 w-full rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
+                  Lancer un dry run
+                </Button>
+              </>
+            ) : (
+              <EmptyState
+                title="Aucun scénario préparé"
+                description="Choisis un scénario puis clique sur Préparer pour voir le déclencheur, les conditions et l'action validable."
+              />
+            )}
+          </div>
+
+          <div className="rounded-[30px] border border-white/[0.08] bg-white/[0.035] p-5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Logs / historique</p>
+              <DataBadge state="mock" label="Fallback local" />
+            </div>
+            <div className="mt-4 space-y-3">
+              {runLogs.length ? (
+                runLogs.map((run) => (
+                  <div key={run.id} className="rounded-2xl border border-white/[0.08] bg-black/25 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold">{automationTriggerLabels[run.trigger]}</p>
+                      <Badge className={`${riskClass[run.riskLevel]} hover:bg-transparent`}>{run.status}</Badge>
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-white/52">{run.result}</p>
+                    {run.validationRequired && run.status === "validation_required" ? (
+                      <Button type="button" onClick={() => approveRun(run)} className="mt-3 h-9 rounded-xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
+                        Valider en interne
+                      </Button>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-dashed border-white/[0.12] bg-black/20 p-4 text-sm leading-6 text-white/50">
+                  Aucun run réel. Lance un dry run pour vérifier le comportement sans exécuter d'action externe.
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section className="mt-5 grid gap-5 xl:grid-cols-[0.95fr_1fr]">
+        <div className="rounded-[30px] border border-[#F5C542]/15 bg-[#F5C542]/[0.055] p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Créer une automatisation personnalisée</p>
+          <p className="mt-2 text-sm leading-6 text-white/56">Le builder prépare le scénario. L'exécution réelle restera désactivée tant qu'une intégration n'est pas connectée et validée.</p>
+          <div className="mt-7 grid gap-4 md:grid-cols-5">
+            {automationEngineSteps.map((step, index) => (
+              <div key={step.id} className="text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[#F5C542]/30 bg-black/25 text-[#F5C542]">
+                  <span className="text-sm font-semibold">{index + 1}</span>
+                </div>
+                <p className="mt-3 text-sm font-semibold">{step.title}</p>
               </div>
             ))}
           </div>
-          <Button asChild variant="outline" className="mt-5 rounded-2xl border-white/[0.10] bg-transparent text-white/80">
-            <Link to="/integrations">
-              Ouvrir Integration Hub
-              <ArrowRight className="h-4 w-4" />
+          <div className="mt-7 grid gap-3 sm:grid-cols-2">
+            <Button type="button" onClick={() => setActivePanel("create")} className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
+              <Plus className="h-4 w-4" />
+              Préparer un scénario
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setActivePanel("templates")} className="rounded-2xl border-white/[0.10] bg-transparent text-white/82">
+              Utiliser un modèle
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-[30px] border border-white/[0.08] bg-white/[0.035] p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Connexions honnêtes</p>
+          <p className="mt-2 text-sm leading-6 text-white/56">Aucune intégration n'est affichée comme connectée si elle ne l'est pas réellement.</p>
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {connectionStatuses.map((tool) => (
+              <div key={tool.name} className="rounded-2xl border border-white/[0.08] bg-black/25 p-4 text-center">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-white/[0.06] text-[#F5C542]">
+                  <Workflow className="h-5 w-5" />
+                </div>
+                <p className="mt-3 text-sm font-semibold">{tool.name}</p>
+                <DataBadge state={tool.dataState} label={tool.status} className="mt-2 justify-center" />
+              </div>
+            ))}
+            <Link to="/integrations" className="rounded-2xl border border-dashed border-white/[0.18] bg-black/25 p-4 text-center transition hover:border-[#F5C542]/30 hover:text-[#F5C542]">
+              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-white/[0.06] text-white/72">
+                <Plus className="h-5 w-5" />
+              </div>
+              <p className="mt-3 text-sm font-semibold">Configurer</p>
             </Link>
-          </Button>
+          </div>
         </div>
       </section>
+
+      <section className="mt-5 grid gap-4 md:grid-cols-4">
+        {[
+          ["8 scénarios préparés", "Bibliothèque Phase 6"],
+          ["0 exécution externe", "Sécurité par défaut"],
+          ["100% validation humaine", "Pour actions sensibles"],
+          ["0 incident critique", "Aucun secret exposé"],
+        ].map(([title, subtitle]) => (
+          <div key={title} className="rounded-[24px] border border-white/[0.08] bg-white/[0.035] p-5">
+            {title.includes("0") ? <AlertTriangle className="h-5 w-5 text-[#F5C542]" /> : <Clock3 className="h-5 w-5 text-[#F5C542]" />}
+            <p className="mt-4 font-semibold">{title}</p>
+            <p className="mt-1 text-sm text-white/45">{subtitle}</p>
+          </div>
+        ))}
+      </section>
+
+      <button type="button" onClick={() => setActivePanel("runs")} className="mx-auto mt-5 flex w-fit items-center gap-2 text-sm font-semibold text-white/82">
+        Voir tous les logs
+        <ArrowRight className="h-4 w-4" />
+      </button>
     </V2PageShell>
   );
 };

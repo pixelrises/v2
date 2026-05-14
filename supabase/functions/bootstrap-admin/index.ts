@@ -92,10 +92,12 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("bootstrap-admin error:", error);
+    console.error("bootstrap-admin error: redacted", {
+      reason: error instanceof Error ? "admin_bootstrap_failed" : "unknown_error",
+    });
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Bootstrap admin failed",
+        error: "Configuration admin indisponible.",
       }),
       {
         status: 500,

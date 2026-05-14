@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   exportProductLabDecisions,
@@ -15,6 +17,11 @@ import {
   writeProductLabDecision,
   type ProductLabDecisionMap,
 } from "@/modules/product-lab/product-lab-review";
+
+const productLabReviewSource = readFileSync(
+  join(process.cwd(), "src/modules/product-lab/product-lab-review.ts"),
+  "utf8",
+);
 
 describe("Product Lab admin review", () => {
   const v2RunKey = getProductLabQueueRunKey(fallbackProductLabReviewQueue);
@@ -62,6 +69,39 @@ describe("Product Lab admin review", () => {
 
     expect(items[0].localDecision.applicationStatus).toBe("pr_ready");
     expect(items[0].localDecision.automationAction).toBe("hold");
+  });
+
+  it("keeps controlled auto-merge status visible in merged admin items", () => {
+    const item = fallbackProductLabReviewQueue.items[0];
+    const decisions: ProductLabDecisionMap = {
+      [item.id]: {
+        itemId: item.id,
+        status: "approved",
+        note: "OK.",
+        correctionRequest: "",
+        rejectionMode: null,
+        automationAction: "hold",
+        decidedAt: "2026-05-13T00:00:00.000Z",
+        applicationStatus: "pr_ready",
+        processedAt: "2026-05-13T00:10:00.000Z",
+        processedRun: { prUrl: "https://github.com/pixelrises/v2/pull/42" },
+        prUrl: "https://github.com/pixelrises/v2/pull/42",
+        prNumber: 42,
+        prStatus: "created",
+        autoMergeStatus: "blocked",
+        autoMergeBlockReason: "fichiers sensibles modifies",
+        riskLevel: "high",
+        touchedSensitiveFiles: [{ file: "supabase/migrations/x.sql", reason: "migration Supabase/RLS" }],
+        sourceRunKey: v2RunKey,
+        persisted: "supabase",
+      },
+    };
+
+    const items = mergeProductLabReviewItems(fallbackProductLabReviewQueue, decisions);
+
+    expect(items[0].localDecision.prUrl).toContain("/pull/42");
+    expect(items[0].localDecision.autoMergeStatus).toBe("blocked");
+    expect(items[0].localDecision.touchedSensitiveFiles?.[0].file).toContain("supabase/migrations");
   });
 
   it("detects local Product Lab decisions that still need Supabase sync", () => {
@@ -213,6 +253,13 @@ describe("Product Lab admin review", () => {
     expect(v2.reviewTable).toBe("product_lab_review_items");
     expect(v2.decisionsTable).toBe("product_lab_decisions");
     expect(v1.storageKey).not.toBe(v2.storageKey);
+  });
+
+  it("keeps Supabase as the Product Lab source of truth before JSON fallback", () => {
+    expect(productLabReviewSource).toContain("Supabase is the source GitHub Actions reads for admin approvals.");
+    expect(productLabReviewSource.indexOf("if (remoteQueue)")).toBeLessThan(
+      productLabReviewSource.indexOf("if (publicQueue)"),
+    );
   });
 
   it("turns Supabase schema cache errors into a V1 migration hint", () => {

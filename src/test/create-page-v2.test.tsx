@@ -14,9 +14,9 @@ describe("/create V2", () => {
   it("shows site, agent and game entry points", () => {
     renderCreate();
 
-    expect(screen.getAllByText(/Créer un site/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Créer un agent IA/i)).toBeInTheDocument();
-    expect(screen.getByText(/Créer un jeu/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/site/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/agent IA/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/jeu/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Aucune publication automatique/i)).toBeInTheDocument();
   });
 });

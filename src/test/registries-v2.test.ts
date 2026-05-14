@@ -21,6 +21,27 @@ describe("Pixelrises V2 registries", () => {
     expect(integrationRegistry.some((integration) => integration.category === "Gaming")).toBe(true);
   });
 
+  it("covers Pixelrises integration vision with visual metadata", () => {
+    const expectedCategories = ["Business", "Marketing", "Data", "Automatisation", "Dev", "Communication", "IA", "Domaines", "Gaming"];
+    const expectedIntegrations = [
+      "stripe",
+      "shopify",
+      "google-analytics",
+      "google-sheets",
+      "webhooks",
+      "github",
+      "vercel-ai-gateway",
+      "supabase",
+      "roblox",
+      "custom-domain",
+    ];
+
+    expect(new Set(integrationRegistry.map((integration) => integration.category))).toEqual(new Set(expectedCategories));
+    expect(integrationRegistry.map((integration) => integration.id)).toEqual(expect.arrayContaining(expectedIntegrations));
+    expect(integrationRegistry.filter((integration) => integration.logo).length).toBeGreaterThan(20);
+    expect(integrationRegistry.every((integration) => integration.permissions.length > 0)).toBe(true);
+  });
+
   it("contains scalable registries and the expected analytics events", () => {
     expect(componentRegistry).toContain("Preview Frames");
     expect(siteTemplateRegistry.length).toBeGreaterThan(3);

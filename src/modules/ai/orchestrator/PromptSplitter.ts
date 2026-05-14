@@ -21,11 +21,15 @@ const projectTasks: Record<AIProjectType, Array<{ type: AITaskType; description:
   ],
   game: [
     { type: "brief_analysis", description: "Analyser l'idee de jeu, la plateforme et le public cible.", priority: "high" },
+    { type: "game_research", description: "Preparer sources officielles, tendances disponibles et contraintes sans inventer de donnees live.", priority: "medium" },
     { type: "game_design", description: "Creer concept, pitch, univers et gameplay loop.", priority: "high" },
     { type: "game_mechanics", description: "Definir mecaniques, progression, economie et recompenses.", priority: "high" },
     { type: "game_level_design", description: "Preparer map structure, zones et flow joueur.", priority: "medium" },
+    { type: "game_platform_constraints", description: "Verifier les contraintes de production selon la plateforme cible.", priority: "high" },
     { type: "game_script", description: "Generer snippets adaptes a la plateforme.", priority: "medium" },
     { type: "game_assets", description: "Lister assets, prompts visuels, UI et thumbnails.", priority: "medium" },
+    { type: "game_ui_ux", description: "Preparer HUD, feedback joueur, onboarding et ecrans victoire/defaite.", priority: "medium" },
+    { type: "game_prototype_code", description: "Preparer prototype web jouable ou structure technique executable si disponible.", priority: "high" },
     { type: "game_publishing", description: "Preparer checklist publication sans promesse automatique.", priority: "high" },
   ],
   integration: [

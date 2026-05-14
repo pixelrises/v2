@@ -237,7 +237,7 @@ const Hero = () => {
                     <span className="text-muted-foreground">
                       {" "}
                       · 8 {isFr ? "avis Google vérifiés" : "verified Google reviews"} · +
-                      {siteCount ?? 30} {isFr ? "sites créés" : "sites created"}
+                        {siteCount ?? 30} {isFr ? "sites créés" : "sites created"}
                     </span>
                   </span>
                 </div>

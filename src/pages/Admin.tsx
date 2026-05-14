@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  Brain,
+  CalendarClock,
   CheckCircle2,
   ClipboardCheck,
   CreditCard,
+  ExternalLink,
   FileText,
   Globe,
   Loader2,
@@ -25,8 +28,10 @@ import { buildAuthRoute, getCurrentRelativeUrl } from "@/lib/auth-redirect";
 import { tryBootstrapAdmin } from "@/lib/admin-bootstrap";
 import { sanitizeTextDeep } from "@/lib/text-sanitize";
 import { resolvePublishedSiteUrl } from "@/lib/published-site";
+import { redactSecrets } from "@/modules/ai/security/redactSecrets";
 import {
   exportProductLabDecisions,
+  buildProductLabRunStatusFromQueue,
   getProductLabQueueRunKey,
   getProductLabScopeConfig,
   getProductLabReviewStats,
@@ -34,6 +39,7 @@ import {
   mergeProductLabReviewItems,
   persistProductLabDecisionToSupabase,
   readProductLabDecisionsFromSupabase,
+  readProductLabLastRunStatusFromSupabase,
   readProductLabDecisions,
   getUnsyncedProductLabDecisions,
   syncProductLabDecisionsToSupabase,
@@ -46,9 +52,11 @@ import {
   type ProductLabScope,
   type ProductLabReviewQueue,
   type ProductLabReviewItemWithDecision,
+  type ProductLabRunStatus,
 } from "@/modules/product-lab/product-lab-review";
+import { aiSpacesList } from "@/modules/ai-spaces";
 
-type Tab = "overview" | "users" | "credits" | "sites" | "payments" | "leads" | "product-lab";
+type Tab = "overview" | "users" | "credits" | "sites" | "payments" | "leads" | "ai-spaces" | "product-lab";
 
 const productLabScopeOptions: Array<{
   id: ProductLabScope;
@@ -59,7 +67,7 @@ const productLabScopeOptions: Array<{
   {
     id: "v2",
     label: "Pixelrises V2",
-    description: "Plateforme SaaS, builders, Multi-IA, Supabase et Vercel AI Gateway.",
+    description: "Plateforme SaaS, builders, Multi-IA, données et moteur IA serveur.",
     workflowUrl: "https://github.com/pixelrises/v2/actions/workflows/product-lab-nightly.yml",
   },
   {
@@ -85,10 +93,51 @@ const productLabQueueSourceMeta: Record<
     description: "Les propositions viennent du fichier public de secours; les decisions restent synchronisables.",
   },
   fallback: {
-    label: "Fallback local",
+    label: "Secours local",
     tone: "border-amber-400/20 bg-amber-400/10 text-amber-200",
     description: "Aucune file live n'a ete trouvee; l'admin affiche une carte de configuration.",
   },
+};
+
+const productLabAutoMergeMeta: Record<string, { label: string; tone: string; detail: string }> = {
+  eligible: {
+    label: "Auto-merge eligible",
+    tone: "border-green-400/25 bg-green-400/[0.08] text-green-100",
+    detail: "Validation admin + checks OK + aucun fichier sensible detecte.",
+  },
+  auto_merge_requested: {
+    label: "Auto-merge demande",
+    tone: "border-green-400/25 bg-green-400/[0.08] text-green-100",
+    detail: "GitHub peut merger quand les protections de branche sont satisfaites.",
+  },
+  merged: {
+    label: "Auto-merge effectue",
+    tone: "border-green-400/25 bg-green-400/[0.08] text-green-100",
+    detail: "La PR a ete fusionnee automatiquement apres controles.",
+  },
+  blocked: {
+    label: "Auto-merge bloque",
+    tone: "border-amber-400/25 bg-amber-400/[0.08] text-amber-100",
+    detail: "Validation GitHub manuelle requise ou fichier sensible detecte.",
+  },
+  auto_merge_request_failed: {
+    label: "Auto-merge non active",
+    tone: "border-amber-400/25 bg-amber-400/[0.08] text-amber-100",
+    detail: "La demande GitHub a echoue; verifie les reglages auto-merge du repo.",
+  },
+  not_requested: {
+    label: "Auto-merge non demande",
+    tone: "border-white/10 bg-white/[0.04] text-muted-foreground",
+    detail: "Aucune PR eligible n'a encore ete creee pour cette decision.",
+  },
+};
+
+const productLabPrStatusMeta: Record<string, { label: string; tone: string }> = {
+  created: { label: "PR creee", tone: "border-blue-400/25 bg-blue-400/[0.08] text-blue-100" },
+  checks_running: { label: "Checks en cours", tone: "border-blue-400/25 bg-blue-400/[0.08] text-blue-100" },
+  checks_ok: { label: "Checks OK", tone: "border-green-400/25 bg-green-400/[0.08] text-green-100" },
+  checks_failed: { label: "Checks echoues", tone: "border-red-400/25 bg-red-400/[0.08] text-red-100" },
+  not_created: { label: "PR non creee", tone: "border-white/10 bg-white/[0.04] text-muted-foreground" },
 };
 
 type ProductLabPersistenceState = "loading" | "supabase" | "localStorage";
@@ -129,6 +178,33 @@ const getProductLabFreshness = (queue: ProductLabReviewQueue | null) => {
   return "Trop ancien, relancer le workflow";
 };
 
+const formatProductLabTimestamp = (value: string | null | undefined) => {
+  const timestamp = Date.parse(value ?? "");
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return "Non prouve";
+  return new Date(timestamp).toLocaleString("fr-FR");
+};
+
+const getProductLabScheduleStatus = () => {
+  const now = new Date();
+  const parisParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const parisHour = Number(parisParts.find((part) => part.type === "hour")?.value ?? "0");
+  const utcHour = now.getUTCHours();
+  const offset = ((parisHour - utcHour + 24) % 24) || 24;
+  const activeUtcHour = (24 - offset) % 24;
+
+  return {
+    configured: "00:00 Europe/Paris",
+    utc: `${String(activeUtcHour).padStart(2, "0")}:00 UTC aujourd'hui`,
+    crons: "22:00 UTC ete / 23:00 UTC hiver",
+    next: "Prochaine fenetre: prochain minuit Europe/Paris",
+    note: "GitHub Actions peut decaler l'execution de quelques minutes selon sa file.",
+  };
+};
+
 const buildProductLabScopeDashboardState = (
   queue: ProductLabReviewQueue | null,
   decisions: ProductLabDecisionMap,
@@ -140,7 +216,7 @@ const buildProductLabScopeDashboardState = (
   return {
     queue,
     stats: queue ? getProductLabReviewStats(mergedItems) : emptyProductLabStats,
-    source: queue?.loadSource ?? "fallback",
+      source: queue?.loadSource ?? "fallback",
     persistence,
     error,
     generatedAtLabel: formatProductLabGeneratedAt(queue),
@@ -291,6 +367,79 @@ const MONTHLY_CREDIT_PRESETS: MonthlyCreditPreset[] = [
   { key: "business", label: "Business", credits: 60 },
 ];
 
+const adminBusinessControlPillars = [
+  {
+    label: "Credits",
+    detail: "Ajustements admin, credits Stripe et solde utilisateur sans exposer de donnees sensibles.",
+  },
+  {
+    label: "Abonnements / CA",
+    detail: "Suivi Stripe, revenus recents, anomalies paiement et croissance commerciale.",
+  },
+  {
+    label: "Sites",
+    detail: "Sites generes, publications, domaines, proprietaires et statut de mise en ligne.",
+  },
+  {
+    label: "Leads",
+    detail: "Prospects, statut commercial, recommandations et priorites de relance.",
+  },
+  {
+    label: "Product Lab",
+    detail: "Ameliorations V1/V2, validation humaine, PR GitHub et boucle d'amelioration continue.",
+  },
+];
+
+const productLabNightlyCycle = [
+  {
+    step: "00h Europe/Paris",
+    detail: "Les workflows V1 et V2 se lancent separement depuis leurs repos GitHub.",
+  },
+  {
+    step: "20 tests / version",
+    detail: "Le Product Lab mesure generateur, UX, bugs, securite, responsive, IA et qualite produit.",
+  },
+  {
+    step: "5 a 8 propositions",
+    detail: "Les resultats sont convertis en ameliorations concretes, pas en une seule idee vague.",
+  },
+  {
+    step: "Validation admin",
+    detail: "Tu valides, corriges, demandes une alternative ou refuses depuis ce centre unique.",
+  },
+  {
+    step: "PR controlee",
+    detail: "Le run suivant applique uniquement les validations, puis ouvre une PR si lint/tests/build sont verts.",
+  },
+];
+
+const productLabBenchmarkPrinciples = [
+  {
+    source: "Lovable / Base44",
+    detail: "Idee -> plan -> build -> preview -> improvement, avec complexite progressive.",
+  },
+  {
+    source: "v0 / Vercel / 21st.dev",
+    detail: "Composants propres, previews rapides, registries reutilisables et logique production-ready.",
+  },
+  {
+    source: "Mobbin / Linear / Shopify Admin",
+    detail: "Parcours lisibles, decisions actionnables, dashboard business et gestion operationnelle claire.",
+  },
+  {
+    source: "Delos / Bloom / Framer",
+    detail: "Workspace polyvalent, creation assistee, rendu premium et orientation lancement concret.",
+  },
+];
+
+const productLabDataProtectionRules = [
+  "V1 et V2 gardent des tables Product Lab separees dans Supabase.",
+  "Les decisions admin passent par RLS et role admin; le service role reste cote GitHub Actions uniquement.",
+  "Aucune cle API, aucun token et aucun secret ne doit etre affiche, loggue ou stocke dans l'admin.",
+  "Les changements auth, paiement, policies Supabase, moteur IA, production ou suppression majeure restent bloques.",
+  "Le Product Lab peut proposer fort, mais il ne merge pas et ne deploie pas sans validation humaine.",
+];
+
 const ADMIN_CACHE_PREFIX = "pixelrises:isAdmin:";
 const ADMIN_REQUEST_TIMEOUT_MS = 4000;
 const PRODUCT_LAB_LOAD_TIMEOUT_MS = 6500;
@@ -333,8 +482,8 @@ const writeCachedAdminFlag = (userId: string, value: boolean) => {
 
 const getReadableAdminError = (error: unknown, fallback: string) => {
   if (!error) return fallback;
-  if (typeof error === "string") return error;
-  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "string") return redactSecrets(error);
+  if (error instanceof Error && error.message) return redactSecrets(error.message);
 
   if (typeof error === "object") {
     const record = error as Record<string, unknown>;
@@ -342,7 +491,7 @@ const getReadableAdminError = (error: unknown, fallback: string) => {
       .filter((part): part is string => typeof part === "string" && part.trim().length > 0)
       .map((part) => part.trim());
 
-    if (parts.length > 0) return parts.join(" ");
+    if (parts.length > 0) return redactSecrets(parts.join(" "));
   }
 
   return fallback;
@@ -384,6 +533,7 @@ const Admin = () => {
   const [productLabPersistence, setProductLabPersistence] = useState<ProductLabPersistenceState>("loading");
   const [productLabPersistenceError, setProductLabPersistenceError] = useState<string | null>(null);
   const [productLabDecisionSaving, setProductLabDecisionSaving] = useState<string | null>(null);
+  const [productLabRunStatus, setProductLabRunStatus] = useState<ProductLabRunStatus | null>(null);
   const [productLabScopeDashboard, setProductLabScopeDashboard] = useState<Record<ProductLabScope, ProductLabScopeDashboardState>>(
     () => createProductLabScopeDashboardDefaults(),
   );
@@ -529,12 +679,12 @@ const Admin = () => {
         loadedState ??
         createProductLabLocalFallbackState(
           scope,
-          "Chargement Product Lab trop long. Fallback local actif; clique Recharger pour retenter Supabase.",
+          "Chargement Product Lab trop long. Secours local actif; clique Recharger pour retenter Supabase.",
         );
     } catch (error) {
       [queue, decisionsResult] = createProductLabLocalFallbackState(
         scope,
-        getReadableAdminError(error, "Chargement Product Lab impossible. Fallback local actif."),
+        getReadableAdminError(error, "Chargement Product Lab impossible. Secours local actif."),
       );
     }
 
@@ -544,9 +694,12 @@ const Admin = () => {
     const cleanDecisions = sanitizeTextDeep(decisionsResult.decisions);
     const nextPersistence = decisionsResult.persisted ? "supabase" : "localStorage";
     const nextError = decisionsResult.error ?? null;
+    const remoteRunStatus = await resolveWithTimeout(readProductLabLastRunStatusFromSupabase(scope), 1800);
+    const cleanRunStatus = sanitizeTextDeep(remoteRunStatus ?? buildProductLabRunStatusFromQueue(cleanQueue));
 
     setProductLabQueue(cleanQueue);
     setProductLabDecisions(cleanDecisions);
+    setProductLabRunStatus(cleanRunStatus);
     setProductLabPersistence(nextPersistence);
     setProductLabPersistenceError(nextError);
     setProductLabLoading(false);
@@ -580,7 +733,7 @@ const Admin = () => {
             loadedState ??
             createProductLabLocalFallbackState(
               scope,
-              "Dashboard Product Lab trop long a synchroniser. Fallback local affiche.",
+              "Dashboard Product Lab trop long a synchroniser. Secours local affiche.",
             );
         } catch (error) {
           [queue, decisionsResult] = createProductLabLocalFallbackState(
@@ -668,6 +821,7 @@ const Admin = () => {
   useEffect(() => {
     activeProductLabScopeRef.current = productLabScope;
     setProductLabQueue(null);
+    setProductLabRunStatus(null);
     setProductLabDecisions(readProductLabDecisions(productLabScope));
     setProductLabPersistence("loading");
     setProductLabPersistenceError(null);
@@ -985,6 +1139,40 @@ const Admin = () => {
     [productLabDecisions, productLabQueue],
   );
   const unsyncedProductLabDecisionCount = unsyncedProductLabDecisions.length;
+  const productLabGlobalStats = useMemo(() => {
+    const states = productLabScopeOptions.map((option) => productLabScopeDashboard[option.id]);
+    const pending = states.reduce((sum, state) => sum + state.stats.pending, 0);
+    const approved = states.reduce((sum, state) => sum + state.stats.approved, 0);
+    const total = states.reduce((sum, state) => sum + state.stats.total, 0);
+    const liveScopes = states.filter((state) => state.persistence === "supabase" && state.source === "supabase").length;
+    const warnings = states.filter((state) => state.error || state.persistence !== "supabase" || state.source !== "supabase").length;
+
+    return {
+      pending,
+      approved,
+      total,
+      liveScopes,
+      warnings,
+      allLive: liveScopes === productLabScopeOptions.length,
+    };
+  }, [productLabScopeDashboard]);
+  const productLabSelectedIsFullyLive = productLabPersistence === "supabase" && productLabQueueSource === "supabase";
+  const productLabSelectedStatusLabel = productLabSelectedIsFullyLive
+    ? "Source live Supabase"
+    : productLabPersistence === "supabase"
+      ? "Supabase OK, file visuelle en secours"
+      : productLabPersistence === "loading"
+        ? "Verification Supabase"
+        : "Secours local a resynchroniser";
+  const productLabScheduleStatus = useMemo(() => getProductLabScheduleStatus(), []);
+  const selectedProductLabWorkflowUrl =
+    productLabScopeOptions.find((option) => option.id === productLabScope)?.workflowUrl || productLabScopeOptions[0].workflowUrl;
+  const productLabRunStatusLabel =
+    productLabRunStatus?.sourceLabel === "supabase"
+      ? "Dernier run live"
+      : productLabRunStatus?.sourceLabel === "queue"
+        ? "Dernier run fichier secours"
+        : "Run live non prouve";
 
   const updateProductLabDecision = async (
     item: ProductLabReviewItemWithDecision,
@@ -1209,6 +1397,7 @@ const Admin = () => {
     { key: "sites", label: "Sites", icon: Globe },
     { key: "payments", label: "Paiements", icon: CreditCard },
     { key: "leads", label: "Leads", icon: MessageSquare },
+    { key: "ai-spaces", label: "AI Spaces", icon: Brain },
     { key: "product-lab", label: "Product Lab", icon: ClipboardCheck },
   ];
 
@@ -1281,7 +1470,7 @@ const Admin = () => {
           </div>
         </div>
 
-        <div className="premium-shell-muted mb-6 grid gap-1 p-1.5 sm:grid-cols-2 xl:grid-cols-7">
+        <div className="premium-shell-muted mb-6 grid gap-1 p-1.5 sm:grid-cols-2 xl:grid-cols-8">
           {tabs.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -1295,7 +1484,7 @@ const Admin = () => {
           ))}
         </div>
 
-        {tab !== "overview" && tab !== "product-lab" && (
+        {tab !== "overview" && tab !== "product-lab" && tab !== "ai-spaces" && (
           <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -1671,6 +1860,76 @@ const Admin = () => {
           </div>
         )}
 
+        {tab === "ai-spaces" && (
+          <div className="space-y-6">
+            <div className="premium-shell-muted p-5 sm:p-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+                    AI Spaces
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold">Pilotage des espaces IA</h2>
+                  <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
+                    Les Builders creent les projets, les AI Spaces accompagnent les utilisateurs. Cette vue admin
+                    prepare le suivi usage, prompts, erreurs, couts et suggestions Product Lab sans exposer de secret.
+                  </p>
+                </div>
+                <Button asChild className="w-full sm:w-auto">
+                  <Link to="/ai-spaces">
+                    Ouvrir les AI Spaces
+                    <Brain className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+                {aiSpacesList.map((space) => (
+                  <div key={space.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{space.shortName}</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">{space.tagline}</p>
+                      </div>
+                      <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-primary">
+                        {space.status}
+                      </span>
+                    </div>
+                    <div className="mt-4 space-y-2 text-xs leading-5 text-muted-foreground">
+                      <p>Metric : {space.dashboard.primaryMetric}</p>
+                      <p>Action : {space.dashboard.nextBestAction}</p>
+                      <p>Agents : {space.recommendedAgents.slice(0, 3).join(", ")}</p>
+                    </div>
+                    <Button asChild variant="outline" size="sm" className="mt-4 w-full">
+                      <Link to={`/ai-spaces/${space.id}`}>Tester l'espace</Link>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="signal-list-card">
+                <p className="font-semibold">Securite IA</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Aucune cle IA cote frontend. Les appels reels passent par Supabase Edge Function et le Gateway.
+                </p>
+              </div>
+              <div className="signal-list-card">
+                <p className="font-semibold">Product Lab</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Les prompts, quick actions, usages, erreurs et conversions vers Builders deviennent auditables.
+                </p>
+              </div>
+              <div className="signal-list-card">
+                <p className="font-semibold">Evolution controlee</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Activation/desactivation, edition prompts et couts seront branches en Supabase apres validation.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {tab === "product-lab" && (
           <div className="space-y-6">
             <div className="premium-shell-muted p-5 sm:p-6">
@@ -1712,9 +1971,24 @@ const Admin = () => {
                     <span className={`rounded-full border px-3 py-1 text-xs ${productLabQueueSourceInfo.tone}`}>
                       File: {productLabQueueSourceInfo.label}
                     </span>
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs ${
+                        productLabGlobalStats.allLive
+                          ? "border-green-400/20 bg-green-400/10 text-green-200"
+                          : "border-amber-400/20 bg-amber-400/10 text-amber-200"
+                      }`}
+                    >
+                      V1/V2: {productLabGlobalStats.liveScopes}/2 live
+                    </span>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
+                  <Button asChild variant="outline" className="w-full sm:w-auto">
+                    <a href={selectedProductLabWorkflowUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-4 w-4" />
+                      Lancer un test GitHub
+                    </a>
+                  </Button>
                   <Button
                     variant="outline"
                     className="w-full sm:w-auto"
@@ -1749,12 +2023,63 @@ const Admin = () => {
                 pas de code entre les deux versions.
               </div>
 
+              <div className="mt-5 grid gap-3 lg:grid-cols-5">
+                {[
+                  {
+                    label: "CA 30j",
+                    value: `${stats.totalRevenue30d.toFixed(0)} EUR`,
+                    detail: "Stripe et revenus recents",
+                    accent: "text-primary",
+                  },
+                  {
+                    label: "Credits",
+                    value: stats.totalCreditsAvailable,
+                    detail: "Solde total utilisateurs",
+                    accent: "text-blue-200",
+                  },
+                  {
+                    label: "Sites",
+                    value: sites.length,
+                    detail: `${stats.publishedSites} publie(s)`,
+                    accent: "text-green-200",
+                  },
+                  {
+                    label: "Leads",
+                    value: leads.length,
+                    detail: `${stats.newLeads} nouveau(x)`,
+                    accent: "text-purple-200",
+                  },
+                  {
+                    label: "Product Lab",
+                    value: productLabGlobalStats.pending,
+                    detail: `${productLabGlobalStats.total} proposition(s) V1/V2`,
+                    accent: "text-amber-200",
+                  },
+                ].map((entry) => (
+                  <div key={entry.label} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className={`text-2xl font-bold ${entry.accent}`}>{entry.value}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.16em] text-muted-foreground">{entry.label}</p>
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">{entry.detail}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 grid gap-3 lg:grid-cols-5">
+                {adminBusinessControlPillars.map((pillar) => (
+                  <div key={pillar.label} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-sm font-semibold text-foreground">{pillar.label}</p>
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">{pillar.detail}</p>
+                  </div>
+                ))}
+              </div>
+
               <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/[0.06] p-4 text-sm leading-6 text-muted-foreground">
                 <strong className="text-foreground">Fonctionnement valide.</strong> Chaque soir a 00h Europe/Paris,
                 V1 et V2 lancent leur workflow separe, executent jusqu'a 20 tests generateur, transforment les
                 resultats en 5 a 8 propositions utiles maximum, puis les envoient ici. Tu peux valider, modifier,
                 demander une alternative ou refuser. Le prochain run applique uniquement les validations admin et
-                ouvre une PR GitHub si smoke QA, lint, tests et build sont verts. Aucun merge ni deploy automatique.
+                ouvre une PR GitHub si smoke QA, lint, tests et build sont verts. Auto-merge autorise seulement si
+                checks OK, risque non eleve et aucun fichier sensible n'est touche; sinon validation GitHub manuelle.
                 <div className="mt-3 flex flex-wrap gap-2">
                   {productLabScopeOptions.map((option) => (
                     <a
@@ -1770,6 +2095,124 @@ const Admin = () => {
                 </div>
               </div>
 
+              <div className="mt-5 grid gap-3 lg:grid-cols-3">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="flex items-center gap-2 text-primary">
+                    <CalendarClock className="h-4 w-4" />
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em]">Schedule</p>
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-foreground">{productLabScheduleStatus.configured}</p>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                    Cron configure : {productLabScheduleStatus.crons}. Pour aujourd'hui : {productLabScheduleStatus.utc}.
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">{productLabScheduleStatus.note}</p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Dernier run</p>
+                  <p className="mt-3 text-sm font-semibold text-foreground">{productLabRunStatusLabel}</p>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                    Debut : {formatProductLabTimestamp(productLabRunStatus?.startedAt)}. Fin :{" "}
+                    {formatProductLabTimestamp(productLabRunStatus?.completedAt)}.
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                    Mode : {productLabRunStatus?.mode ?? "non prouve"} - statut : {productLabRunStatus?.status ?? "non prouve"}.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Propositions</p>
+                  <p className="mt-3 text-sm font-semibold text-foreground">
+                    {productLabRunStatus?.proposalsGenerated ?? productLabDisplayedCount} generee(s),{" "}
+                    {productLabRunStatus?.proposalsSaved ?? (productLabQueueSource === "supabase" ? productLabDisplayedCount : 0)} sauvegardee(s)
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                    Source : {productLabQueueSourceInfo.label}. Si ce nombre reste a zero apres minuit, verifier secrets GitHub Actions et sync Supabase.
+                  </p>
+                  {productLabRunStatus?.workflowRunUrl ? (
+                    <a
+                      href={productLabRunStatus.workflowRunUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-flex text-xs font-semibold text-primary hover:underline"
+                    >
+                      Ouvrir le run GitHub
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                        Cycle automatique
+                      </p>
+                      <h3 className="mt-2 text-lg font-semibold">De l'audit a la PR, sans confusion</h3>
+                    </div>
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs ${
+                        productLabGlobalStats.warnings
+                          ? "border-amber-400/25 bg-amber-400/[0.08] text-amber-100"
+                          : "border-green-400/25 bg-green-400/[0.08] text-green-100"
+                      }`}
+                    >
+                      {productLabGlobalStats.warnings ? `${productLabGlobalStats.warnings} point(s) a surveiller` : "Synchronisation saine"}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-5">
+                    {productLabNightlyCycle.map((entry, index) => (
+                      <div key={entry.step} className="rounded-2xl border border-white/10 bg-card/70 p-3">
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-xs font-bold text-primary">
+                          {index + 1}
+                        </span>
+                        <p className="mt-3 text-sm font-semibold text-foreground">{entry.step}</p>
+                        <p className="mt-2 text-xs leading-5 text-muted-foreground">{entry.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-green-400/20 bg-green-400/[0.05] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-green-200">
+                    Protection des donnees
+                  </p>
+                  <h3 className="mt-2 text-lg font-semibold">Garde-fous obligatoires</h3>
+                  <div className="mt-4 space-y-2">
+                    {productLabDataProtectionRules.map((rule) => (
+                      <div key={rule} className="flex gap-2 rounded-xl border border-white/10 bg-black/20 p-3 text-xs leading-5 text-muted-foreground">
+                        <Shield className="mt-0.5 h-4 w-4 shrink-0 text-green-200" />
+                        <span>{rule}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                      Benchmark & recherche produit
+                    </p>
+                    <h3 className="mt-2 text-lg font-semibold">Inspirations adaptees a la vision Pixelrises</h3>
+                  </div>
+                  <p className="max-w-2xl text-xs leading-5 text-muted-foreground">
+                    Le Product Lab ne copie pas les plateformes. Il transforme leurs meilleures logiques en version
+                    Pixelrises: premium, noir/or, business-first, conversion-first et orientee projet digital concret.
+                  </p>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {productLabBenchmarkPrinciples.map((principle) => (
+                    <div key={principle.source} className="rounded-2xl border border-white/10 bg-card/70 p-4">
+                      <p className="text-sm font-semibold text-foreground">{principle.source}</p>
+                      <p className="mt-2 text-xs leading-5 text-muted-foreground">{principle.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-5 grid gap-3 lg:grid-cols-2">
                 {productLabScopeOptions.map((option) => {
                   const isActive = option.id === productLabScope;
@@ -1781,7 +2224,7 @@ const Admin = () => {
                       ? "Sync live"
                       : status.persistence === "loading"
                         ? "Verification"
-                        : "Fallback local";
+                        : "Secours local";
 
                   return (
                     <button
@@ -1867,9 +2310,9 @@ const Admin = () => {
 
               {productLabQueueSource !== "supabase" && (
                 <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/[0.08] p-4 text-sm leading-6 text-amber-100">
-                  <strong>File non live:</strong> cette liste vient de {productLabQueueSourceInfo.label}. Le prochain
-                  workflow doit pousser les propositions dans Supabase; sinon il doit echouer clairement au lieu de
-                  laisser l'admin vide.
+                  <strong>{productLabSelectedStatusLabel}:</strong> cette liste vient de {productLabQueueSourceInfo.label}. Si le
+                  workflow vient de tourner, attends quelques secondes puis clique Recharger. Si l'etat reste en secours,
+                  GitHub Actions n'a pas encore pousse la file live dans Supabase ou le cache Supabase doit etre recharge.
                 </div>
               )}
 
@@ -1897,6 +2340,10 @@ const Admin = () => {
                   Etat file : {productLabQueueSourceInfo.label} - {productLabQueueSourceInfo.description}
                 </p>
                 <p className="mt-1">
+                  Statut automation : {productLabSelectedStatusLabel}. Source prioritaire attendue : Supabase, car c'est
+                  ce que GitHub Actions lit pour appliquer les validations.
+                </p>
+                <p className="mt-1">
                   Derniere generation : {productLabGeneratedAt}. Fraicheur : {productLabFreshness}. Propositions affichees :{" "}
                   {productLabDisplayedCount}/{productLabExpectedCount}.
                 </p>
@@ -1912,7 +2359,7 @@ const Admin = () => {
                 </p>
                 <p className="mt-1">
                   Regle : une validation ici prepare la decision. Les changements auth, paiement, Supabase sensible,
-                  provider IA, production ou suppression majeure restent bloques sans action humaine explicite.
+                  moteur IA, production ou suppression majeure restent bloques sans action humaine explicite.
                 </p>
               </div>
 
@@ -1936,13 +2383,20 @@ const Admin = () => {
                     item.localDecision.status === "approved" && item.localDecision.persisted === "supabase";
                   const applicationStatus = item.localDecision.applicationStatus ?? "pending";
                   const prUrl =
-                    typeof item.localDecision.processedRun?.prUrl === "string"
+                    item.localDecision.prUrl ||
+                    (typeof item.localDecision.processedRun?.prUrl === "string"
                       ? item.localDecision.processedRun.prUrl
-                      : "";
+                      : "");
                   const prNumber =
-                    typeof item.localDecision.processedRun?.prNumber === "number"
+                    item.localDecision.prNumber ??
+                    (typeof item.localDecision.processedRun?.prNumber === "number"
                       ? item.localDecision.processedRun.prNumber
-                      : null;
+                      : null);
+                  const prStatus = item.localDecision.prStatus || (prUrl ? "created" : "not_created");
+                  const autoMergeStatus = item.localDecision.autoMergeStatus || "not_requested";
+                  const prStatusMeta = productLabPrStatusMeta[prStatus] ?? productLabPrStatusMeta.not_created;
+                  const autoMergeMeta = productLabAutoMergeMeta[autoMergeStatus] ?? productLabAutoMergeMeta.not_requested;
+                  const touchedSensitiveFiles = item.localDecision.touchedSensitiveFiles ?? [];
                   const decisionLabel =
                     item.localDecision.status === "approved"
                       ? applicationStatus === "pr_ready"
@@ -2010,8 +2464,50 @@ const Admin = () => {
                               PR Product Lab{prNumber ? ` #${prNumber}` : ""}
                             </a>
                           ) : null}
+                          <span className={`rounded-full border px-3 py-1 ${prStatusMeta.tone}`}>
+                            {prStatusMeta.label}
+                          </span>
+                          <span className={`rounded-full border px-3 py-1 ${autoMergeMeta.tone}`}>
+                            {autoMergeMeta.label}
+                          </span>
+                          {item.localDecision.autoMergeBlockReason ? (
+                            <p className="rounded-xl border border-amber-400/25 bg-amber-400/[0.08] px-3 py-2 text-amber-100">
+                              Blocage : {item.localDecision.autoMergeBlockReason}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
+
+                      {(prUrl || autoMergeStatus !== "not_requested" || touchedSensitiveFiles.length > 0) && (
+                        <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-muted-foreground">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`rounded-full border px-3 py-1 text-xs ${prStatusMeta.tone}`}>
+                              Statut PR : {prStatusMeta.label}
+                            </span>
+                            <span className={`rounded-full border px-3 py-1 text-xs ${autoMergeMeta.tone}`}>
+                              {autoMergeMeta.label}
+                            </span>
+                            {item.localDecision.riskLevel ? (
+                              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs">
+                                Risque PR : {item.localDecision.riskLevel}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-3 text-xs leading-5">{autoMergeMeta.detail}</p>
+                          {touchedSensitiveFiles.length > 0 ? (
+                            <div className="mt-3 space-y-2">
+                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200">
+                                Fichiers sensibles detectes
+                              </p>
+                              {touchedSensitiveFiles.map((entry) => (
+                                <p key={`${entry.file}-${entry.reason}`} className="rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-100">
+                                  {entry.file} - {entry.reason}
+                                </p>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
 
                       <div className="mt-4 grid gap-3 lg:grid-cols-3">
                         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -2052,7 +2548,7 @@ const Admin = () => {
 
                       <div className="mt-4 grid gap-3">
                         <textarea
-                          value={productLabNotes[item.id] ?? item.localDecision.note}
+                            value={productLabNotes[item.id] ?? item.localDecision.note}
                           onChange={(event) =>
                             setProductLabNotes((previous) => ({ ...previous, [item.id]: event.target.value }))
                           }
@@ -2060,7 +2556,7 @@ const Admin = () => {
                           className="min-h-[90px] rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/50"
                         />
                         <textarea
-                          value={productLabCorrectionRequests[item.id] ?? item.localDecision.correctionRequest}
+                            value={productLabCorrectionRequests[item.id] ?? item.localDecision.correctionRequest}
                           onChange={(event) =>
                             setProductLabCorrectionRequests((previous) => ({
                               ...previous,

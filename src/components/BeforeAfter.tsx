@@ -133,7 +133,7 @@ const BeforeAfter = () => {
                     value={stat.value}
                     prefix={stat.prefix}
                     suffix={stat.suffix}
-                    decimals={stat.decimals ?? 0}
+                      decimals={stat.decimals ?? 0}
                   />
                 </div>
                 <p className="text-[11px] font-medium leading-tight text-muted-foreground sm:text-xs">

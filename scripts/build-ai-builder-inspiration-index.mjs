@@ -12,13 +12,13 @@ const decode = (value = "") =>
     .replace(/&#39;|&apos;/g, "'")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/â€”/g, "-")
-    .replace(/â€“/g, "-")
-    .replace(/â€™/g, "'")
-    .replace(/â€œ|â€/g, '"')
-    .replace(/Ã©/g, "e")
-    .replace(/Ã¨/g, "e")
-    .replace(/Ã /g, "a");
+    .replace(/\u00e2\u20ac\u201d/g, "-")
+    .replace(/\u00e2\u20ac\u201c/g, "-")
+    .replace(/\u00e2\u20ac\u2122/g, "'")
+    .replace(/\u00e2\u20ac\u0153|\u00e2\u20ac/g, '"')
+    .replace(/\u00c3\u00a9/g, "e")
+    .replace(/\u00c3\u00a8/g, "e")
+    .replace(/\u00c3\u0020/g, "a");
 
 const compact = (value = "") => decode(value).replace(/\s+/g, " ").trim();
 const normalizeKey = (value = "") =>

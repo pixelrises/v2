@@ -1,0 +1,21 @@
+<svg width="480" height="300" viewBox="0 0 480 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="480" height="300" rx="24" fill="#05060A"/>
+  <rect width="480" height="300" rx="24" fill="url(#bg)"/>
+  <rect x="28" y="26" width="424" height="248" rx="20" fill="black" fill-opacity=".47" stroke="white" stroke-opacity=".10"/>
+  <rect x="48" y="48" width="88" height="8" rx="4" fill="#4DA3FF"/>
+  <text x="48" y="92" fill="white" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="850">UEFN Island</text>
+  <rect x="48" y="112" width="118" height="22" rx="11" fill="#4DA3FF"/>
+  <path d="M320 75l97 53-98 55-98-55 99-53Z" fill="#4DA3FF" fill-opacity=".16" stroke="#4DA3FF" stroke-opacity=".40"/>
+  <path d="M320 111l52 28-52 30-53-30 53-28Z" fill="#F5C542" fill-opacity=".18" stroke="#F5C542" stroke-opacity=".45"/>
+  <path d="M260 191l60 34 62-34" stroke="#4DA3FF" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="320" cy="139" r="14" fill="#F5C542"/>
+  <rect x="65" y="188" width="98" height="9" rx="4.5" fill="white" fill-opacity=".22"/>
+  <rect x="65" y="208" width="124" height="8" rx="4" fill="white" fill-opacity=".12"/>
+  <defs>
+    <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(344 124) rotate(139) scale(310 407)">
+      <stop stop-color="#124D82"/>
+      <stop offset=".42" stop-color="#07121D"/>
+      <stop offset="1" stop-color="#030303"/>
+    </radialGradient>
+  </defs>
+</svg>

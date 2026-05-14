@@ -1,0 +1,25 @@
+<svg width="480" height="300" viewBox="0 0 480 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="480" height="300" rx="24" fill="#050706"/>
+  <rect width="480" height="300" rx="24" fill="url(#bg)"/>
+  <rect x="28" y="26" width="424" height="248" rx="20" fill="black" fill-opacity=".46" stroke="white" stroke-opacity=".10"/>
+  <rect x="48" y="47" width="32" height="8" rx="4" fill="#2DE28B"/>
+  <rect x="321" y="48" width="28" height="7" rx="3.5" fill="white" fill-opacity=".24"/>
+  <rect x="361" y="48" width="28" height="7" rx="3.5" fill="white" fill-opacity=".17"/>
+  <rect x="401" y="43" width="35" height="19" rx="9.5" fill="#F5C542"/>
+  <rect x="303" y="86" width="96" height="126" rx="20" fill="#EAF8F2" fill-opacity=".14" stroke="#FFFFFF" stroke-opacity=".12"/>
+  <circle cx="351" cy="124" r="29" fill="#D7EEE5" opacity=".75"/>
+  <rect x="326" y="166" width="50" height="8" rx="4" fill="#2DE28B"/>
+  <rect x="319" y="186" width="65" height="8" rx="4" fill="white" fill-opacity=".24"/>
+  <text x="50" y="121" fill="white" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="850">Des soins</text>
+  <text x="50" y="156" fill="white" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="850">qui comptent</text>
+  <rect x="50" y="183" width="104" height="24" rx="12" fill="#2DE28B"/>
+  <rect x="50" y="228" width="72" height="8" rx="4" fill="white" fill-opacity=".22"/>
+  <rect x="137" y="228" width="88" height="8" rx="4" fill="white" fill-opacity=".13"/>
+  <defs>
+    <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(346 118) rotate(139) scale(285 385)">
+      <stop stop-color="#18463A"/>
+      <stop offset=".48" stop-color="#0C1714"/>
+      <stop offset="1" stop-color="#030303"/>
+    </radialGradient>
+  </defs>
+</svg>

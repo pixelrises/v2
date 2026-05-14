@@ -16,36 +16,183 @@ export type Database = {
     Tables: {
       credit_transactions: {
         Row: {
+          action_type: string | null
+          amount: number | null
           balance_after: number | null
           created_at: string
           created_by: string | null
           delta: number
           id: string
+          idempotency_key: string | null
           metadata: Json
+          reason: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
           source_id: string | null
           source_type: string
+          status: string
+          type: string | null
           user_id: string
         }
         Insert: {
+          action_type?: string | null
+          amount?: number | null
           balance_after?: number | null
           created_at?: string
           created_by?: string | null
           delta: number
           id?: string
+          idempotency_key?: string | null
           metadata?: Json
+          reason?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
           source_id?: string | null
           source_type: string
+          status?: string
+          type?: string | null
           user_id: string
         }
         Update: {
+          action_type?: string | null
+          amount?: number | null
           balance_after?: number | null
           created_at?: string
           created_by?: string | null
           delta?: number
           id?: string
+          idempotency_key?: string | null
           metadata?: Json
+          reason?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
           source_id?: string | null
           source_type?: string
+          status?: string
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      billing_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          key: string
+          limits: Json
+          monthly_credits: number | null
+          name: string
+          sort_order: number
+          stripe_price_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          key: string
+          limits?: Json
+          monthly_credits?: number | null
+          name: string
+          sort_order?: number
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          key?: string
+          limits?: Json
+          monthly_credits?: number | null
+          name?: string
+          sort_order?: number
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      credit_cost_rules: {
+        Row: {
+          action_type: string
+          base_cost: number
+          builder_type: string | null
+          complexity_level: string
+          created_at: string
+          id: string
+          is_active: boolean
+          plan_multiplier: number
+          quality_mode: string
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          base_cost: number
+          builder_type?: string | null
+          complexity_level?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          plan_multiplier?: number
+          quality_mode?: string
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          base_cost?: number
+          builder_type?: string | null
+          complexity_level?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          plan_multiplier?: number
+          quality_mode?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      credit_wallets: {
+        Row: {
+          balance: number
+          bonus_balance: number
+          created_at: string
+          id: string
+          last_refill_at: string | null
+          lifetime_used: number
+          monthly_allowance: number
+          next_refill_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          bonus_balance?: number
+          created_at?: string
+          id?: string
+          last_refill_at?: string | null
+          lifetime_used?: number
+          monthly_allowance?: number
+          next_refill_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          bonus_balance?: number
+          created_at?: string
+          id?: string
+          last_refill_at?: string | null
+          lifetime_used?: number
+          monthly_allowance?: number
+          next_refill_at?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -253,24 +400,153 @@ export type Database = {
           },
         ]
       }
+      plan_limits: {
+        Row: {
+          created_at: string
+          id: string
+          limit_key: string
+          limit_value: number | null
+          plan_key: string
+          reset_period: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          limit_key: string
+          limit_value?: number | null
+          plan_key: string
+          reset_period?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          limit_key?: string
+          limit_value?: number | null
+          plan_key?: string
+          reset_period?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      quota_events: {
+        Row: {
+          action_type: string
+          count: number
+          created_at: string
+          id: string
+          period_end: string
+          period_start: string
+          plan_key: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          count?: number
+          created_at?: string
+          id?: string
+          period_end: string
+          period_start: string
+          plan_key?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          count?: number
+          created_at?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          plan_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stripe_events: {
         Row: {
+          created_at: string
+          error: string | null
           id: string
           payload: Json | null
+          payload_summary: Json | null
           processed_at: string
+          status: string
+          stripe_event_id: string | null
           type: string
         }
         Insert: {
+          created_at?: string
+          error?: string | null
           id: string
           payload?: Json | null
+          payload_summary?: Json | null
           processed_at?: string
+          status?: string
+          stripe_event_id?: string | null
           type: string
         }
         Update: {
+          created_at?: string
+          error?: string | null
           id?: string
           payload?: Json | null
+          payload_summary?: Json | null
           processed_at?: string
+          status?: string
+          stripe_event_id?: string | null
           type?: string
+        }
+        Relationships: []
+      }
+      usage_events: {
+        Row: {
+          action_type: string
+          builder_type: string | null
+          completed_at: string | null
+          created_at: string
+          credits_charged: number
+          credits_estimated: number
+          entity_id: string | null
+          error_code: string | null
+          id: string
+          idempotency_key: string | null
+          metadata: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          builder_type?: string | null
+          completed_at?: string | null
+          created_at?: string
+          credits_charged?: number
+          credits_estimated?: number
+          entity_id?: string | null
+          error_code?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          builder_type?: string | null
+          completed_at?: string | null
+          created_at?: string
+          credits_charged?: number
+          credits_estimated?: number
+          entity_id?: string | null
+          error_code?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -296,6 +572,51 @@ export type Database = {
           credits?: number
           id?: string
           total_used?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_key: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_end: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_key?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_key?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -332,16 +653,6 @@ export type Database = {
         }
         Returns: Json
       }
-      admin_apply_credit_transaction: {
-        Args: {
-          p_delta: number
-          p_metadata?: Json
-          p_source_id?: string | null
-          p_source_type: string
-          p_user_id: string
-        }
-        Returns: Json
-      }
       apply_credit_transaction: {
         Args: {
           p_created_by?: string | null
@@ -353,15 +664,21 @@ export type Database = {
         }
         Returns: Json
       }
-      can_update_generated_site: {
+      complete_usage_event: {
         Args: {
-          p_custom_domain: string | null
-          p_domain_status: string | null
-          p_site_id: string
-          p_status: string | null
+          p_credits_charged?: number | null
+          p_error_code?: string | null
+          p_metadata?: Json
+          p_status: string
+          p_usage_id: string
+        }
+        Returns: Json
+      }
+      ensure_credit_wallet: {
+        Args: {
           p_user_id: string
         }
-        Returns: boolean
+        Returns: string
       }
       has_role: {
         Args: {
@@ -369,6 +686,18 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      start_usage_event: {
+        Args: {
+          p_action_type: string
+          p_builder_type?: string | null
+          p_credits_estimated?: number
+          p_entity_id?: string | null
+          p_idempotency_key?: string | null
+          p_metadata?: Json
+          p_user_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {

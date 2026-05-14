@@ -1,3 +1,5 @@
+import { redactObjectSecrets, redactSecrets } from "@/modules/ai/security/redactSecrets";
+
 type MonitoringLevel = "info" | "warn" | "error";
 
 type MonitoringPayload = {
@@ -23,21 +25,21 @@ const safeStringify = (value: unknown) => {
 const normalizeError = (error: unknown, fallback = "Une erreur inconnue est survenue.") => {
   if (error instanceof Error) {
     return {
-      message: error.message || fallback,
-      stack: error.stack,
+      message: redactSecrets(error.message || fallback),
+      stack: redactSecrets(error.stack),
     };
   }
 
   if (typeof error === "string") {
     return {
-      message: error || fallback,
+      message: redactSecrets(error || fallback),
       stack: undefined,
     };
   }
 
   return {
     message: fallback,
-    stack: safeStringify(error),
+    stack: redactSecrets(safeStringify(error)),
   };
 };
 
@@ -63,17 +65,17 @@ export const reportFrontendEvent = ({
 }: MonitoringPayload) => {
   const entry: MonitoringPayload = {
     context,
-    message,
+    message: redactSecrets(message),
     level,
-    metadata,
-    stack,
+    metadata: metadata ? redactObjectSecrets(metadata) : undefined,
+    stack: redactSecrets(stack),
     timestamp: new Date().toISOString(),
   };
 
   const logger =
     level === "error" ? console.error : level === "warn" ? console.warn : console.info;
 
-  logger(`[Pixelrises:${context}] ${message}`, metadata || "", stack || "");
+  logger(`[Pixelrises:${context}] ${entry.message}`, entry.metadata || "", entry.stack || "");
   writeToStorage(entry);
 };
 

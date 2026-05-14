@@ -19,7 +19,7 @@ export class VercelGatewayProviderAdapter extends BaseProviderAdapter {
       valid: false,
       status: this.status,
       message:
-        "Vercel AI Gateway doit rester cote backend avec AI_GATEWAY_API_KEY ou un token OIDC serveur. Aucun secret n'est lu dans le frontend.",
+        "Le moteur IA réel doit rester côté serveur. Aucun secret n'est lu dans le frontend.",
     };
   }
 }

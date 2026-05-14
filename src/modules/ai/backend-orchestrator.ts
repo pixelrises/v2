@@ -5,6 +5,7 @@ import type {
   NormalizedSiteProject,
   ProjectType,
 } from "@/modules/creation-engine";
+import { redactSecrets } from "@/modules/ai/security/redactSecrets";
 
 export type BackendGenerationMode = "plan" | "build" | "improve";
 export type BackendGenerationSource = "real" | "mock-fallback";
@@ -53,6 +54,41 @@ export type BackendAIOrchestratorResponse = {
   errors?: string[];
 };
 
+const cleanBackendMessage = (value: unknown, fallback = "Orchestrateur IA indisponible.") => {
+  const cleaned = redactSecrets(value).replace(/\s+/g, " ").trim();
+  return cleaned ? cleaned.slice(0, 240) : fallback;
+};
+
+const cleanErrors = (errors?: string[]) =>
+  Array.isArray(errors) ? errors.map((error) => cleanBackendMessage(error)) : undefined;
+
+const cleanResponse = (
+  response: BackendAIOrchestratorResponse | null | undefined,
+  request: BackendAIOrchestratorRequest,
+): BackendAIOrchestratorResponse => {
+  if (!response || typeof response !== "object") {
+    return {
+      success: false,
+      projectType: request.projectType,
+      mode: request.mode ?? "build",
+      source: "mock-fallback",
+      errors: ["Réponse backend IA invalide."],
+    };
+  }
+
+  return {
+    ...response,
+    projectType: response.projectType ?? request.projectType,
+    mode: response.mode ?? request.mode ?? "build",
+    source: response.source ?? "mock-fallback",
+    errors: cleanErrors(response.errors),
+    routingTrace: response.routingTrace?.map((task) => ({
+      ...task,
+      error: task.error ? cleanBackendMessage(task.error) : undefined,
+    })),
+  };
+};
+
 export const runBackendAIOrchestrator = async (
   request: BackendAIOrchestratorRequest,
 ): Promise<BackendAIOrchestratorResponse> => {
@@ -62,7 +98,7 @@ export const runBackendAIOrchestrator = async (
       projectType: request.projectType,
       mode: request.mode ?? "build",
       source: "mock-fallback",
-      errors: ["Supabase frontend config missing. Backend orchestration skipped."],
+      errors: ["Configuration Supabase manquante : orchestration backend ignorée."],
     };
   }
 
@@ -76,9 +112,9 @@ export const runBackendAIOrchestrator = async (
       projectType: request.projectType,
       mode: request.mode ?? "build",
       source: "mock-fallback",
-      errors: [error.message],
+      errors: [cleanBackendMessage(error.message)],
     };
   }
 
-  return data as BackendAIOrchestratorResponse;
+  return cleanResponse(data as BackendAIOrchestratorResponse, request);
 };

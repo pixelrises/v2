@@ -18,7 +18,7 @@ const slugify = (value: string) =>
     .replace(/^-|-$/g, "")
     .slice(0, 48) || "pixelrises-project";
 
-const nowId = (prefix: string) => `${prefix}-${Date.now().toString(36)}`;
+const nowId = (prefix: string) => globalThis.crypto?.randomUUID?.() ?? `${prefix}-${Date.now().toString(36)}`;
 
 export const detectProjectType = (idea: string): ProjectType => {
   const normalized = idea.toLowerCase();
@@ -465,6 +465,30 @@ export const createDefaultAgentProject = (): CustomAgentProject => ({
     accessAnalytics: false,
     useIntegrations: false,
   },
+  autonomyLevel: "proposals_validated",
+  allowedActions: [
+    "read_project",
+    "suggest_site_improvement",
+    "suggest_copywriting",
+    "create_task",
+    "create_agent_note",
+  ],
+  forbiddenActions: [
+    "send_email_without_validation",
+    "publish_site_without_validation",
+    "modify_credits",
+    "modify_payment",
+    "access_other_user_data",
+    "connect_external_tool_without_consent",
+    "call_external_api_without_permission",
+    "prospect_automatically",
+  ],
+  connectedTools: ["Business AI", "Site Builder", "Projects"],
+  status: "ready",
+  riskLevel: "low",
+  dataState: "mock",
+  testHistory: [],
+  proposedActions: [],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 });

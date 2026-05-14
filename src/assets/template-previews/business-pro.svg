@@ -1,0 +1,27 @@
+<svg width="480" height="300" viewBox="0 0 480 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="480" height="300" rx="24" fill="#050505"/>
+  <rect width="480" height="300" rx="24" fill="url(#bg)"/>
+  <path d="M145 205C220 105 330 81 453 118" stroke="#F5C542" stroke-width="2" stroke-opacity=".30"/>
+  <path d="M144 227C223 142 331 126 455 155" stroke="#F5C542" stroke-width="1.2" stroke-opacity=".20"/>
+  <rect x="28" y="26" width="424" height="248" rx="20" fill="black" fill-opacity=".48" stroke="white" stroke-opacity=".10"/>
+  <rect x="46" y="45" width="28" height="28" rx="9" fill="#F5C542" fill-opacity=".12" stroke="#F5C542" stroke-opacity=".42"/>
+  <path d="M55 61h13M61 54v13" stroke="#F5C542" stroke-width="2" stroke-linecap="round"/>
+  <rect x="318" y="50" width="28" height="7" rx="3.5" fill="white" fill-opacity=".25"/>
+  <rect x="358" y="50" width="28" height="7" rx="3.5" fill="white" fill-opacity=".18"/>
+  <rect x="399" y="43" width="36" height="21" rx="10.5" fill="#F5C542"/>
+  <text x="47" y="128" fill="white" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="850">Solutions pour</text>
+  <text x="47" y="164" fill="white" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="850">votre croissance</text>
+  <rect x="47" y="190" width="112" height="25" rx="12.5" fill="#F5C542"/>
+  <rect x="175" y="190" width="95" height="25" rx="12.5" fill="black" fill-opacity=".25" stroke="white" stroke-opacity=".12"/>
+  <rect x="300" y="112" width="106" height="94" rx="22" fill="#F5C542" fill-opacity=".10" stroke="#F5C542" stroke-opacity=".22"/>
+  <path d="M323 169l23-28 19 17 20-33" stroke="#F5C542" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="316" y="224" width="33" height="8" rx="4" fill="white" fill-opacity=".24"/>
+  <rect x="361" y="224" width="33" height="8" rx="4" fill="white" fill-opacity=".16"/>
+  <defs>
+    <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(365 105) rotate(139) scale(305 420)">
+      <stop stop-color="#6D520A"/>
+      <stop offset=".42" stop-color="#1B1405"/>
+      <stop offset="1" stop-color="#030303"/>
+    </radialGradient>
+  </defs>
+</svg>

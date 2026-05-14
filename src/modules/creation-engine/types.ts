@@ -118,6 +118,32 @@ export type CustomAgentProject = {
     accessAnalytics: boolean;
     useIntegrations: boolean;
   };
+  autonomyLevel?: "advice_only" | "proposals_validated" | "internal_actions_validated" | "external_actions_validated";
+  allowedActions?: string[];
+  forbiddenActions?: string[];
+  connectedTools?: string[];
+  status?: "ready" | "beta" | "soon" | "disabled";
+  riskLevel?: "low" | "medium" | "high";
+  dataState?: "real" | "example" | "mock" | "pending" | "error" | "empty";
+  testHistory?: Array<{
+    id: string;
+    prompt: string;
+    response: string;
+    riskLevel: "low" | "medium" | "high";
+    requiresConfirmation: boolean;
+    createdAt: string;
+  }>;
+  proposedActions?: Array<{
+    id: string;
+    title: string;
+    description: string;
+    actionType: string;
+    targetModule: string;
+    riskLevel: "low" | "medium" | "high";
+    requiresConfirmation: boolean;
+    status: "draft" | "proposed" | "approved" | "rejected" | "executed" | "failed" | "cancelled" | "blocked" | "requires_external_connection";
+    createdAt: string;
+  }>;
   createdAt: string;
   updatedAt: string;
 };

@@ -40,7 +40,7 @@ const allGeneralTasks: AITaskType[] = [
 export const aiProvidersConfig: Record<AIProviderId, AIProviderConfig> = {
   "vercel-gateway": {
     providerId: "vercel-gateway",
-    providerName: "Vercel AI Gateway",
+    providerName: "Moteur IA Pixelrises",
     displayName: "Pixelrises Gateway",
     role: "Provider unifie server-only pour router OpenAI, Claude, Gemini, DeepSeek et Mistral avec fallback et suivi des couts.",
     defaultModel: "openai/gpt-5.4-mini",

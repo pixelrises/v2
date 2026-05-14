@@ -16,12 +16,10 @@ class PixelrisesErrorBoundary extends Component<Props, State> {
     message: "",
   };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(_error: Error): State {
     return {
       hasError: true,
-      message: import.meta.env.DEV
-        ? error.message || "Une erreur a empêché l'affichage de la page."
-        : "",
+      message: "",
     };
   }
 
@@ -48,7 +46,7 @@ class PixelrisesErrorBoundary extends Component<Props, State> {
             Pixelrises AI
           </p>
           <h1 className="text-2xl font-bold sm:text-3xl">
-            Une erreur a interrompu l’affichage
+            Une erreur a interrompu l'affichage
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Une erreur est survenue. Veuillez réessayer dans quelques instants.
@@ -70,7 +68,7 @@ class PixelrisesErrorBoundary extends Component<Props, State> {
               href="/"
               className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-background/70 px-5 py-3 text-sm font-semibold text-foreground"
             >
-              Retour à l’accueil
+              Retour à l'accueil
             </a>
           </div>
         </div>

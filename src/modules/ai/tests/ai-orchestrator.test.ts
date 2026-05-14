@@ -14,6 +14,7 @@ describe("AIOrchestrator", () => {
     expect(result.tasks.length).toBeGreaterThanOrEqual(5);
     expect(result.quality.valid).toBe(true);
     expect(result.output).toHaveProperty("pages");
+    expect(JSON.stringify(result.output)).not.toContain("PIXELRISES INTELLIGENCE LAYER");
   });
 
   it("runs an agent prompt with safe permissions", async () => {

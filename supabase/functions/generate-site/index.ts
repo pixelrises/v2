@@ -3,7 +3,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import {
   createAIChatCompletion,
   createAIImageGeneration,
-  getAIProviderName,
 } from "../_shared/ai-provider.ts";
 import { getRequiredEnvMap } from "../_shared/env.ts";
 import { sanitizeTextDeep } from "../_shared/text.ts";
@@ -34,6 +33,8 @@ type FormPayload = {
   description: string;
   enhancers?: string[];
   debugPromptOnly?: boolean;
+  requestId?: string;
+  idempotencyKey?: string;
   regenerate?: boolean;
   variationSeed?: string;
   siteId: string;
@@ -430,8 +431,8 @@ type PromptBlueprint = {
   validationChecks: string[];
 };
 
-const GENERATION_CREDIT_COST = 3;
-const IMPROVEMENT_CREDIT_COST = 5;
+const GENERATION_CREDIT_COST = 5;
+const IMPROVEMENT_CREDIT_COST = 3;
 const BUSINESS_ANALYSIS_MODEL = "google/gemini-3-flash-preview";
 const BUSINESS_ANALYSIS_FALLBACK_MODELS = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
 const SITE_GENERATION_MODEL = "google/gemini-3-pro-preview";
@@ -9403,6 +9404,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let usageEventIdForCatch: string | null = null;
+  let serviceRoleForUsage: ReturnType<typeof createClient> | null = null;
+
   try {
     const env = getRequiredEnvMap([
       "SUPABASE_URL",
@@ -9449,6 +9453,8 @@ serve(async (req) => {
       description: normalizeText(incomingForm.description),
       enhancers: normalizeList(incomingForm.enhancers).slice(0, 6),
       debugPromptOnly: Boolean(incomingForm.debugPromptOnly),
+      requestId: normalizeText(incomingForm.requestId),
+      idempotencyKey: normalizeText(incomingForm.idempotencyKey),
       regenerate: Boolean(incomingForm.regenerate),
       variationSeed: normalizeText(
         incomingForm.variationSeed,
@@ -9485,12 +9491,22 @@ serve(async (req) => {
 
     const creditCost =
       form.siteId && form.improvementPrompt ? IMPROVEMENT_CREDIT_COST : GENERATION_CREDIT_COST;
+    const serviceRole = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+    serviceRoleForUsage = serviceRole;
+    const actionType = form.siteId && form.improvementPrompt ? "site_section_improve" : "site_generation";
+    const idempotencyKey =
+      form.idempotencyKey ||
+      form.requestId ||
+      `${user.id}:${actionType}:${form.siteId || "new"}:${form.variationSeed}`;
+    let usageEventId: string | null = null;
     const requestContext = {
       userId: user.id,
       businessType: form.businessType,
       businessName: form.businessName,
       city: form.city,
       creditCost,
+      actionType,
+      idempotencyKey,
       isImprovement: Boolean(form.siteId && form.improvementPrompt),
     };
 
@@ -9502,6 +9518,51 @@ serve(async (req) => {
       return json(
         {
             error: `Il vous manque ${creditCost - creditData.credits} cr\u00e9dit(s) pour cette action.`,
+          creditCost,
+          creditsAvailable: creditData.credits,
+        },
+        402,
+      );
+    }
+
+    const { data: usageEvent, error: usageStartError } = await serviceRole.rpc("start_usage_event", {
+      p_user_id: user.id,
+      p_action_type: actionType,
+      p_builder_type: "site",
+      p_entity_id: form.siteId || null,
+      p_credits_estimated: creditCost,
+      p_idempotency_key: idempotencyKey,
+      p_metadata: {
+        source: "site_builder",
+        mode: form.siteId && form.improvementPrompt ? "improve" : "generate",
+      },
+    });
+
+    if (usageStartError || !usageEvent) {
+      console.warn("generate-site usage event unavailable", {
+        ...requestContext,
+        reason: usageStartError?.message || "usage_event_missing",
+      });
+      return json(
+        {
+          error:
+            "La verification des credits est temporairement indisponible. Aucun credit n'a ete debite.",
+        },
+        503,
+      );
+    }
+
+    const usageEventRecord = usageEvent as { usage_id?: string; status?: string; reason?: string };
+    usageEventId = usageEventRecord.usage_id || null;
+    usageEventIdForCatch = usageEventId;
+
+    if (usageEventRecord.status === "blocked") {
+      return json(
+        {
+          error:
+            usageEventRecord.reason === "insufficient_credits"
+              ? "Credits insuffisants pour cette action."
+              : "Cette action est temporairement bloquee par les quotas du plan.",
           creditCost,
           creditsAvailable: creditData.credits,
         },
@@ -10124,8 +10185,6 @@ Obligatoire :
     }
     const qualityScore = computeQualityScore(generatedContent);
 
-    const serviceRole = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
-
     const effectiveCreditCost = creditCost;
     const nextCredits = creditData.credits - effectiveCreditCost;
     const nextTotalUsed = (creditData.total_used || 0) + effectiveCreditCost;
@@ -10251,19 +10310,17 @@ Obligatoire :
       );
     }
 
-    const creditUpdateError =
-      effectiveCreditCost > 0
-        ? (
-            await serviceRole
-              .from("user_credits")
-              .update({
-                credits: nextCredits,
-                total_used: nextTotalUsed,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("user_id", user.id)
-          ).error
-        : null;
+    const { data: creditSettlement, error: creditUpdateError } = await serviceRole.rpc("complete_usage_event", {
+      p_usage_id: usageEventId,
+      p_status: "succeeded",
+      p_credits_charged: effectiveCreditCost,
+      p_error_code: null,
+      p_metadata: {
+        site_id: siteId,
+        generation_mode: generationMode,
+        quality_score: qualityScore?.overall ?? null,
+      },
+    });
 
     if (creditUpdateError) {
       if (createdSiteId) {
@@ -10294,18 +10351,22 @@ Obligatoire :
       );
     }
 
-    console.log(`AI provider used: ${getAIProviderName()}`);
+    const settledCredits =
+      creditSettlement && typeof creditSettlement === "object" && "balance" in creditSettlement
+        ? Number((creditSettlement as { balance?: number }).balance)
+        : nextCredits;
+
     console.info("generate-site success", {
       ...requestContext,
       siteId,
-      remainingCredits: nextCredits,
+      remainingCredits: settledCredits,
       effectiveCreditCost,
       generationMode,
     });
 
     return json({
       content: generatedContent,
-      credits: nextCredits,
+      credits: settledCredits,
       creditCost: effectiveCreditCost,
       generationMode,
       notice: null,
@@ -10320,7 +10381,18 @@ Obligatoire :
       summary: buildGeneratedSiteSummary(generatedContent),
     });
   } catch (error) {
-    console.error("generate-site error:", error);
+    console.error("generate-site error: redacted", {
+      reason: getSafeGenerationErrorMessage(error),
+    });
+    if (usageEventIdForCatch && serviceRoleForUsage) {
+      await serviceRoleForUsage.rpc("complete_usage_event", {
+        p_usage_id: usageEventIdForCatch,
+        p_status: "failed",
+        p_credits_charged: 0,
+        p_error_code: "generation_failed",
+        p_metadata: { debit: "none" },
+      });
+    }
     const safeMessage = getSafeGenerationErrorMessage(error);
     return json(
       {

@@ -120,6 +120,32 @@ const toArray = (value: unknown, fallback: string[]) =>
     ? value.map((item) => String(item ?? "").trim()).filter(Boolean)
     : fallback;
 
+const responseSecretPatterns = [
+  /AIza[0-9A-Za-z_-]{20,}/g,
+  /sk-[0-9A-Za-z_-]{20,}/g,
+  /vck_[0-9A-Za-z_-]{16,}/g,
+  /sb_secret_[0-9A-Za-z_-]{10,}/g,
+  /sb_publishable_[0-9A-Za-z_-]{10,}/g,
+  /github_pat_[0-9A-Za-z_]+/gi,
+  /ghp_[0-9A-Za-z_]{20,}/g,
+  /eyJ[0-9A-Za-z_-]{20,}\.[0-9A-Za-z_-]{20,}\.[0-9A-Za-z_-]{10,}/g,
+  /bearer\s+[0-9A-Za-z._-]+/gi,
+  /(?<=api[_-]?key["'\s:=]+)[^"',\s]+/gi,
+  /(?<=secret["'\s:=]+)[^"',\s]+/gi,
+  /(?<=token["'\s:=]+)[^"',\s]+/gi,
+];
+
+const redactSecretsForResponse = (value: unknown, fallback = "Erreur IA controlee.") => {
+  const raw = typeof value === "string" ? value : JSON.stringify(value);
+  const cleaned = responseSecretPatterns
+    .reduce((safe, pattern) => safe.replace(pattern, "[REDACTED]"), raw ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned ? cleaned.slice(0, 240) : fallback;
+};
+
+const redactErrorList = (errors: string[]) => errors.map((error) => redactSecretsForResponse(error));
+
 const nowIso = () => new Date().toISOString();
 
 const makeId = () => crypto.randomUUID();
@@ -235,6 +261,77 @@ const taskTemperature = (taskType: AITaskType) => {
   return 0.45;
 };
 
+const normalizeForQuality = (value: unknown) =>
+  String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const genericSiteCopyPatterns = [
+  /lorem/i,
+  /placeholder/i,
+  /todo/i,
+  /debug/i,
+  /votre entreprise/i,
+  /nom de votre/i,
+  /secteur d.?activite/i,
+  /services? de qualite/i,
+  /solutions? sur mesure/i,
+  /solutions? adaptees?/i,
+  /solutions? innovantes?/i,
+  /nous accompagnons nos clients/i,
+  /decouvrez nos services/i,
+  /bienvenue sur notre site/i,
+  /presence digitale claire et credible/i,
+  /site professionnel moderne/i,
+  /au service de vos besoins/i,
+  /repondre a vos besoins/i,
+  /votre partenaire de confiance/i,
+  /expertise a votre service/i,
+  /qualite et professionnalisme/i,
+  /accompagnement personnalise/i,
+  /des services adaptes a vos besoins/i,
+];
+
+const genericCtaPatterns = [
+  /en savoir plus/i,
+  /decouvrir nos services/i,
+  /cliquez ici/i,
+  /nous contacter/i,
+  /contactez-nous/i,
+  /voir plus/i,
+];
+
+const concreteCtaSignals = [
+  "devis",
+  "reservation",
+  "reserver",
+  "rendez",
+  "audit",
+  "diagnostic",
+  "bilan",
+  "acheter",
+  "commande",
+  "disponibilite",
+  "creneau",
+  "appel",
+  "table",
+];
+
+const isConcreteCta = (value: unknown) => {
+  const normalized = normalizeForQuality(value);
+  if (!normalized) return false;
+  return (
+    !genericCtaPatterns.some((pattern) => pattern.test(normalized)) &&
+    concreteCtaSignals.some((signal) => normalized.includes(signal))
+  );
+};
+
+const extractSpecificitySignals = (...values: unknown[]) =>
+  values
+    .flatMap((value) => normalizeForQuality(value).split(/[^a-z0-9]+/))
+    .filter((word) => word.length >= 4 && !["avec", "pour", "dans", "site", "premium", "france"].includes(word));
+
 const taskInstruction = (taskType: AITaskType, projectType: ProjectType) => {
   const instructions: Partial<Record<AITaskType, string>> = {
     brief_analysis: "Analyse le brief utilisateur, la cible, la niche, l'objectif, les contraintes et les signaux de differenciation. Extrais uniquement des decisions utiles.",
@@ -286,7 +383,7 @@ const publicTaskResult = (result: MultiAITaskResult) => ({
   model: result.model,
   success: result.success,
   output: result.output,
-  error: result.error,
+  error: result.error ? redactSecretsForResponse(result.error) : undefined,
 });
 
 const getBriefValue = (
@@ -689,12 +786,58 @@ const qualityGate = (projectType: ProjectType, output: Record<string, unknown>):
     const hero = sections.find((section) => isRecord(section) && section.type === "hero") ?? sections[0];
     const strategy = isRecord(output.strategy) ? output.strategy : {};
     const seo = isRecord(output.seo) ? output.seo : {};
+    const business = isRecord(output.business) ? output.business : {};
+    const conversion = isRecord(output.conversion) ? output.conversion : {};
+    const design = isRecord(output.design) ? output.design : {};
+    const sectionLayouts = sections
+      .map((section) => (isRecord(section) ? toText(section.layout, "") : ""))
+      .filter(Boolean);
+    const uniqueLayouts = new Set(sectionLayouts);
+    const normalizedSerialized = normalizeForQuality(serialized);
+    const hasGenericSiteCopy = genericSiteCopyPatterns.some(
+      (pattern) => pattern.test(serialized) || pattern.test(normalizedSerialized),
+    );
+    const specificitySignals = extractSpecificitySignals(
+      meta.businessName,
+      meta.niche,
+      meta.city,
+      meta.goal,
+      meta.targetAudience,
+      business.offer,
+      conversion.primaryGoal,
+    );
+    const specificityHitCount = new Set(
+      specificitySignals.filter((signal) => normalizedSerialized.includes(signal)),
+    ).size;
+    const sectionTitles = sections
+      .map((section) => (isRecord(section) ? normalizeForQuality(section.title) : ""))
+      .filter(Boolean);
+    const repeatedSectionTitles = sectionTitles.length - new Set(sectionTitles).size;
+    const ctaLabels = [
+      strategy.primaryCTA,
+      ...sections.map((section) => (isRecord(section) && isRecord(section.cta) ? section.cta.label : "")),
+    ];
+    const hasSpecificCta = ctaLabels.some(isConcreteCta);
 
     if (!toText(meta.businessName, "").trim()) issues.push("businessName manquant.");
     if (!isRecord(hero) || !toText(hero.title, "").trim()) issues.push("Hero manquant ou trop vide.");
     if (!toText(strategy.primaryCTA, "").trim()) issues.push("CTA principal manquant.");
+    if (!hasSpecificCta) issues.push("CTA trop vague: demander une action concrete adaptee a l'objectif.");
     if (!toText(seo.title, "").trim() || !toText(seo.description, "").trim()) issues.push("SEO incomplet.");
     if (sections.length < 5) recommendations.push("Ajouter au moins cinq sections pour renforcer la conversion.");
+    if (hasGenericSiteCopy) issues.push("Copie trop generique ou reste de template detecte.");
+    if (sections.length >= 4 && uniqueLayouts.size < Math.min(4, sections.length)) {
+      issues.push("Layouts trop similaires: varier les compositions selon la niche.");
+    }
+    if (specificityHitCount < Math.min(3, Math.max(1, specificitySignals.length))) {
+      issues.push("Sortie trop peu specifique au business, a la ville, a la niche ou a l'objectif.");
+    }
+    if (!toText(design.layoutDirection, "").trim() || !toText(design.visualMood, "").trim()) {
+      recommendations.push("Completer la direction design pour eviter une preview interchangeable.");
+    }
+    if (repeatedSectionTitles > 0) {
+      recommendations.push("Eviter les titres de sections repetes dans la meme page.");
+    }
   }
 
   if (projectType === "agent") {
@@ -892,7 +1035,7 @@ const runMultiAI = async (
           durationMs: generated.durationMs,
         } satisfies MultiAITaskResult;
       } catch (error) {
-        const message = error instanceof Error ? error.message : `Echec task ${taskType}.`;
+        const message = redactSecretsForResponse(error instanceof Error ? error.message : `Echec task ${taskType}.`);
         errors.push(`${taskType}: ${message}`);
         if (!allowMockFallback) throw error;
         return buildTaskFallback(request, taskType, message);
@@ -913,7 +1056,7 @@ const runMultiAI = async (
       durationMs: generated.durationMs,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Echec final_fusion.";
+    const message = redactSecretsForResponse(error instanceof Error ? error.message : "Echec final_fusion.");
     errors.push(`final_fusion: ${message}`);
     if (!allowMockFallback) throw error;
     fusion = {
@@ -1010,7 +1153,7 @@ const persistResult = async (params: {
   };
 
   const { error: projectError } = await supabase.from("projects").upsert(projectRow);
-  if (projectError) errors.push(projectError.message);
+  if (projectError) errors.push(redactSecretsForResponse(projectError.message));
 
   const { error: generationError } = await supabase.from("generations").insert({
     id: generationId,
@@ -1032,7 +1175,7 @@ const persistResult = async (params: {
     status: params.success ? "success" : "error",
     error_message: params.errorMessage ?? null,
   });
-  if (generationError) errors.push(generationError.message);
+  if (generationError) errors.push(redactSecretsForResponse(generationError.message));
 
   await supabase.from("project_versions").insert({
     project_id: projectId,
@@ -1084,7 +1227,7 @@ const persistResult = async (params: {
     persisted: errors.length === 0,
     projectId,
     generationId,
-    errors,
+    errors: redactErrorList(errors),
   };
 };
 
@@ -1121,12 +1264,12 @@ serve(async (request) => {
     try {
       execution = await runMultiAI(normalizedRequest, projectId, allowMockFallback);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Generation IA indisponible.";
+      const message = redactSecretsForResponse(error instanceof Error ? error.message : "Generation IA indisponible.");
       errors.push(message);
 
       if (!allowMockFallback) {
         return new Response(
-          JSON.stringify({ success: false, projectType, mode, errors }),
+          JSON.stringify({ success: false, projectType, mode, errors: redactErrorList(errors) }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
@@ -1146,22 +1289,30 @@ serve(async (request) => {
     const qualityGateResult = qualityGate(projectType, normalizedOutput);
     const userId = await getAuthenticatedUserId(request);
     const durationMs = Math.round(performance.now() - startedAt);
-    const persistence = await persistResult({
-      request: normalizedRequest,
-      output: normalizedOutput,
-      quality: qualityGateResult,
-      userId,
-      provider: execution.provider,
-      model: execution.model,
-      usage: execution.usage,
-      durationMs,
-      success: [...errors, ...execution.errors].length === 0,
-      errorMessage: [...errors, ...execution.errors][0],
-    });
+    const qualityErrors = qualityGateResult.valid ? [] : qualityGateResult.issues;
+    const persistence = qualityGateResult.valid
+      ? await persistResult({
+          request: normalizedRequest,
+          output: normalizedOutput,
+          quality: qualityGateResult,
+          userId,
+          provider: execution.provider,
+          model: execution.model,
+          usage: execution.usage,
+          durationMs,
+          success: [...errors, ...execution.errors].length === 0,
+          errorMessage: redactSecretsForResponse([...errors, ...execution.errors, ...qualityErrors][0] ?? ""),
+        })
+      : {
+          persisted: false,
+          projectId,
+          generationId: undefined,
+          errors: ["Supabase save blocked: Quality Gate failed."],
+        };
 
     return new Response(
       JSON.stringify({
-        success: true,
+        success: qualityGateResult.valid,
         projectType,
         mode,
         normalizedOutput,
@@ -1177,14 +1328,14 @@ serve(async (request) => {
           role,
           model,
           success,
-          error,
+          error: error ? redactSecretsForResponse(error) : undefined,
         })),
-        errors: [...errors, ...execution.errors, ...persistence.errors],
+        errors: redactErrorList([...errors, ...execution.errors, ...qualityErrors, ...persistence.errors]),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Erreur inconnue.";
+    const message = redactSecretsForResponse(error instanceof Error ? error.message : "Erreur inconnue.");
     return new Response(
       JSON.stringify({
         success: false,

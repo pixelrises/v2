@@ -137,6 +137,13 @@ export const defaultRoutingRules: Record<AITaskType, AIRoutingRule> = {
     schema: "game-design",
     reason: "Claude construit concept, contraintes, loop et coherence gameplay.",
   },
+  game_research: {
+    taskType: "game_research",
+    provider: "gemini",
+    fallbackProvider: "mock",
+    schema: "game-research",
+    reason: "Gemini prepare tendances, sources officielles et contraintes connues sans inventer de donnees live.",
+  },
   game_mechanics: {
     taskType: "game_mechanics",
     provider: "claude",
@@ -151,6 +158,13 @@ export const defaultRoutingRules: Record<AITaskType, AIRoutingRule> = {
     schema: "game-level-design",
     reason: "Cloud Design gere map structure, zones, flow et assets visuels.",
   },
+  game_platform_constraints: {
+    taskType: "game_platform_constraints",
+    provider: "claude",
+    fallbackProvider: "gemini",
+    schema: "game-platform-constraints",
+    reason: "Claude verifie ce qui est faisable sur Web, Roblox Studio, UEFN ou Minecraft.",
+  },
   game_script: {
     taskType: "game_script",
     provider: "cloud-code",
@@ -164,6 +178,20 @@ export const defaultRoutingRules: Record<AITaskType, AIRoutingRule> = {
     fallbackProvider: "gemini",
     schema: "game-assets",
     reason: "Cloud Design liste assets, prompts visuels, UI et thumbnails.",
+  },
+  game_ui_ux: {
+    taskType: "game_ui_ux",
+    provider: "cloud-design",
+    fallbackProvider: "gemini",
+    schema: "game-ui-ux",
+    reason: "Cloud Design prepare HUD, feedback, onboarding, menus et experience joueur.",
+  },
+  game_prototype_code: {
+    taskType: "game_prototype_code",
+    provider: "cloud-code",
+    fallbackProvider: "mock",
+    schema: "game-prototype-code",
+    reason: "Cloud Code prepare le prototype web jouable ou les snippets techniques de base.",
   },
   game_publishing: {
     taskType: "game_publishing",

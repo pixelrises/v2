@@ -7,6 +7,7 @@ import type {
   AIProviderTaskResult,
   RoutedAITask,
 } from "../schemas/ai-task.schema";
+import { createPixelrisesIntelligenceLayer } from "../intelligence";
 import { fusionEngine } from "./FusionEngine";
 import { outputNormalizer } from "./OutputNormalizer";
 import { promptSplitter } from "./PromptSplitter";
@@ -18,19 +19,34 @@ const requestId = () => `ai-${Date.now().toString(36)}-${Math.random().toString(
 export class AIOrchestrator {
   async run(request: AIOrchestratorRequest): Promise<AIOrchestratorResult> {
     const mode = request.mode ?? "business";
-    const split = promptSplitter.split(request);
+    const intelligence = createPixelrisesIntelligenceLayer({
+      rawUserRequest: request.prompt,
+      projectType: request.projectType,
+      context: request.context,
+    });
+    const orchestratedRequest: AIOrchestratorRequest = {
+      ...request,
+      prompt: intelligence.enrichedPrompt,
+      context: {
+        ...(request.context ?? {}),
+        pixelrisesIntelligence: intelligence.publicContext,
+        pixelrisesBrief: intelligence.enrichedBrief,
+        pixelrisesRoles: intelligence.aiTasks.map((task) => task.role),
+      },
+    };
+    const split = promptSplitter.split(orchestratedRequest);
     const routedTasks = taskRouter.route(split.tasks, mode);
     const providerResults: AIProviderTaskResult[] = [];
     const warnings: string[] = [];
 
     for (const task of routedTasks) {
-      const result = await this.executeTask(task, request.prompt);
+      const result = await this.executeTask(task, orchestratedRequest.prompt);
       providerResults.push(result);
       if (!result.success && result.error) warnings.push(result.error);
     }
 
     const normalizedOutputs = providerResults.map((result) => outputNormalizer.normalize(result));
-    const output = fusionEngine.fuse(split.projectType, request.prompt, normalizedOutputs);
+    const output = fusionEngine.fuse(split.projectType, intelligence.enrichedBrief.public_offer, normalizedOutputs);
     const quality = validationLayer.validate(output);
 
     return {

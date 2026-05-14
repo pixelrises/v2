@@ -7,6 +7,14 @@ export type ProductLabFindingDecision = "auto_safe" | "human_validation";
 export type ProductLabApplicationStatus = "pending" | "pr_ready" | "skipped" | "validation_failed";
 export type ProductLabScope = "v2" | "v1";
 export type ProductLabQueueSource = "supabase" | "public" | "fallback";
+export type ProductLabPrStatus = "not_created" | "creating" | "created" | "checks_running" | "checks_ok" | "checks_failed";
+export type ProductLabAutoMergeStatus =
+  | "not_requested"
+  | "eligible"
+  | "blocked"
+  | "auto_merge_requested"
+  | "auto_merge_request_failed"
+  | "merged";
 
 export interface ProductLabReviewItem {
   id: string;
@@ -27,6 +35,7 @@ export interface ProductLabReviewItem {
   concernedFiles: string[];
   beforeState: string;
   afterState: string;
+  dataState?: "real" | "example" | "mock" | "pending" | "error" | "empty" | "local/fallback";
 }
 
 export interface ProductLabReviewQueue {
@@ -53,6 +62,24 @@ export interface ProductLabReviewQueue {
   items: ProductLabReviewItem[];
 }
 
+export interface ProductLabRunStatus {
+  runId: string;
+  source: "scheduled" | "manual" | "local" | "workflow_dispatch";
+  mode: "dryRun" | "proposalOnly" | "prMode" | "autoMergeControlled";
+  status: "started" | "completed" | "failed" | "skipped";
+  dryRun: boolean;
+  forceGenerate: boolean;
+  startedAt: string;
+  completedAt: string;
+  proposalsGenerated: number;
+  proposalsSaved: number;
+  errorsCount: number;
+  warningsCount: number;
+  workflowRunUrl: string;
+  reportSummary: Record<string, unknown>;
+  sourceLabel: "supabase" | "queue" | "fallback";
+}
+
 export interface ProductLabDecision {
   itemId: string;
   status: ProductLabDecisionStatus;
@@ -64,6 +91,16 @@ export interface ProductLabDecision {
   applicationStatus?: ProductLabApplicationStatus;
   processedAt?: string;
   processedRun?: Record<string, unknown>;
+  branch?: string;
+  prUrl?: string;
+  prNumber?: number | null;
+  prStatus?: ProductLabPrStatus;
+  testStatus?: string;
+  buildStatus?: string;
+  autoMergeStatus?: ProductLabAutoMergeStatus;
+  autoMergeBlockReason?: string;
+  riskLevel?: "low" | "medium" | "high";
+  touchedSensitiveFiles?: Array<{ file: string; reason: string }>;
   sourceRunKey?: string;
   sourceRun?: ProductLabReviewQueue["sourceRun"];
   persisted?: "supabase" | "localStorage";
@@ -81,6 +118,8 @@ interface ProductLabScopeConfig {
   label: string;
   reviewTable: string;
   decisionsTable: string;
+  runsTable: string;
+  reportsTable: string;
   storageKey: string;
   publicQueuePath: string;
   fallbackQueue: ProductLabReviewQueue;
@@ -182,6 +221,16 @@ const normalizeReviewItem = (value: unknown, fallbackId: string): ProductLabRevi
       : [],
     beforeState: typeof value.beforeState === "string" ? value.beforeState : "",
     afterState: typeof value.afterState === "string" ? value.afterState : "",
+    dataState:
+      value.dataState === "real" ||
+      value.dataState === "example" ||
+      value.dataState === "mock" ||
+      value.dataState === "pending" ||
+      value.dataState === "error" ||
+      value.dataState === "empty" ||
+      value.dataState === "local/fallback"
+        ? value.dataState
+        : "real",
   };
 };
 
@@ -287,6 +336,8 @@ export const productLabScopeConfigs: Record<ProductLabScope, ProductLabScopeConf
     label: "Pixelrises V2",
     reviewTable: "product_lab_review_items",
     decisionsTable: "product_lab_decisions",
+    runsTable: "product_lab_runs",
+    reportsTable: "product_lab_reports",
     storageKey: "pixelrises-v2-product-lab-decisions",
     publicQueuePath: "/product-lab-review.json",
     fallbackQueue: fallbackProductLabReviewQueue,
@@ -296,6 +347,8 @@ export const productLabScopeConfigs: Record<ProductLabScope, ProductLabScopeConf
     label: "Pixelrises V1",
     reviewTable: "product_lab_v1_review_items",
     decisionsTable: "product_lab_v1_decisions",
+    runsTable: "product_lab_v1_runs",
+    reportsTable: "product_lab_v1_reports",
     storageKey: "pixelrises-v1-product-lab-decisions",
     publicQueuePath: "/product-lab-v1-review.json",
     fallbackQueue: fallbackProductLabV1ReviewQueue,
@@ -411,8 +464,19 @@ export const readProductLabDecisionsFromSupabase = async (scope: ProductLabScope
       const itemId = typeof record.item_id === "string" ? record.item_id : "";
       if (!itemId) return accumulator;
       const isV1PrReady = config.scope === "v1" && record.status === "pr_ready";
-      const prUrl = typeof record.pr_url === "string" ? record.pr_url : "";
-      const prNumber = typeof record.pr_number === "number" ? record.pr_number : null;
+      const processedRun = isObject(record.processed_run) ? record.processed_run : {};
+      const prUrl =
+        typeof processedRun.prUrl === "string"
+          ? processedRun.prUrl
+          : typeof record.pr_url === "string"
+            ? record.pr_url
+            : "";
+      const prNumber =
+        typeof processedRun.prNumber === "number"
+          ? processedRun.prNumber
+          : typeof record.pr_number === "number"
+            ? record.pr_number
+            : null;
       const prReadyAt = typeof record.pr_ready_at === "string" ? record.pr_ready_at : "";
       const sourceRun = isObject(record.source_run)
         ? (record.source_run as ProductLabReviewQueue["sourceRun"])
@@ -432,11 +496,23 @@ export const readProductLabDecisionsFromSupabase = async (scope: ProductLabScope
           typeof record.processed_at === "string"
             ? record.processed_at
             : prReadyAt,
-        processedRun: isObject(record.processed_run)
-          ? record.processed_run
-          : prUrl
-            ? { prUrl, prNumber }
-            : {},
+        processedRun: processedRun,
+        branch: typeof processedRun.branch === "string" ? processedRun.branch : "",
+        prUrl,
+        prNumber,
+        prStatus: prUrl ? normalizePrStatus(processedRun.prStatus || "created") : normalizePrStatus(processedRun.prStatus),
+        testStatus: typeof processedRun.testStatus === "string" ? processedRun.testStatus : "",
+        buildStatus: typeof processedRun.buildStatus === "string" ? processedRun.buildStatus : "",
+        autoMergeStatus: normalizeAutoMergeStatus(processedRun.autoMergeStatus),
+        autoMergeBlockReason:
+          typeof processedRun.autoMergeBlockReason === "string" ? processedRun.autoMergeBlockReason : "",
+        riskLevel: normalizeRiskLevel(processedRun.riskLevel),
+        touchedSensitiveFiles: Array.isArray(processedRun.touchedSensitiveFiles)
+          ? processedRun.touchedSensitiveFiles.filter(
+              (entry): entry is { file: string; reason: string } =>
+                isObject(entry) && typeof entry.file === "string" && typeof entry.reason === "string",
+            )
+          : [],
         sourceRunKey: getProductLabSourceRunKey(sourceRun),
         sourceRun,
         persisted: "supabase",
@@ -591,7 +667,7 @@ export const readProductLabReviewQueueFromSupabase = async (scope: ProductLabSco
     if (error || !Array.isArray(data) || data.length === 0) return null;
 
     const rows = data.filter(isObject);
-    const latest = rows[0] ?? {};
+      const latest = rows[0] ?? {};
     const sourceRun = isObject(latest.source_run) ? latest.source_run : {};
     const currentRunKey = getProductLabSourceRunKey(sourceRun);
     const currentRows = currentRunKey
@@ -656,6 +732,92 @@ export const readProductLabReviewQueueFromSupabase = async (scope: ProductLabSco
   }
 };
 
+const normalizeRunSource = (source: unknown): ProductLabRunStatus["source"] => {
+  if (source === "scheduled" || source === "manual" || source === "local" || source === "workflow_dispatch") return source;
+  return "local";
+};
+
+const normalizeRunMode = (mode: unknown): ProductLabRunStatus["mode"] => {
+  if (mode === "dryRun" || mode === "proposalOnly" || mode === "prMode" || mode === "autoMergeControlled") return mode;
+  return "proposalOnly";
+};
+
+const normalizeRunStatus = (status: unknown): ProductLabRunStatus["status"] => {
+  if (status === "started" || status === "completed" || status === "failed" || status === "skipped") return status;
+  return "completed";
+};
+
+export const buildProductLabRunStatusFromQueue = (
+  queue: ProductLabReviewQueue | null | undefined,
+): ProductLabRunStatus | null => {
+  if (!queue) return null;
+  const runId =
+    typeof queue.sourceRun === "object"
+      ? [queue.sourceRun.date, queue.sourceRun.week, queue.sourceRun.theme].filter(Boolean).join("|")
+      : "";
+
+  return {
+    runId: runId || "public-queue",
+    source: queue.loadSource === "supabase" ? "scheduled" : queue.loadSource === "public" ? "local" : "local",
+    mode: "proposalOnly",
+    status: queue.loadSource === "fallback" ? "skipped" : "completed",
+    dryRun: false,
+    forceGenerate: false,
+    startedAt: queue.generatedAt,
+    completedAt: queue.generatedAt,
+    proposalsGenerated: queue.items.length,
+    proposalsSaved: queue.loadSource === "supabase" ? queue.items.length : 0,
+    errorsCount: queue.loadSource === "fallback" ? 1 : 0,
+    warningsCount: queue.loadSource === "supabase" ? 0 : 1,
+    workflowRunUrl: "",
+    reportSummary: queue.summary as Record<string, unknown>,
+    sourceLabel: queue.loadSource === "supabase" ? "supabase" : queue.loadSource === "public" ? "queue" : "fallback",
+  };
+};
+
+export const readProductLabLastRunStatusFromSupabase = async (
+  scope: ProductLabScope = "v2",
+): Promise<ProductLabRunStatus | null> => {
+  const config = getProductLabScopeConfig(scope);
+  if (!isSupabaseConfigured) return null;
+
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session?.user.id) return null;
+
+    const { data, error } = await dynamicSupabase
+      .from(config.runsTable)
+      .select(
+        "run_id,source,mode,status,dry_run,force_generate,started_at,completed_at,proposals_generated,proposals_saved,errors_count,warnings_count,workflow_run_url,report_summary",
+      )
+      .order("started_at", { ascending: false })
+      .limit(1);
+
+    if (error || !Array.isArray(data) || !data.length || !isObject(data[0])) return null;
+
+    const row = data[0];
+    return {
+      runId: typeof row.run_id === "string" ? row.run_id : "",
+      source: normalizeRunSource(row.source),
+      mode: normalizeRunMode(row.mode),
+      status: normalizeRunStatus(row.status),
+      dryRun: Boolean(row.dry_run),
+      forceGenerate: Boolean(row.force_generate),
+      startedAt: typeof row.started_at === "string" ? row.started_at : "",
+      completedAt: typeof row.completed_at === "string" ? row.completed_at : "",
+      proposalsGenerated: typeof row.proposals_generated === "number" ? row.proposals_generated : 0,
+      proposalsSaved: typeof row.proposals_saved === "number" ? row.proposals_saved : 0,
+      errorsCount: typeof row.errors_count === "number" ? row.errors_count : 0,
+      warningsCount: typeof row.warnings_count === "number" ? row.warnings_count : 0,
+      workflowRunUrl: typeof row.workflow_run_url === "string" ? row.workflow_run_url : "",
+      reportSummary: isObject(row.report_summary) ? row.report_summary : {},
+      sourceLabel: "supabase",
+    };
+  } catch {
+    return null;
+  }
+};
+
 const readProductLabReviewQueueFromPublic = async (scope: ProductLabScope): Promise<ProductLabReviewQueue | null> => {
   const config = getProductLabScopeConfig(scope);
 
@@ -671,11 +833,6 @@ const readProductLabReviewQueueFromPublic = async (scope: ProductLabScope): Prom
   }
 };
 
-const getQueueGeneratedTime = (queue: ProductLabReviewQueue | null | undefined) => {
-  const timestamp = Date.parse(queue?.generatedAt ?? "");
-  return Number.isFinite(timestamp) ? timestamp : 0;
-};
-
 export const loadProductLabReviewQueue = async (scope: ProductLabScope = "v2"): Promise<ProductLabReviewQueue> => {
   const config = getProductLabScopeConfig(scope);
   const [remoteQueue, publicQueue] = await Promise.all([
@@ -683,11 +840,8 @@ export const loadProductLabReviewQueue = async (scope: ProductLabScope = "v2"): 
     readProductLabReviewQueueFromPublic(scope),
   ]);
 
-  if (remoteQueue && publicQueue) {
-    const publicIsFresher = getQueueGeneratedTime(publicQueue) > getQueueGeneratedTime(remoteQueue);
-    return withQueueLoadMeta(publicIsFresher ? publicQueue : remoteQueue, publicIsFresher ? "public" : "supabase");
-  }
-
+  // Supabase is the source GitHub Actions reads for admin approvals.
+  // Public JSON is only a visual fallback, even if it is newer locally.
   if (remoteQueue) return withQueueLoadMeta(remoteQueue, "supabase");
   if (publicQueue) return withQueueLoadMeta(publicQueue, "public");
   return withQueueLoadMeta(config.fallbackQueue, "fallback");
@@ -768,6 +922,37 @@ const normalizeAutomationAction = (action: unknown): ProductLabAutomationAction 
 const normalizeApplicationStatus = (status: unknown): ProductLabApplicationStatus => {
   if (status === "pr_ready" || status === "skipped" || status === "validation_failed") return status;
   return "pending";
+};
+
+const normalizePrStatus = (status: unknown): ProductLabPrStatus => {
+  if (
+    status === "creating" ||
+    status === "created" ||
+    status === "checks_running" ||
+    status === "checks_ok" ||
+    status === "checks_failed"
+  ) {
+    return status;
+  }
+  return "not_created";
+};
+
+const normalizeAutoMergeStatus = (status: unknown): ProductLabAutoMergeStatus => {
+  if (
+    status === "eligible" ||
+    status === "blocked" ||
+    status === "auto_merge_requested" ||
+    status === "auto_merge_request_failed" ||
+    status === "merged"
+  ) {
+    return status;
+  }
+  return "not_requested";
+};
+
+const normalizeRiskLevel = (risk: unknown): "low" | "medium" | "high" => {
+  if (risk === "high" || risk === "medium") return risk;
+  return "low";
 };
 
 const getQueueTimestamp = (queue: ProductLabReviewQueue | null) => {

@@ -12,6 +12,11 @@ const extractString = (input: Record<string, unknown> | undefined, key: string, 
   return typeof value === "string" && value.trim() ? value : fallback;
 };
 
+const extractPixelrisesBrief = (input: Record<string, unknown> | undefined) => {
+  const value = input?.pixelrisesBrief;
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+};
+
 export class MockProviderAdapter extends BaseProviderAdapter {
   constructor() {
     super("mock");
@@ -35,18 +40,20 @@ export class MockProviderAdapter extends BaseProviderAdapter {
   async generateJSON<T = unknown>(input: ProviderJSONRequest): Promise<ProviderResponse<T>> {
     const startedAt = Date.now();
     const taskInput = input.task.input;
+    const pixelrisesBrief = extractPixelrisesBrief(taskInput);
     const prompt = input.prompt || extractString(taskInput, "prompt", "Pixelrises mock generation");
+    const publicOffer = extractString(pixelrisesBrief, "public_offer", extractString(taskInput, "offer", prompt));
 
     let data: unknown;
 
     if (input.task.type.startsWith("site_") || input.task.type === "brief_analysis" || input.task.type === "final_fusion") {
       data = createMockSiteProject({
-        businessName: extractString(taskInput, "businessName", "Pixelrises Project"),
-        niche: extractString(taskInput, "niche", "business digital"),
-        city: extractString(taskInput, "city", "France"),
-        goal: extractString(taskInput, "goal", "generer des demandes qualifiees"),
-        style: extractString(taskInput, "style", "dark gold premium"),
-        offer: prompt,
+        businessName: extractString(taskInput, "businessName", extractString(pixelrisesBrief, "business_context", "Pixelrises Project")),
+        niche: extractString(taskInput, "niche", extractString(pixelrisesBrief, "niche", "business digital")),
+        city: extractString(taskInput, "city", extractString(pixelrisesBrief, "city", "France")),
+        goal: extractString(taskInput, "goal", extractString(pixelrisesBrief, "objective", "generer des demandes qualifiees")),
+        style: extractString(taskInput, "style", extractString(pixelrisesBrief, "design_direction", "dark gold premium")),
+        offer: publicOffer,
       });
     } else if (input.task.type.startsWith("agent_")) {
       data = {

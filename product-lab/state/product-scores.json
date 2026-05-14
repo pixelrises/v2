@@ -1,6 +1,6 @@
 {
-  "date": "2026-05-08",
-  "week": "2026-W19",
+  "date": "2026-05-14",
+  "week": "2026-W20",
   "scores": {
     "Product Quality Score": {
       "note": 84,
@@ -32,13 +32,13 @@
     },
     "AI System Score": {
       "note": 80,
-      "reason": "Pipeline Gateway/Supabase detecte, reste a durcir en CI.",
+      "reason": "Pipeline IA/Supabase detecte, reste a durcir en CI.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
-      "bestImprovement": "Durcir fallback Gateway, normalisation et logs sans secrets.",
+      "bestImprovement": "Durcir secours IA, normalisation et logs sans secrets.",
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "Site Builder Score": {
-      "note": 79,
+      "note": 76,
       "reason": "Base V2 solide avec opportunites d'iteration ciblee.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Ameliorer le brief et les presets niche/conversion.",
@@ -49,6 +49,13 @@
       "reason": "Base utile mais encore trop dependante de mocks ou d'etats incomplets.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Renforcer permissions et chat de test.",
+      "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
+    },
+    "AI Spaces Score": {
+      "note": 79,
+      "reason": "Base V2 solide avec opportunites d'iteration ciblee.",
+      "mainProblem": "Les espaces IA doivent prouver leur usage, leurs garde-fous et leur conversion vers Builders.",
+      "bestImprovement": "Auditer prompts, quick actions, garde-fous et liens vers Builders.",
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "Game Builder Score": {

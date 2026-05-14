@@ -1,26 +1,26 @@
 {
   "mode": "live",
-  "verifiedAt": "2026-05-08T13:42:00.823Z",
+  "verifiedAt": "2026-05-09T16:55:24.478Z",
   "total": 8,
   "verifiedCount": 8,
   "results": {
     "vercel-ai-gateway": {
       "id": "vercel-ai-gateway",
-      "name": "Vercel AI Gateway",
+      "name": "Moteur IA Pixelrises",
       "url": "https://vercel.com/docs/ai-gateway",
       "status": "verified",
       "httpStatus": 200,
-      "durationMs": 153,
-      "verifiedAt": "2026-05-08T13:42:00.101Z"
+      "durationMs": 144,
+      "verifiedAt": "2026-05-09T16:55:23.694Z"
     },
     "vercel-ai-gateway-models": {
       "id": "vercel-ai-gateway-models",
-      "name": "Vercel AI Gateway Models & Providers",
+      "name": "Modes IA Pixelrises",
       "url": "https://vercel.com/docs/ai-gateway/models-and-providers",
       "status": "verified",
       "httpStatus": 200,
-      "durationMs": 234,
-      "verifiedAt": "2026-05-08T13:42:00.223Z"
+      "durationMs": 244,
+      "verifiedAt": "2026-05-09T16:55:23.825Z"
     },
     "supabase-rls": {
       "id": "supabase-rls",
@@ -28,8 +28,8 @@
       "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
       "status": "verified",
       "httpStatus": 200,
-      "durationMs": 127,
-      "verifiedAt": "2026-05-08T13:42:00.116Z"
+      "durationMs": 125,
+      "verifiedAt": "2026-05-09T16:55:23.707Z"
     },
     "github-actions-secrets": {
       "id": "github-actions-secrets",
@@ -37,8 +37,8 @@
       "url": "https://docs.github.com/en/actions/concepts/security/secrets",
       "status": "verified",
       "httpStatus": 200,
-      "durationMs": 833,
-      "verifiedAt": "2026-05-08T13:42:00.823Z"
+      "durationMs": 895,
+      "verifiedAt": "2026-05-09T16:55:24.478Z"
     },
     "nng-usability-heuristics": {
       "id": "nng-usability-heuristics",
@@ -46,8 +46,8 @@
       "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
       "status": "verified",
       "httpStatus": 200,
-      "durationMs": 379,
-      "verifiedAt": "2026-05-08T13:42:00.370Z"
+      "durationMs": 106,
+      "verifiedAt": "2026-05-09T16:55:23.690Z"
     },
     "linear-method": {
       "id": "linear-method",
@@ -55,8 +55,8 @@
       "url": "https://linear.app/method",
       "status": "verified",
       "httpStatus": 200,
-      "durationMs": 673,
-      "verifiedAt": "2026-05-08T13:42:00.664Z"
+      "durationMs": 629,
+      "verifiedAt": "2026-05-09T16:55:24.213Z"
     },
     "baymard-ecommerce-ux": {
       "id": "baymard-ecommerce-ux",
@@ -64,8 +64,8 @@
       "url": "https://baymard.com/",
       "status": "verified",
       "httpStatus": 200,
-      "durationMs": 242,
-      "verifiedAt": "2026-05-08T13:42:00.234Z"
+      "durationMs": 225,
+      "verifiedAt": "2026-05-09T16:55:23.810Z"
     },
     "vercel-design-guidelines": {
       "id": "vercel-design-guidelines",
@@ -73,8 +73,8 @@
       "url": "https://vercel.com/design/guidelines",
       "status": "verified",
       "httpStatus": 200,
-      "durationMs": 83,
-      "verifiedAt": "2026-05-08T13:42:00.075Z"
+      "durationMs": 113,
+      "verifiedAt": "2026-05-09T16:55:23.698Z"
     }
   }
 }

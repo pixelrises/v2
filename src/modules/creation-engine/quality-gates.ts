@@ -16,6 +16,41 @@ const normalize = (value: string) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
+const genericCtaPatterns = [
+  /en savoir plus/i,
+  /decouvrir nos services/i,
+  /cliquez ici/i,
+  /nous contacter/i,
+  /contactez-nous/i,
+  /voir plus/i,
+];
+
+const concreteCtaSignals = [
+  "devis",
+  "reservation",
+  "reserver",
+  "rendez",
+  "audit",
+  "diagnostic",
+  "bilan",
+  "acheter",
+  "commande",
+  "disponibilite",
+  "creneau",
+  "appel",
+  "table",
+];
+
+const isConcreteCta = (value: unknown) => {
+  if (!hasText(value)) return false;
+  const normalized = normalize(value);
+  const isGeneric = genericCtaPatterns.some((pattern) => pattern.test(normalized));
+  return !isGeneric && concreteCtaSignals.some((signal) => normalized.includes(signal));
+};
+
+const uniqueNormalizedValues = (values: unknown[]) =>
+  new Set(values.map((value) => (hasText(value) ? normalize(value).trim() : "")).filter(Boolean));
+
 const buildResult = (projectType: ProjectType, checks: QualityGateCheck[]): QualityGateResult => {
   const requiredChecks = checks.filter((check) => check.severity === "required");
   const passedCount = checks.filter((check) => check.passed).length;
@@ -51,7 +86,9 @@ export const validateSiteProject = (project: NormalizedSiteProject): QualityGate
     style: project.meta.style,
   });
   const uniqueLayouts = new Set(sections.map((section) => section.layout).filter(Boolean));
-  const hasGenericCopy = genericSiteCopyPatterns.some((pattern) => pattern.test(allVisibleText));
+  const hasGenericCopy = genericSiteCopyPatterns.some(
+    (pattern) => pattern.test(allVisibleText) || pattern.test(normalizedText),
+  );
   const normalizedNicheWords = normalize(project.meta.niche)
     .split(/[^a-z0-9]+/)
     .filter((word) => word.length >= 4);
@@ -63,6 +100,14 @@ export const validateSiteProject = (project: NormalizedSiteProject): QualityGate
   ].filter((value) => value.length >= 3);
   const specificityHitCount = specificitySignals.filter((signal) => normalizedText.includes(signal)).length;
   const blueprintLayoutHit = sections.some((section) => section.layout.includes(blueprint.key));
+  const sectionTitles = uniqueNormalizedValues(sections.map((section) => section.title));
+  const sectionContents = uniqueNormalizedValues(sections.map((section) => section.content));
+  const sectionCtas = [project.strategy.primaryCTA, ...sections.map((section) => section.cta?.label)];
+  const hasSpecificCta = sectionCtas.some(isConcreteCta);
+  const hasBusinessProof =
+    hasItems(project.business.trustElements) &&
+    hasItems(project.conversion.proofElements) &&
+    hasItems(project.strategy.objectionsToHandle);
 
   return buildResult("site", [
     {
@@ -85,6 +130,13 @@ export const validateSiteProject = (project: NormalizedSiteProject): QualityGate
       passed: hasText(project.strategy.primaryCTA) && sections.some((section) => hasText(section.cta?.label)),
       severity: "required",
       message: "Un CTA principal doit être présent dans la stratégie et les sections.",
+    },
+    {
+      id: "site-specific-cta",
+      label: "CTA actionnable",
+      passed: hasSpecificCta,
+      severity: "required",
+      message: "Le CTA doit indiquer une action concrete adaptee a l'objectif: devis, reservation, achat, audit, diagnostic ou appel.",
     },
     {
       id: "site-seo",
@@ -115,6 +167,13 @@ export const validateSiteProject = (project: NormalizedSiteProject): QualityGate
       message: "Les sections doivent utiliser plusieurs layouts adaptes a la niche, pas le meme template repete.",
     },
     {
+      id: "site-section-uniqueness",
+      label: "Sections non repetitives",
+      passed: sectionTitles.size >= Math.min(4, sections.length) && sectionContents.size >= Math.min(4, sections.length),
+      severity: "required",
+      message: "Les titres et contenus de sections doivent etre differencies, pas dupliques sous plusieurs blocs.",
+    },
+    {
       id: "site-niche-specificity",
       label: "Specificite niche",
       passed: specificityHitCount >= 3,
@@ -127,6 +186,13 @@ export const validateSiteProject = (project: NormalizedSiteProject): QualityGate
       passed: blueprintLayoutHit || project.design.components.some((component) => blueprint.components.includes(component)),
       severity: "recommended",
       message: "Le layout devrait suivre un blueprint vraiment adapte a la niche detectee.",
+    },
+    {
+      id: "site-business-proof",
+      label: "Preuves business",
+      passed: hasBusinessProof,
+      severity: "recommended",
+      message: "Ajouter preuves, objections traitees et elements de confiance rend la generation plus vendable.",
     },
     {
       id: "site-no-placeholder",
@@ -164,6 +230,29 @@ export const validateAgentProject = (agent: CustomAgentProject): QualityGateResu
         !agent.permissions.publishWithApproval,
       severity: "required",
       message: "Par défaut, un agent peut lire/proposer mais ne peut pas modifier ou publier sans validation.",
+    },
+    {
+      id: "agent-validation-boundary",
+      label: "Actions validables",
+      passed:
+        agent.autonomyLevel !== "external_actions_validated" ||
+        Boolean(agent.forbiddenActions?.includes("send_email_without_validation")),
+      severity: "required",
+      message: "Un agent avec actions externes doit interdire explicitement l'exécution sans validation.",
+    },
+    {
+      id: "agent-no-sensitive-defaults",
+      label: "Aucun pouvoir sensible",
+      passed: !agent.permissions.publishWithApproval && Boolean(agent.forbiddenActions?.includes("modify_payment")),
+      severity: "required",
+      message: "Un agent ne doit jamais publier, modifier paiement/crédits ou connecter un outil par défaut.",
+    },
+    {
+      id: "agent-actions-typed",
+      label: "Permissions lisibles",
+      passed: hasItems(agent.allowedActions) && hasItems(agent.forbiddenActions),
+      severity: "recommended",
+      message: "Lister actions autorisées et interdites rend l'agent plus contrôlable.",
     },
     {
       id: "agent-context",

@@ -30,6 +30,7 @@ import {
 } from "@/lib/published-site";
 import { PUBLIC_ENV } from "@/lib/public-env";
 import { sanitizeTextDeep } from "@/lib/text-sanitize";
+import { buildUsagePreview } from "@/lib/billing";
 
 export interface ManagedSite {
   id: string;
@@ -74,7 +75,12 @@ interface Props {
 }
 
 const ACTIVATION_CREDIT_THRESHOLD = 3;
-const IMPROVE_COST = 5;
+const IMPROVE_COST = buildUsagePreview({
+  balance: 999,
+  actionType: "site_section_improve",
+  planKey: "pro",
+  qualityMode: "standard",
+}).credits;
 const IMPROVEMENT_TIMEOUT_MS = 45000;
 
 const slugify = (value: string) =>
@@ -194,7 +200,7 @@ const SiteManager = ({
       }
 
       const nextContent = sanitizeTextDeep(
-        ((data?.content_json ?? data?.generated_content ?? {}) as SiteContent) || {},
+          ((data?.content_json ?? data?.generated_content ?? {}) as SiteContent) || {},
       );
       setContent(nextContent);
       setHeroTitle(String(nextContent.heroTitle || ""));
@@ -385,6 +391,10 @@ const SiteManager = ({
     const timeoutId = window.setTimeout(() => controller.abort(), IMPROVEMENT_TIMEOUT_MS);
 
     try {
+      const requestId =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -408,6 +418,7 @@ const SiteManager = ({
             objective: "Attirer des clients",
             cta: ctaButton || "Prendre rendez-vous",
             description: "",
+            requestId,
             regenerate: true,
             improvementPrompt: improvePrompt.trim(),
             siteId: site.id,
@@ -544,7 +555,7 @@ const SiteManager = ({
       toast({
         title: "Domaine non accepté",
         description:
-          "Ajoute un vrai domaine client. Les URLs techniques de type Vercel, Supabase ou localhost ne sont pas autorisées ici.",
+          "Ajoute un vrai domaine client. Les URLs temporaires ou techniques ne sont pas autorisées ici.",
         variant: "destructive",
       });
       return;

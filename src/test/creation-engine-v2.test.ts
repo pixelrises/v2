@@ -82,4 +82,28 @@ describe("Pixelrises V2 creation engine", () => {
     expect(quality.requiredFixes.join(" ")).toContain("generique");
     expect(quality.requiredFixes.join(" ")).toContain("layouts");
   });
+
+  it("blocks accented generic copy and vague CTAs", () => {
+    const generic = createMockSiteProject({
+      businessName: "Nova Test",
+      niche: "consulting local",
+      city: "Paris",
+      goal: "recevoir des demandes",
+    });
+
+    generic.strategy.primaryCTA = "En savoir plus";
+    generic.pages[0].sections = generic.pages[0].sections.map((section, index) => ({
+      ...section,
+      title: `Bloc générique ${index}`,
+      subtitle: "Des solutions adaptées à votre secteur d’activité",
+      content: "Notre expertise à votre service avec des services de qualité et un accompagnement personnalisé.",
+      cta: { label: "Découvrir nos services", action: "#contact" },
+    }));
+
+    const quality = validateSiteProject(generic);
+
+    expect(quality.passed).toBe(false);
+    expect(quality.requiredFixes.join(" ")).toContain("generique");
+    expect(quality.requiredFixes.join(" ")).toContain("CTA");
+  });
 });

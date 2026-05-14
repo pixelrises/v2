@@ -29,6 +29,7 @@ import SEOHead from "@/components/SEOHead";
 import SiteManager, { type ManagedSite } from "@/components/SiteManager";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataBadge, DataSourceLabel, EmptyState, LoadingState } from "@/components/ui/data-state";
 import { Progress } from "@/components/ui/progress";
 import { V2PageShell } from "@/components/v2/V2PageShell";
 import { toast } from "@/hooks/use-toast";
@@ -47,7 +48,9 @@ import {
 } from "@/v2/mock-data";
 import { trackV2Event } from "@/v2/analytics";
 import { creationCards } from "@/modules/registries";
+import { aiSpacesList } from "@/modules/ai-spaces";
 import { projectStorageAdapter } from "@/modules/storage/project-storage-adapter";
+import type { DataState } from "@/lib/data-state";
 import type { StoredProject } from "@/modules/storage/v2-storage";
 
 type GeneratedSite = {
@@ -64,6 +67,7 @@ type GeneratedSite = {
 };
 
 type BillingFocus = "packs" | "subscriptions";
+type DashboardMode = "guided" | "cockpit";
 
 type BillingOffer = {
   name: string;
@@ -75,7 +79,18 @@ type BillingOffer = {
   recommended?: boolean;
 };
 
-const DASHBOARD_REQUEST_TIMEOUT_MS = 6500;
+const DASHBOARD_REQUEST_TIMEOUT_MS = 2500;
+const DASHBOARD_MODE_STORAGE_KEY = "pixelrises-v2-dashboard-mode";
+
+const readDashboardMode = (): DashboardMode => {
+  if (typeof window === "undefined") return "guided";
+  return window.localStorage.getItem(DASHBOARD_MODE_STORAGE_KEY) === "cockpit" ? "cockpit" : "guided";
+};
+
+const persistDashboardMode = (mode: DashboardMode) => {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(DASHBOARD_MODE_STORAGE_KEY, mode);
+};
 
 const creditPacks: BillingOffer[] = [
   {
@@ -286,6 +301,10 @@ const Dashboard = () => {
   const [totalUsed, setTotalUsed] = useState(isSupabaseConfigured ? 0 : 18);
   const [sites, setSites] = useState<GeneratedSite[]>(isSupabaseConfigured ? [] : demoSites);
   const [v2Projects, setV2Projects] = useState<StoredProject[]>([]);
+  const [projectStorageSource, setProjectStorageSource] = useState<"supabase" | "localStorage">(
+    isSupabaseConfigured ? "supabase" : "localStorage",
+  );
+  const [dashboardMode, setDashboardMode] = useState<DashboardMode>(() => readDashboardMode());
   const [siteViewCount, setSiteViewCount] = useState(isSupabaseConfigured ? 0 : 1248);
   const [checkoutLoadingPriceId, setCheckoutLoadingPriceId] = useState<string | null>(null);
   const [billingModalOpen, setBillingModalOpen] = useState(false);
@@ -297,7 +316,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      void projectStorageAdapter.listProjects().then((result) => setV2Projects(result.data));
+      void projectStorageAdapter.listProjects().then((result) => {
+        setV2Projects(result.data);
+        setProjectStorageSource(result.fallback);
+      });
       setLoading(false);
       return;
     }
@@ -356,6 +378,7 @@ const Dashboard = () => {
         setIsAdmin(Boolean(rolesResult.data) || Boolean(bootstrapAdminResult));
         setSites(nextSites);
         setV2Projects(v2ProjectsResult.data);
+        setProjectStorageSource(v2ProjectsResult.fallback);
 
         if (nextSites.length > 0) {
           const viewsResult = await withDashboardTimeout(
@@ -410,6 +433,12 @@ const Dashboard = () => {
     }
   }, [loading, navigate, user]);
 
+  const changeDashboardMode = (mode: DashboardMode) => {
+    setDashboardMode(mode);
+    persistDashboardMode(mode);
+    trackV2Event("dashboard_mode_changed", { mode });
+  };
+
   const publishedCount = useMemo(
     () => sites.filter((site) => site.status === "published").length,
     [sites],
@@ -434,6 +463,85 @@ const Dashboard = () => {
   const v2SiteCount = v2Projects.filter((project) => project.type === "site").length;
   const v2AgentCount = v2Projects.filter((project) => project.type === "agent").length;
   const v2GameCount = v2Projects.filter((project) => project.type === "game").length;
+  const keyIntegrations = integrationsCatalog.filter((item) =>
+    ["stripe", "analytics", "whatsapp", "sheets", "shopify", "webhooks"].includes(item.id),
+  );
+  const launchReadinessChecks = [
+    {
+      label: "Projet digital créé",
+      passed: totalProjects > 0,
+      score: totalProjects > 0 ? 20 : 6,
+      action: totalProjects > 0 ? "Base active" : "Créer un premier site",
+      href: "/builder/site",
+    },
+    {
+      label: "Score business exploitable",
+      passed: businessScore >= 70,
+      score: Math.min(20, Math.round(businessScore / 5)),
+      action: businessScore >= 70 ? "Score solide" : "Améliorer CTA, SEO et preuves",
+      href: "/analytics/business-score",
+    },
+    {
+      label: "Agent IA prêt",
+      passed: v2AgentCount > 0,
+      score: v2AgentCount > 0 ? 15 : 5,
+      action: v2AgentCount > 0 ? "Agent créé" : "Créer un agent business",
+      href: "/builder/agent",
+    },
+    {
+      label: "Analytics préparés",
+      passed: siteViewCount > 0 || demoMode,
+      score: siteViewCount > 0 || demoMode ? 15 : 6,
+      action: siteViewCount > 0 || demoMode ? "Mesure disponible" : "Activer les événements",
+      href: "/analytics",
+    },
+    {
+      label: "Écosystème connecté",
+      passed: keyIntegrations.some((integration) => integration.status === "connected"),
+      score: keyIntegrations.some((integration) => integration.status === "connected") ? 15 : 6,
+      action: keyIntegrations.some((integration) => integration.status === "connected")
+        ? "Intégration active"
+        : "Configurer les intégrations utiles",
+      href: "/integrations",
+    },
+    {
+      label: "Publication préparée",
+      passed: publishedCount > 0 || v2SiteCount > 0,
+      score: publishedCount > 0 || v2SiteCount > 0 ? 15 : 5,
+      action: publishedCount > 0 ? "Site publié" : "Préparer publication/export",
+      href: "/projects",
+    },
+  ];
+  const launchReadinessScore = Math.min(
+    100,
+    launchReadinessChecks.reduce((total, check) => total + check.score, 0),
+  );
+  const launchBlockers = launchReadinessChecks.filter((check) => !check.passed).slice(0, 3);
+  const dashboardDataState: DataState = demoMode
+    ? "example"
+    : totalProjects > 0 || siteViewCount > 0 || credits > 0
+      ? "real"
+      : "empty";
+  const dashboardDataDescription =
+    dashboardDataState === "real"
+      ? "Le cockpit utilise vos projets sauvegardés et les événements disponibles pour guider les prochaines actions."
+      : dashboardDataState === "empty"
+        ? "Aucun projet ou événement réel n'est encore disponible. Les prochaines actions guident le premier lancement."
+        : "Exemples de démonstration : ces chiffres présentent l'expérience V2, ils ne sont pas des résultats réels.";
+  const isGuidedMode = dashboardMode === "guided";
+  const projectListDataState: DataState =
+    projectStorageSource === "localStorage" && v2Projects.length > 0
+      ? "mock"
+      : totalProjects > 0
+        ? dashboardDataState
+        : "empty";
+  const analyticsDataState: DataState =
+    demoMode || (siteViewCount > 0 && !isSupabaseConfigured)
+      ? "example"
+      : siteViewCount > 0
+        ? "real"
+        : "empty";
+  const businessScoreDataState: DataState = dashboardDataState === "empty" ? "example" : dashboardDataState;
 
   const selectedManagedSite = useMemo<ManagedSite | null>(() => {
     if (demoMode) return null;
@@ -457,6 +565,12 @@ const Dashboard = () => {
 
   const stats = [
     {
+      label: "Crédits",
+      value: String(credits),
+      helper: totalUsed ? `${totalUsed} crédits déjà utilisés` : "Budget IA disponible",
+      icon: CreditCard,
+    },
+    {
       label: "Projets créés",
       value: String(totalProjects),
       helper: v2Projects.length ? `${v2Projects.length} projets V2` : generatedCount ? `${generatedCount} à finaliser` : "Base de travail",
@@ -471,7 +585,7 @@ const Dashboard = () => {
     {
       label: "Visites",
       value: String(siteViewCount),
-      helper: "+18% simulé 30 jours",
+      helper: analyticsDataState === "real" ? "Trafic mesuré" : "Exemple à connecter",
       icon: Eye,
     },
     {
@@ -517,17 +631,14 @@ const Dashboard = () => {
     },
     {
       title: "Activer les analytics",
-      description: "Suivre page_view, cta_click, lead_created et publish_site.",
+      description: "Commencer à mesurer les vues, clics CTA et leads.",
       href: "/integrations",
-      label: "Voir Integration Hub",
+      label: "Voir les intégrations",
       icon: BarChart3,
       priority: "Mesure",
     },
   ];
-
-  const keyIntegrations = integrationsCatalog.filter((item) =>
-    ["stripe", "analytics", "whatsapp", "sheets", "shopify", "webhooks"].includes(item.id),
-  );
+  const primaryRecommendation = nextActions[0];
 
   const activeAgents = officialAgents.filter((agent) =>
     ["builder", "seo", "conversion", "business"].includes(agent.id),
@@ -595,20 +706,26 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#050505] px-4 text-white">
-        <div className="rounded-[30px] border border-[#F5C542]/15 bg-white/[0.04] p-7 text-center">
-          <Sparkles className="mx-auto h-8 w-8 animate-pulse text-[#F5C542]" />
-          <p className="mt-4 text-sm text-white/58">Chargement du cockpit Pixelrises V2...</p>
-        </div>
+        <LoadingState
+          title="Chargement du cockpit Pixelrises V2"
+          description="Nous récupérons les projets, crédits, événements et statuts disponibles sans exposer de données sensibles."
+          className="max-w-lg"
+        />
       </div>
     );
   }
 
   return (
     <V2PageShell
-      title={`Votre cockpit business, ${firstName}`}
-      description="Suivez l'état de votre présence en ligne, voyez ce qui manque, puis lancez la prochaine action utile : créer, améliorer, publier, connecter ou analyser."
+      eyebrow={`Bonjour ${firstName}`}
+      title={isGuidedMode ? "Votre guide de lancement" : "Votre cockpit business"}
+      description={
+        isGuidedMode
+          ? "Une recommandation, trois actions et vos projets récents. Rien de plus que ce qui aide à avancer."
+          : "Pilotez vos projets avec les scores utiles, les données disponibles et les prochaines actions."
+      }
       action={
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {isAdmin ? (
             <Button
               asChild
@@ -622,12 +739,21 @@ const Dashboard = () => {
             </Button>
           ) : null}
           <Button asChild variant="outline" className="rounded-2xl border-white/[0.10] bg-transparent text-white/80">
-            <Link to="/templates">Templates</Link>
+            <Link to="/projects">
+              <FolderKanban className="h-4 w-4" />
+              Voir mes projets
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="rounded-2xl border-white/[0.10] bg-transparent text-white/80">
+            <Link to="/agents">
+              <Bot className="h-4 w-4" />
+              Mes agents
+            </Link>
           </Button>
           <Button asChild className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
             <Link to="/create">
               <Plus className="h-4 w-4" />
-              Créer
+              Créer quelque chose
             </Link>
           </Button>
         </div>
@@ -639,11 +765,58 @@ const Dashboard = () => {
         noIndex
       />
 
-      {demoMode ? (
-        <div className="mb-6 rounded-[24px] border border-[#F5C542]/20 bg-[#F5C542]/[0.07] p-4 text-sm leading-6 text-white/70">
-          Mode démo V2 actif : aucun `.env` V1 n'est utilisé. Branchez un backend V2 plus tard pour retrouver auth, projets réels, checkout et analytics live.
+      <div className="mb-6 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+        <DataSourceLabel
+          state={dashboardDataState}
+          label={
+            dashboardDataState === "real"
+              ? "Cockpit connecté"
+              : dashboardDataState === "empty"
+                ? "Aucune donnée réelle"
+                : "Exemple"
+          }
+          description={dashboardDataDescription}
+        />
+        <DataBadge
+          state={dashboardDataState}
+          label={dashboardDataState === "real" ? "Données réelles" : dashboardDataState === "empty" ? "Aucune donnée" : "Exemple"}
+          className="justify-center lg:mt-3"
+        />
+      </div>
+
+      <section
+        data-testid="dashboard-mode-switch"
+        className="mb-6 flex flex-col gap-4 rounded-[28px] border border-white/[0.08] bg-white/[0.035] p-4 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Mode dashboard</p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight">
+            {isGuidedMode ? "Guided Mode : aller à l'essentiel" : "Cockpit Mode : piloter en détail"}
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-white/55">
+            {isGuidedMode
+              ? "Interface légère pour savoir quoi faire maintenant sans être noyé dans les métriques."
+              : "Vue avancée avec scores, signaux, automatisations, intégrations et recommandations de pilotage."}
+          </p>
         </div>
-      ) : null}
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/[0.08] bg-black/30 p-1">
+          {(["guided", "cockpit"] as DashboardMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => changeDashboardMode(mode)}
+              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                dashboardMode === mode
+                  ? "bg-[#F5C542] text-black shadow-[0_0_24px_rgba(245,197,66,0.20)]"
+                  : "text-white/60 hover:bg-white/[0.05] hover:text-white"
+              }`}
+              aria-pressed={dashboardMode === mode}
+            >
+              {mode === "guided" ? "Guided" : "Cockpit"}
+            </button>
+          ))}
+        </div>
+      </section>
 
       {isAdmin ? (
         <section className="mb-6 overflow-hidden rounded-[32px] border border-[#F5C542]/20 bg-[radial-gradient(circle_at_top_left,rgba(245,197,66,0.16),transparent_34%),rgba(255,255,255,0.035)] p-5 sm:p-6">
@@ -653,13 +826,12 @@ const Dashboard = () => {
                 <Badge className="border-[#F5C542]/25 bg-[#F5C542]/10 text-[#F5C542] hover:bg-[#F5C542]/10">
                   Espace fondateur
                 </Badge>
-                <span className="text-xs font-medium text-white/42">V1 + V2 pilotes depuis le meme centre</span>
+                <span className="text-xs font-medium text-white/42">V1 + V2 pilotées depuis le même centre</span>
               </div>
               <h2 className="mt-4 text-2xl font-semibold tracking-tight">Centre admin Pixelrises</h2>
               <p className="mt-2 text-sm leading-7 text-white/58">
-                Gere les credits, utilisateurs, paiements, sites et Product Lab depuis un seul endroit. Les Product Lab V1
-                et V2 restent separes cote dossiers, tables et workflows, mais leurs validations arrivent ici pour
-                accepter, modifier ou refuser les ameliorations.
+                Gère les crédits, utilisateurs, paiements, sites et validations fondateur depuis un seul endroit. V1
+                et V2 restent séparées côté dossiers, tables et workflows, mais le cockpit admin centralise les décisions.
               </p>
             </div>
 
@@ -671,12 +843,121 @@ const Dashboard = () => {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="rounded-2xl border-white/[0.10] bg-black/20 text-white/80">
-                <Link to="/admin">Product Lab V1/V2</Link>
+                <Link to="/admin">Ouvrir les validations</Link>
               </Button>
             </div>
           </div>
         </section>
       ) : null}
+
+      <section
+        data-testid="dashboard-guided-mode"
+        className="mb-6 overflow-hidden rounded-[32px] border border-[#F5C542]/20 bg-[radial-gradient(circle_at_top_right,rgba(245,197,66,0.18),transparent_32%),rgba(255,255,255,0.04)] p-5 sm:p-6"
+      >
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+          <div className="max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <DataBadge state={dashboardDataState} label={dashboardDataState === "real" ? "Recommandation IA" : "Recommandation exemple"} />
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/38">
+                {isGuidedMode ? "Guidage prioritaire" : "Prochaine meilleure action"}
+              </span>
+            </div>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight">
+              {totalProjects ? primaryRecommendation.title : "Ton prochain meilleur choix : créer ton premier projet"}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-white/58">
+              {totalProjects
+                ? primaryRecommendation.description
+                : "Commence par un site : c'est la base la plus rapide pour rendre ton idée crédible, testable et améliorable."}
+            </p>
+            <p className="mt-3 text-sm font-medium text-[#F5C542]">
+              Impact estimé : {totalProjects ? "améliore la conversion et la clarté du projet." : "crée une base concrète à connecter aux agents et analytics."}
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row xl:flex-col xl:min-w-[260px]">
+            <Button asChild className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
+              <Link to={totalProjects ? primaryRecommendation.href : "/builder/site"}>
+                {totalProjects ? primaryRecommendation.label : "Créer mon premier projet"}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-2xl border-white/[0.10] bg-black/20 text-white/80">
+              <Link to="/ai-spaces/general">
+                Ouvrir General AI
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {dashboardDataState === "empty" ? (
+        <EmptyState
+          title="Aucune donnée réelle pour le moment"
+          description="Le dashboard est prêt, mais il attend ton premier projet ou tes premiers événements réels. Tu peux commencer avec un site ou ouvrir Business AI pour clarifier l'idée."
+          action={
+            <div className="flex flex-col justify-center gap-3 sm:flex-row">
+              <Button asChild className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
+                <Link to="/builder/site">Créer mon premier projet</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-2xl border-white/[0.10] bg-transparent text-white/80">
+                <Link to="/ai-spaces/business">Ouvrir Business AI</Link>
+              </Button>
+            </div>
+          }
+          className="mb-6"
+        />
+      ) : null}
+
+      <section className={`mb-6 overflow-hidden rounded-[32px] border border-emerald-300/15 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.12),transparent_30%),rgba(255,255,255,0.035)] p-5 sm:p-6 ${isGuidedMode ? "hidden" : ""}`}>
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200">Finalisation V2</p>
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight">Niveau de lancement : {launchReadinessScore}/100</h2>
+            <p className="mt-2 text-sm leading-7 text-white/58">
+              Cette jauge transforme la vision Pixelrises en critères concrets : projet créé, conversion, agent IA,
+              analytics, intégrations et publication. Elle évite de vendre une V2 qui semble prête mais manque encore
+              une brique critique.
+            </p>
+          </div>
+          <div className="rounded-[28px] border border-emerald-300/20 bg-emerald-300/[0.06] p-5 xl:min-w-[280px]">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-sm text-white/48">Statut recommandé</p>
+                <p className="mt-1 text-xl font-semibold text-emerald-100">
+                  {launchReadinessScore >= 85 ? "Prêt à vendre" : launchReadinessScore >= 70 ? "Prévente contrôlée" : "À renforcer"}
+                </p>
+              </div>
+              <Rocket className="h-8 w-8 text-emerald-200" />
+            </div>
+            <Progress value={launchReadinessScore} className="mt-4 h-2 bg-white/[0.06]" />
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {launchReadinessChecks.map((check) => (
+            <Link
+              key={check.label}
+              to={check.href}
+              className="rounded-[24px] border border-white/[0.08] bg-black/20 p-4 transition hover:border-emerald-300/25 hover:bg-emerald-300/[0.04]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold">{check.label}</p>
+                  <p className="mt-1 text-sm leading-6 text-white/48">{check.action}</p>
+                </div>
+                <CheckCircle2 className={`h-5 w-5 ${check.passed ? "text-emerald-300" : "text-[#F5C542]"}`} />
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {launchBlockers.length ? (
+          <div className="mt-5 rounded-2xl border border-[#F5C542]/20 bg-[#F5C542]/[0.06] p-4 text-sm leading-6 text-white/62">
+            <strong className="text-[#F5C542]">À traiter avant lancement fort :</strong>{" "}
+            {launchBlockers.map((blocker) => blocker.action).join(" · ")}.
+          </div>
+        ) : null}
+      </section>
 
       <section className="mb-6 rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -721,7 +1002,49 @@ const Dashboard = () => {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+      <section className="mb-6 rounded-[32px] border border-[#F5C542]/15 bg-[radial-gradient(circle_at_top_left,rgba(245,197,66,0.10),transparent_34%),rgba(255,255,255,0.035)] p-5 sm:p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">AI Spaces</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight">Choisis ton assistant spécialisé</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-white/58">
+              Les Builders créent. Les AI Spaces accompagnent : business, étudiant, gestion, entreprise,
+              créateur ou généraliste, avec le même cœur Multi-IA Pixelrises.
+            </p>
+          </div>
+          <Button asChild className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
+            <Link to="/ai-spaces">
+              Voir les AI Spaces
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          {aiSpacesList.map((space) => (
+            <Link
+              key={space.id}
+              to={`/ai-spaces/${space.id}`}
+              className="group rounded-[24px] border border-white/[0.08] bg-black/20 p-4 transition hover:-translate-y-1 hover:border-[#F5C542]/30 hover:bg-[#F5C542]/[0.045]"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#F5C542]/10 text-[#F5C542]">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <h3 className="mt-4 text-sm font-semibold">{space.shortName}</h3>
+              <p className="mt-2 min-h-[54px] text-xs leading-5 text-white/50">{space.tagline}</p>
+              <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#F5C542]">
+                Ouvrir
+                <ArrowRight className="h-3 w-3 transition group-hover:translate-x-0.5" />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section
+        data-testid="dashboard-cockpit-metrics"
+        className={`grid gap-4 md:grid-cols-2 xl:grid-cols-7 ${isGuidedMode ? "hidden" : ""}`}
+      >
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -730,7 +1053,22 @@ const Dashboard = () => {
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F5C542]/10 text-[#F5C542]">
                   <Icon className="h-5 w-5" />
                 </div>
-                <span className="text-xs text-emerald-200">+ stable</span>
+                <DataBadge
+                  state={stat.label === "Crédits" ? dashboardDataState : stat.label === "Visites" || stat.label === "Leads" ? analyticsDataState : dashboardDataState}
+                  label={
+                    stat.label === "Visites" || stat.label === "Leads"
+                      ? analyticsDataState === "real"
+                        ? "Réel"
+                        : analyticsDataState === "empty"
+                          ? "Vide"
+                          : "Exemple"
+                      : dashboardDataState === "real"
+                        ? "Réel"
+                        : dashboardDataState === "empty"
+                          ? "Vide"
+                          : "Exemple"
+                  }
+                />
               </div>
               <p className="mt-5 text-sm text-white/46">{stat.label}</p>
               <p className="mt-1 text-3xl font-semibold tracking-tight">{stat.value}</p>
@@ -801,6 +1139,11 @@ const Dashboard = () => {
               </p>
             </div>
             <div className="rounded-[26px] border border-[#F5C542]/20 bg-[#F5C542]/[0.07] p-4 text-center">
+              <DataBadge
+                state={businessScoreDataState}
+                label={businessScoreDataState === "real" ? "Score réel" : "Score exemple"}
+                className="mb-3 justify-center"
+              />
               <LineChart className="mx-auto h-6 w-6 text-[#F5C542]" />
               <p className="mt-2 text-sm font-semibold text-[#F5C542]">Progression globale</p>
               <p className="mt-1 text-xs text-white/48">Objectif : 90+</p>
@@ -819,6 +1162,12 @@ const Dashboard = () => {
               </div>
             ))}
           </div>
+          <Button asChild variant="outline" className="mt-6 rounded-2xl border-[#F5C542]/25 bg-transparent text-[#F5C542]">
+            <Link to="/analytics/business-score">
+              Voir le détail du score
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </div>
 
         <div className="rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
@@ -872,6 +1221,20 @@ const Dashboard = () => {
               <h2 className="mt-3 text-2xl font-semibold tracking-tight">
                 {v2Projects.length ? "Projets V2 récents" : "Sites créés avec Pixelrises"}
               </h2>
+              <div className="mt-3">
+                <DataBadge
+                  state={projectListDataState}
+                  label={
+                    projectListDataState === "mock"
+                      ? "Stockage local"
+                      : projectListDataState === "real"
+                        ? "Données réelles"
+                        : projectListDataState === "empty"
+                          ? "Aucun projet"
+                          : "Exemple"
+                  }
+                />
+              </div>
             </div>
             <Button asChild variant="outline" className="rounded-2xl border-white/[0.10] bg-transparent text-white/80">
               <Link to="/ai">Nouveau projet</Link>
@@ -988,7 +1351,13 @@ const Dashboard = () => {
         </div>
 
         <div className="rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Analytics préparés</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Analytics préparés</p>
+            <DataBadge
+              state={analyticsDataState}
+              label={analyticsDataState === "real" ? "Données réelles" : analyticsDataState === "empty" ? "Aucune donnée" : "Exemple"}
+            />
+          </div>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight">Signaux business</h2>
           <div className="mt-5 grid gap-3">
             {[
@@ -1009,7 +1378,7 @@ const Dashboard = () => {
         </div>
       </section>
 
-      <section className="mt-6 rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
+      <section className={`mt-6 rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6 ${isGuidedMode ? "hidden" : ""}`}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Automatisations</p>
@@ -1063,7 +1432,7 @@ const Dashboard = () => {
         </div>
       </section>
 
-      <section className="mt-6 grid gap-4 xl:grid-cols-3">
+      <section className={`mt-6 grid gap-4 xl:grid-cols-3 ${isGuidedMode ? "hidden" : ""}`}>
         <div className="rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
           <div className="flex items-center gap-3">
             <Bot className="h-5 w-5 text-[#F5C542]" />
@@ -1144,7 +1513,7 @@ const Dashboard = () => {
           {dashboardRecommendations.map((recommendation) => (
             <Link
               key={recommendation.title}
-              to={recommendation.href ?? "/agents"}
+                to={recommendation.href ?? "/agents"}
               className="rounded-[24px] border border-white/[0.08] bg-black/20 p-4 transition hover:-translate-y-1 hover:border-[#F5C542]/25"
             >
               <Badge className="border-[#F5C542]/20 bg-[#F5C542]/10 text-[#F5C542] hover:bg-[#F5C542]/10">
@@ -1261,7 +1630,7 @@ const Dashboard = () => {
             Déconnexion
           </button>
         ) : (
-          <span className="text-xs text-white/35">V2 isolée · backend à connecter séparément</span>
+          <span className="text-xs text-white/35">V2 isolée · service cloud à connecter séparément</span>
         )}
       </div>
     </V2PageShell>

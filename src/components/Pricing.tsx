@@ -123,11 +123,11 @@ const Pricing = () => {
       name: "Starter",
       price: "13",
       badge: isFr ? "Lien public Pixelrises" : "Pixelrises public link",
-      volume: isFr ? "10 cr\u00E9dits" : "10 credits",
+      volume: isFr ? "80 cr\u00E9dits mensuels" : "80 monthly credits",
       summary: isFr
         ? "Pour publier vite sur un lien public Pixelrises et valider votre message."
         : "Publish quickly on a Pixelrises public link and validate your message.",
-      link: "https://buy.stripe.com/7sYbJ3dvveF90jJf0ZaZi0q",
+      link: "/pricing",
       features: isFr
         ? [
             "Cr\u00E9er, pr\u00E9visualiser et publier seul",
@@ -146,11 +146,11 @@ const Pricing = () => {
       name: "Pro",
       price: "25",
       badge: isFr ? "Offre recommand\u00E9e" : "Recommended",
-      volume: isFr ? "25 cr\u00E9dits" : "25 credits",
+      volume: isFr ? "240 cr\u00E9dits mensuels" : "240 monthly credits",
       summary: isFr
         ? "Le meilleur plan pour it\u00E9rer, am\u00E9liorer vos pages et lancer un vrai rythme."
         : "The best plan to iterate, improve pages and launch a real cadence.",
-      link: "https://buy.stripe.com/7sYdRbcrrcx1d6vdWVaZi0r",
+      link: "/pricing",
       featured: true,
       features: isFr
         ? [
@@ -170,11 +170,11 @@ const Pricing = () => {
       name: "Business",
       price: "49",
       badge: isFr ? "Pour scaler" : "Scale",
-      volume: isFr ? "60 cr\u00E9dits" : "60 credits",
+      volume: isFr ? "850 cr\u00E9dits mensuels" : "850 monthly credits",
       summary: isFr
         ? "Pour g\u00E9rer plusieurs projets avec un rythme intensif et plus d'autonomie."
         : "For multiple projects with an intensive pace and more autonomy.",
-      link: "https://buy.stripe.com/eVq28t4YZ54z6I71a9aZi0s",
+      link: "/pricing",
       features: isFr
         ? [
             "Production fr\u00E9quente",

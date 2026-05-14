@@ -8,6 +8,22 @@ const runChecksEnabled = args.includes("--run-checks");
 const themeIndex = args.indexOf("--theme");
 const forcedTheme = themeIndex >= 0 ? args[themeIndex + 1] : undefined;
 const json = args.includes("--json");
+const modeIndex = args.indexOf("--mode");
+const mode =
+  modeIndex >= 0
+    ? args[modeIndex + 1]
+    : process.env.PRODUCT_LAB_MODE || (dryRun ? "dryRun" : "proposalOnly");
+const maxProposalsIndex = args.indexOf("--max-proposals");
+const maxProposals = maxProposalsIndex >= 0 ? args[maxProposalsIndex + 1] : undefined;
+const forceGenerate = args.includes("--force-generate") || process.env.PRODUCT_LAB_FORCE_GENERATE === "true";
+
+if (maxProposals && !process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS) {
+  process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS = maxProposals;
+}
+
+if (forceGenerate) {
+  process.env.PRODUCT_LAB_FORCE_GENERATE = "true";
+}
 
 const result = runProductLab({
   root: process.cwd(),
@@ -20,7 +36,9 @@ const result = runProductLab({
 const summary = {
   productLab: "Pixelrises Continuous Product Lab",
   action: result.action,
+  mode,
   dryRun: result.dryRun,
+  forceGenerate,
   date: result.date,
   theme: result.theme.id,
   reportPath: result.reportPath,
@@ -41,7 +59,9 @@ if (json) {
   console.log("Pixelrises Continuous Product Lab");
   console.log(`- Date: ${summary.date}`);
   console.log(`- Theme: ${summary.theme}`);
+  console.log(`- Mode: ${summary.mode}`);
   console.log(`- Dry-run: ${summary.dryRun ? "yes" : "no"}`);
+  console.log(`- Force generate: ${summary.forceGenerate ? "yes" : "no"}`);
   console.log(`- Max patches: ${summary.maxPatches}`);
   console.log(`- Report: ${summary.reportPath}`);
   console.log(`- Backlog: ${summary.backlogPath}`);

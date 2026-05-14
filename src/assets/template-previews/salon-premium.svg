@@ -1,0 +1,30 @@
+<svg width="480" height="300" viewBox="0 0 480 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="480" height="300" rx="24" fill="#070504"/>
+  <rect width="480" height="300" rx="24" fill="url(#bg)"/>
+  <rect x="28" y="26" width="424" height="248" rx="20" fill="black" fill-opacity=".46" stroke="white" stroke-opacity=".10"/>
+  <rect x="48" y="47" width="70" height="8" rx="4" fill="#F5C542"/>
+  <rect x="322" y="48" width="26" height="7" rx="3.5" fill="white" fill-opacity=".25"/>
+  <rect x="360" y="48" width="26" height="7" rx="3.5" fill="white" fill-opacity=".18"/>
+  <rect x="398" y="43" width="38" height="19" rx="9.5" fill="#F5C542"/>
+  <circle cx="348" cy="145" r="54" fill="url(#face)" opacity=".98"/>
+  <path d="M301 134c33-55 93-56 116-7 7 14 10 32 6 53-25-21-49-28-78-23-22 3-39-5-44-23Z" fill="#5B341D"/>
+  <circle cx="348" cy="150" r="36" fill="#B87345"/>
+  <path d="M328 144c13 9 30 10 46 0" stroke="#F9D5A8" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+  <text x="49" y="122" fill="white" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="850">Votre beaute,</text>
+  <text x="49" y="157" fill="white" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="850">notre expertise</text>
+  <rect x="49" y="183" width="104" height="24" rx="12" fill="#F5C542"/>
+  <rect x="49" y="228" width="62" height="8" rx="4" fill="white" fill-opacity=".22"/>
+  <rect x="126" y="228" width="82" height="8" rx="4" fill="white" fill-opacity=".13"/>
+  <defs>
+    <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(355 129) rotate(138) scale(305 392)">
+      <stop stop-color="#6A3A1E"/>
+      <stop offset=".42" stop-color="#17100B"/>
+      <stop offset="1" stop-color="#030303"/>
+    </radialGradient>
+    <radialGradient id="face" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(330 126) rotate(58) scale(88)">
+      <stop stop-color="#F2C08E"/>
+      <stop offset=".58" stop-color="#71401F"/>
+      <stop offset="1" stop-color="#090605"/>
+    </radialGradient>
+  </defs>
+</svg>

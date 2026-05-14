@@ -205,7 +205,8 @@ describe("Pixelrises Product Lab core", () => {
     expect(queue.items.length).toBeGreaterThanOrEqual(5);
     expect(queue.items.length).toBeLessThanOrEqual(8);
     expect(modules.size).toBeGreaterThanOrEqual(5);
-    expect(queue.items.every((item: { title: string; runFocus?: unknown }) => item.title.includes(" - ") && item.runFocus)).toBe(true);
+    expect(queue.items.every((item: { runFocus?: unknown }) => item.runFocus)).toBe(true);
+    expect(queue.items.map((item: { title: string }) => item.title).join(" ")).toContain("anti-site generique");
     expect(queue.summary.total).toBe(queue.items.length);
   });
 
@@ -280,7 +281,7 @@ describe("Pixelrises Product Lab core", () => {
     expect(report).toContain("Site Builder");
     expect(report).toContain("## Agents experts consultes");
     expect(report).toContain("## Recherche fiable et verification live");
-    expect(report).toContain("Vercel AI Gateway");
+    expect(report).toContain("Moteur IA Pixelrises");
     expect(report).toContain("## Ameliorations necessitant validation humaine");
     expect(report).toContain("## Risques restants");
   });
@@ -447,6 +448,11 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("steps.generator_smoke.outcome");
     expect(workflow).toContain("PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: \"true\"");
     expect(workflow).toContain("steps.proposals_push.outcome");
+    expect(workflow).toContain("Check Product Lab report redaction");
+    expect(workflow).toContain("npm run product-lab:redaction:check");
+    expect(workflow).toContain("Evaluate controlled Product Lab auto-merge");
+    expect(workflow).toContain("Request controlled Product Lab auto-merge");
+    expect(workflow).toContain("admin-approved");
     expect(workflow).toContain("Fail if Product Lab admin sync failed");
     expect(workflow).toContain("tmp/generator-smoke-last.json");
     expect(workflow).toContain("Report blocked Product Lab PR");

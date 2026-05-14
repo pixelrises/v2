@@ -10,6 +10,7 @@ export * from "./config/ai-providers.config";
 export * from "./config/ai-modes.config";
 export * from "./providers";
 export * from "./orchestrator";
+export * from "./intelligence";
 export * from "./security/redactSecrets";
 export * from "./security/validateServerOnly";
 export * from "./usage/CostControl";

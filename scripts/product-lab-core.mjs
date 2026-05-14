@@ -1,11 +1,75 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { filterActionableProductLabProposals } from "./product-lab-governance.mjs";
 
 export const PRODUCT_LAB_NAME = "Pixelrises Continuous Product Lab";
 export const DEFAULT_MAX_PATCHES = 2;
 export const PRODUCT_LAB_MIN_REVIEW_ITEMS = 5;
 export const PRODUCT_LAB_MAX_REVIEW_ITEMS = 8;
+export const PRODUCT_LAB_SCHEDULE = {
+  timezone: "Europe/Paris",
+  targetLocalHour: 0,
+  summerUtcCron: "0 22 * * *",
+  winterUtcCron: "0 23 * * *",
+  githubScheduleNote:
+    "GitHub Actions schedules are evaluated in UTC and can be delayed by the platform queue.",
+};
+
+const readIntegerEnv = (name, fallback, { min = 1, max = 20 } = {}) => {
+  const raw = process.env[name];
+  const parsed = Number.parseInt(String(raw ?? ""), 10);
+  const value = Number.isFinite(parsed) ? parsed : fallback;
+  return Math.max(min, Math.min(max, value));
+};
+
+export const getProductLabReviewLimits = () => {
+  const max = readIntegerEnv("PRODUCT_LAB_MAX_REVIEW_ITEMS", PRODUCT_LAB_MAX_REVIEW_ITEMS, {
+    min: 1,
+    max: PRODUCT_LAB_MAX_REVIEW_ITEMS,
+  });
+  const min = readIntegerEnv("PRODUCT_LAB_MIN_REVIEW_ITEMS", PRODUCT_LAB_MIN_REVIEW_ITEMS, {
+    min: 1,
+    max,
+  });
+
+  return { min, max };
+};
+
+const getParisParts = (date) =>
+  Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: PRODUCT_LAB_SCHEDULE.timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(date)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)]),
+  );
+
+export const getProductLabScheduleInfo = (date = new Date()) => {
+  const paris = getParisParts(date);
+  const parisAsUtc = Date.UTC(paris.year, paris.month - 1, paris.day, paris.hour, paris.minute);
+  const offsetHours = Math.round((parisAsUtc - date.getTime()) / 60 / 60 / 1000);
+  const activeMidnightUtcHour = (24 - offsetHours) % 24;
+
+  return {
+    timezone: PRODUCT_LAB_SCHEDULE.timezone,
+    targetLocalTime: "00:00 Europe/Paris",
+    configuredCronsUtc: [PRODUCT_LAB_SCHEDULE.summerUtcCron, PRODUCT_LAB_SCHEDULE.winterUtcCron],
+    activeMidnightUtcHour,
+    activeMidnightUtcLabel: `${String(activeMidnightUtcHour).padStart(2, "0")}:00 UTC`,
+    currentParisHour: paris.hour,
+    currentUtcHour: date.getUTCHours(),
+    offsetHours,
+    note: PRODUCT_LAB_SCHEDULE.githubScheduleNote,
+  };
+};
 
 export const productVision = {
   promise: "Pixelrises transforme une idee en projet digital concret.",
@@ -38,14 +102,19 @@ export const benchmarkModules = [
     target: "Un studio d'agents simple, puissant, avec permissions claires et actions validables.",
   },
   {
+    module: "AI Spaces",
+    inspiration: "Delos / ChatGPT-style workspaces / Base44",
+    target: "Des assistants specialises par profil qui accompagnent sans remplacer les Builders.",
+  },
+  {
     module: "Game Builder",
     inspiration: "Roblox Creator Hub / Minecraft Creator / UEFN",
     target: "Un generateur beta de blueprints, snippets, assets et checklists sans promesse de publication automatique.",
   },
   {
     module: "Multi-IA / Systeme",
-    inspiration: "Vercel AI Gateway / 21st.dev",
-    target: "Un orchestrateur modulaire, normalise, teste, avec fallback et couts controles.",
+    inspiration: "Moteur IA Pixelrises / 21st.dev",
+    target: "Un moteur modulaire, normalise, teste, avec secours fiable et couts controles.",
   },
   {
     module: "Integrations / Templates",
@@ -62,6 +131,7 @@ export const scoreKeys = [
   "AI System Score",
   "Site Builder Score",
   "Agent Builder Score",
+  "AI Spaces Score",
   "Game Builder Score",
   "Integration Score",
   "Analytics Score",
@@ -75,6 +145,7 @@ export const expertAgents = [
   "UX/UI Expert",
   "Site Builder Expert",
   "Agent Builder Expert",
+  "AI Spaces Expert",
   "Game Builder Expert",
   "Multi-IA Expert",
   "Integration Expert",
@@ -99,25 +170,25 @@ export const inspirationSources = [
 export const trustedResearchSources = [
   {
     id: "vercel-ai-gateway",
-    name: "Vercel AI Gateway",
+    name: "Moteur IA Pixelrises",
     url: "https://vercel.com/docs/ai-gateway",
     authority: "official",
-    modules: ["Multi-IA / Systeme", "Site Builder", "Agent Builder", "Game Builder"],
+    modules: ["Multi-IA / Systeme", "Site Builder", "Agent Builder", "AI Spaces", "Game Builder"],
     principles: [
-      "unifier les providers IA via une gateway",
-      "suivre usage, budgets et fallbacks",
+      "unifier les moteurs IA derriere une couche serveur",
+      "suivre usage, budgets et secours",
       "garder les cles IA cote serveur uniquement",
     ],
   },
   {
     id: "vercel-ai-gateway-models",
-    name: "Vercel AI Gateway Models & Providers",
+    name: "Modes IA Pixelrises",
     url: "https://vercel.com/docs/ai-gateway/models-and-providers",
     authority: "official",
     modules: ["Multi-IA / Systeme", "Code Health"],
     principles: [
       "router les modeles selon cout, qualite et disponibilite",
-      "prevoir des fallbacks provider pour la fiabilite",
+      "prevoir un secours fiable pour la disponibilite",
     ],
   },
   {
@@ -149,7 +220,7 @@ export const trustedResearchSources = [
     name: "Nielsen Norman Group Usability Heuristics",
     url: "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
     authority: "research",
-    modules: ["Dashboard", "Site Builder", "Agent Builder", "Game Builder", "Integrations / Templates"],
+    modules: ["Dashboard", "Site Builder", "Agent Builder", "AI Spaces", "Game Builder", "Integrations / Templates"],
     principles: [
       "rendre le statut du systeme visible",
       "parler le langage utilisateur",
@@ -212,11 +283,11 @@ const weeklyThemes = {
   thursday: {
     id: "game-builder",
     label: "Game Builder",
-    tomorrow: "Multi-IA / Vercel AI Gateway / Supabase",
+    tomorrow: "Multi-IA / Moteur IA / Supabase",
   },
   friday: {
     id: "multi-ai",
-    label: "Multi-IA / Vercel AI Gateway / Supabase",
+    label: "Multi-IA / Moteur IA / Supabase",
     tomorrow: "Templates / Integrations / Registries",
   },
   saturday: {
@@ -232,7 +303,7 @@ const weeklyThemes = {
 };
 
 const fileTargets = {
-  dashboard: ["src/pages/Dashboard.tsx", "src/pages/Create.tsx", "src/components/v2/V2PageShell.tsx"],
+  dashboard: ["src/pages/Dashboard.tsx", "src/pages/Create.tsx", "src/pages/AISpaces.tsx", "src/components/v2/V2PageShell.tsx"],
   "site-builder": ["src/pages/SiteBuilder.tsx", "src/modules/creation-engine/engine.ts", "supabase/functions/ai-orchestrator/index.ts"],
   "agent-builder": ["src/pages/AgentBuilder.tsx", "src/pages/Agents.tsx", "src/modules/registries/index.ts"],
   "game-builder": ["src/pages/GameBuilder.tsx", "src/pages/Games.tsx", "src/modules/registries/index.ts"],
@@ -251,6 +322,8 @@ const requiredRuntimeFiles = [
   "src/pages/Templates.tsx",
   "src/pages/Analytics.tsx",
   "src/pages/Settings.tsx",
+  "src/pages/AISpaces.tsx",
+  "src/modules/ai-spaces/index.ts",
   "src/modules/ai/orchestrator/AIOrchestrator.ts",
   "src/modules/ai/backend-orchestrator.ts",
   "src/modules/storage/project-storage-adapter.ts",
@@ -342,6 +415,7 @@ const themeModuleById = {
   dashboard: "Dashboard",
   "site-builder": "Site Builder",
   "agent-builder": "Agent Builder",
+  "ai-spaces": "AI Spaces",
   "game-builder": "Game Builder",
   "multi-ai": "Multi-IA / Systeme",
   "templates-integrations": "Integrations / Templates",
@@ -364,6 +438,11 @@ const dailyReviewFocusByThemeId = {
       id: "empty-states",
       short: "empty states utiles",
       description: "remplacer les zones vides par des actions simples et business-first",
+    },
+    {
+      id: "ai-spaces-onboarding",
+      short: "AI Spaces guidés",
+      description: "clarifier le choix entre Builders et AI Spaces dans les 30 premières secondes",
     },
   ],
   "site-builder": [
@@ -426,12 +505,17 @@ const dailyReviewFocusByThemeId = {
     {
       id: "fallback-trace",
       short: "fallback lisible",
-      description: "rendre les fallbacks Gateway et mock visibles sans exposer de secret",
+      description: "rendre les modes de secours lisibles sans exposer de secret",
     },
     {
       id: "cost-quality",
       short: "qualite cout",
       description: "garder un bon rapport qualite/prix sans degrader la sortie finale",
+    },
+    {
+      id: "ai-spaces-routing",
+      short: "routing AI Spaces",
+      description: "router chaque espace IA vers le bon modele sans exposer les details internes aux utilisateurs",
     },
   ],
   "templates-integrations": [
@@ -772,6 +856,9 @@ export const buildResearchEvidence = (root, theme) => {
   };
 };
 
+const MOJIBAKE_PATTERN =
+  /Cr\u00c3|B\u00c3|Int\u00c3|G\u00c3|Param\u00c3|\u00c3\u00a9|\u00c3\u00a8|\u00c3\u00aa|\u00c3\u00a7|\u00c3\u00b4|\u00c3\u00bb|\u00c2|\u00e2\u20ac\u2122|\u00e2\u20ac\u0153|\u00e2\u20ac/;
+
 export const auditProject = (root, theme) => {
   const packageJson = JSON.parse(readFile(root, "package.json") || "{}");
   const scripts = packageJson.scripts ?? {};
@@ -786,7 +873,7 @@ export const auditProject = (root, theme) => {
   const missingRuntimeFiles = requiredRuntimeFiles.filter((file) => !exists(root, file));
   const mojibakeHits = [...srcFiles, ...functionFiles]
     .flatMap((file) =>
-      /CrÃ|BÃ|IntÃ|GÃ|ParamÃ|Ã©|Ã¨|Ãª|Ã§|Ã´|Ã»|Â|â€™|â€œ|â€/.test(readFile(root, file))
+      MOJIBAKE_PATTERN.test(readFile(root, file))
         ? [file]
         : [],
     );
@@ -796,9 +883,11 @@ export const auditProject = (root, theme) => {
   const hasStorageAdapter = runtimeContent.includes("ProjectStorageAdapter") || exists(root, "src/modules/storage/project-storage-adapter.ts");
   const hasQualityGate = runtimeContent.includes("Quality Gate") || runtimeContent.includes("qualityGate") || runtimeContent.includes("validateSiteProject");
   const hasProductLabScripts = Object.keys(scripts).some((key) => key.startsWith("product-lab"));
+  const hasAISpaces = exists(root, "src/modules/ai-spaces") && exists(root, "src/pages/AISpaces.tsx");
   const firstDryRunApproved = exists(root, "product-lab/state/first-dry-run-approved.json");
 
   return {
+    root,
     packageScripts: scripts,
     srcFileCount: srcFiles.length,
     functionFileCount: functionFiles.length,
@@ -811,6 +900,7 @@ export const auditProject = (root, theme) => {
     hasStorageAdapter,
     hasQualityGate,
     hasProductLabScripts,
+    hasAISpaces,
     hasSupabaseFunctions: exists(root, "supabase/functions"),
     hasGithubWorkflowDir: exists(root, ".github/workflows"),
     hasReportsDir: exists(root, "reports/product-lab"),
@@ -831,6 +921,7 @@ export const scoreProduct = (audit) => {
     "AI System Score": 70,
     "Site Builder Score": 76,
     "Agent Builder Score": 72,
+    "AI Spaces Score": audit.hasAISpaces ? 73 : 58,
     "Game Builder Score": 69,
     "Integration Score": 70,
     "Analytics Score": 65,
@@ -845,6 +936,7 @@ export const scoreProduct = (audit) => {
     "AI System Score": (audit.hasGateway ? 8 : -10) + researchBonus,
     "Site Builder Score": audit.currentTheme.id === "site-builder" ? 3 : 0,
     "Agent Builder Score": audit.currentTheme.id === "agent-builder" ? 3 : 0,
+    "AI Spaces Score": audit.hasAISpaces ? 4 + researchBonus : -8,
     "Game Builder Score": audit.currentTheme.id === "game-builder" ? 3 : 0,
     "Integration Score": audit.currentTheme.id === "templates-integrations" ? 3 : 0,
     "Analytics Score": audit.hasStorageAdapter ? 3 : -3,
@@ -867,7 +959,7 @@ export const scoreProduct = (audit) => {
 };
 
 const buildScoreReason = (key, note, audit) => {
-  if (key === "AI System Score") return audit.hasGateway ? "Pipeline Gateway/Supabase detecte, reste a durcir en CI." : "Gateway non detecte dans les modules audites.";
+  if (key === "AI System Score") return audit.hasGateway ? "Pipeline IA/Supabase detecte, reste a durcir en CI." : "Moteur IA non detecte dans les modules audites.";
   if (key === "Code Health Score") return audit.hasExistingBrokenWorkflow ? "Un ancien workflow appelle encore une commande inexistante." : "Scripts et workflows principaux sont coherents.";
   if (key === "Design Score") return audit.mojibakeHits.length ? "Des textes casses restent a corriger." : "Identite noir/or coherente dans les modules audites.";
   return note >= 75 ? "Base V2 solide avec opportunites d'iteration ciblee." : "Base utile mais encore trop dependante de mocks ou d'etats incomplets.";
@@ -877,6 +969,7 @@ const buildMainProblem = (key, audit) => {
   if (audit.hasExistingBrokenWorkflow) return "CI nightly historique non fiable tant qu'elle appelle une commande absente.";
   if (audit.mojibakeHits.length) return "Mojibake detecte dans des fichiers runtime.";
   if (key === "Analytics Score") return "Les insights reels restent encore partiellement mockes.";
+  if (key === "AI Spaces Score") return "Les espaces IA doivent prouver leur usage, leurs garde-fous et leur conversion vers Builders.";
   if (key === "Game Builder Score") return "Le statut beta doit rester tres clair dans chaque sortie.";
   return "Il faut augmenter la preuve produit sans complexifier l'UX debutant.";
 };
@@ -887,9 +980,10 @@ const buildBestImprovement = (key) => {
     "UX Score": "Renforcer empty states, microcopy et actions rapides par theme hebdomadaire.",
     "Conversion Score": "Auditer CTA, objections et preuves dans les builders.",
     "Design Score": "Verifier coherence noir/or, spacing et lisibilite mobile.",
-    "AI System Score": "Durcir fallback Gateway, normalisation et logs sans secrets.",
+    "AI System Score": "Durcir secours IA, normalisation et logs sans secrets.",
     "Site Builder Score": "Ameliorer le brief et les presets niche/conversion.",
     "Agent Builder Score": "Renforcer permissions et chat de test.",
+    "AI Spaces Score": "Auditer prompts, quick actions, garde-fous et liens vers Builders.",
     "Game Builder Score": "Ameliorer checklists et snippets beta par plateforme.",
     "Integration Score": "Clarifier statuts mock/reel et connecteurs demandes.",
     "Analytics Score": "Brancher plus de donnees reelles au dashboard.",
@@ -974,6 +1068,40 @@ export const runExpertAgents = (audit, scores) => {
   });
 
   findings.push({
+    title: "Forcer un moteur anti-site generique par niche",
+    module: "Site Builder",
+    impact: "Eleve",
+    risk: "Faible",
+    difficulty: "Moyenne",
+    priority: "Critique",
+    status: "A renforcer",
+    inspiration: "Lovable / v0 / Mobbin",
+    description:
+      "Transformer les 20 tests generateur en signaux anti-template: layouts differents, preuves par niche, CTA contextuels, SEO local et sections non interchangeables.",
+    beforeState:
+      "Le Site Builder possede deja des blueprints, mais certains runs peuvent encore produire une preview trop proche d'un template standard.",
+    afterState:
+      "Chaque niche force une recette de structure, une variation de layout, des preuves, objections et CTA differents avant validation.",
+  });
+
+  findings.push({
+    title: "Mesurer la similarite entre previews generees",
+    module: "Site Builder",
+    impact: "Eleve",
+    risk: "Faible",
+    difficulty: "Moyenne",
+    priority: "Important",
+    status: "A ajouter",
+    inspiration: "Mobbin / 21st.dev / Linear",
+    description:
+      "Ajouter un score de similarite pour detecter quand deux sites generes reutilisent trop la meme structure, les memes titres ou les memes layouts.",
+    beforeState:
+      "Les tests verifient la qualite, mais ne transforment pas encore assez la similarite visuelle en proposition concrete.",
+    afterState:
+      "Le Product Lab remonte automatiquement les familles de sites trop semblables et propose un patch cible sur blueprint, prompt ou preview.",
+  });
+
+  findings.push({
     title: "Aligner chaque patch sur la vision idee vers projet concret",
     module: "Product Vision",
     impact: "Eleve",
@@ -998,6 +1126,23 @@ export const runExpertAgents = (audit, scores) => {
   });
 
   findings.push({
+    title: "Auditer les AI Spaces comme couche d'accompagnement",
+    module: "AI Spaces",
+    impact: "Eleve",
+    risk: "Faible",
+    difficulty: "Moyenne",
+    priority: "Important",
+    status: "Propose",
+    inspiration: "Delos / Base44 / ChatGPT-style workspaces",
+    description:
+      "Verifier prompts, quick actions, garde-fous, historique, conversion vers Builders et clarté entre Builders et AI Spaces.",
+    beforeState:
+      "Les Builders creent deja des projets, mais l'accompagnement par profil doit rester lisible et mesurable.",
+    afterState:
+      "Chaque espace IA propose une aide specialisee, des actions rapides, des liens vers Builders et des protections adaptees.",
+  });
+
+  findings.push({
     title: "Conserver le Game Builder en beta explicite",
     module: "Game Builder",
     impact: "Moyen",
@@ -1010,15 +1155,15 @@ export const runExpertAgents = (audit, scores) => {
   });
 
   findings.push({
-    title: "Durcir le routing Multi-IA et les fallbacks Gateway",
+    title: "Durcir le routing Multi-IA et les secours IA",
     module: "Multi-IA / Systeme",
     impact: "Eleve",
     risk: "Moyen",
     difficulty: "Moyenne",
     priority: "Important",
     status: "A cadrer",
-    inspiration: "Vercel AI Gateway / Base44",
-    description: "Verifier que chaque builder route vers le bon role IA, normalise la sortie et garde un fallback mock propre.",
+    inspiration: "Moteur IA Pixelrises / Base44",
+    description: "Verifier que chaque builder route vers le bon role IA, normalise la sortie et garde un mode de secours propre.",
   });
 
   findings.push({
@@ -1336,6 +1481,7 @@ const compareReviewFindings = (theme) => (left, right) => {
 };
 
 export const selectProductLabReviewFindings = (findings, theme) => {
+  const { max } = getProductLabReviewLimits();
   const uniqueFindings = [];
   const seen = new Set();
 
@@ -1352,7 +1498,7 @@ export const selectProductLabReviewFindings = (findings, theme) => {
   const themeModule = themeModuleById[theme?.id];
 
   const addFinding = (finding) => {
-    if (!finding || selected.length >= PRODUCT_LAB_MAX_REVIEW_ITEMS) return;
+    if (!finding || selected.length >= max) return;
     const itemId = getProductLabReviewItemId(finding, theme);
     if (selected.some((item) => getProductLabReviewItemId(item, theme) === itemId)) return;
     selected.push(finding);
@@ -1369,7 +1515,7 @@ export const selectProductLabReviewFindings = (findings, theme) => {
 
   sortedFindings.forEach(addFinding);
 
-  return selected.slice(0, PRODUCT_LAB_MAX_REVIEW_ITEMS);
+  return selected.slice(0, max);
 };
 
 export const buildProductLabReviewQueue = (result) => {
@@ -1387,6 +1533,35 @@ export const buildProductLabReviewQueue = (result) => {
     scoreEntries[0] ?? { name: "Product Quality Score", note: 0 },
   );
 
+  const rawItems = reviewItems.map((finding) => ({
+    id: getProductLabReviewItemId(finding, queueTheme),
+    title: finding.title,
+    module: finding.module,
+    simpleSummary: buildReviewSimpleSummary(finding),
+    priority: finding.priority,
+    impact: finding.impact,
+    risk: finding.risk,
+    difficulty: finding.difficulty,
+    status: finding.status,
+    inspiration: finding.inspiration,
+    decision: finding.decision,
+    description: finding.description,
+    scoreImpact: finding.scoreImpact,
+    runFocus: finding.runFocus,
+    sourceReport: reportPath,
+    automationPolicy:
+      "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+    concernedFiles: resolveReviewFiles(result, finding),
+    evidenceSources: resolveEvidenceSources(result.researchEvidence, finding),
+    beforeState: buildReviewBeforeState(finding),
+    afterState: buildReviewAfterState(finding),
+    dataState: "real",
+  }));
+  const { min, max } = getProductLabReviewLimits();
+  const actionableItems = filterActionableProductLabProposals(rawItems);
+  const finalItems =
+    actionableItems.length >= Math.min(min, rawItems.length) ? actionableItems : rawItems;
+
   return {
     generatedAt: new Date().toISOString(),
     sourceRun: {
@@ -1397,10 +1572,12 @@ export const buildProductLabReviewQueue = (result) => {
       runId: `${result.date}-${result.theme.id}`,
     },
     summary: {
-      total: reviewItems.length,
+      total: finalItems.length,
+      actionableTotal: finalItems.length,
+      rejectedVagueProposals: rawItems.length - actionableItems.length,
       maxAutoSafePatches: result.maxPatches,
       sensitiveChangesRequireApproval: true,
-      dailySummary: `Theme ${result.theme.label}: ${reviewItems.length} proposition(s) a valider, modifier ou refuser avant application. Objectif utile: ${PRODUCT_LAB_MIN_REVIEW_ITEMS}-${PRODUCT_LAB_MAX_REVIEW_ITEMS} propositions max par run.`,
+      dailySummary: `Theme ${result.theme.label}: ${finalItems.length} proposition(s) actionnable(s) a valider, modifier ou refuser avant application. Objectif utile: ${min}-${max} propositions max par run.`,
       averageScore,
       lowestScore,
       research: {
@@ -1410,29 +1587,7 @@ export const buildProductLabReviewQueue = (result) => {
         verifiedAt: result.researchEvidence.verifiedAt,
       },
     },
-    items: reviewItems.map((finding) => ({
-      id: getProductLabReviewItemId(finding, queueTheme),
-      title: finding.title,
-      module: finding.module,
-      simpleSummary: buildReviewSimpleSummary(finding),
-      priority: finding.priority,
-      impact: finding.impact,
-      risk: finding.risk,
-      difficulty: finding.difficulty,
-      status: finding.status,
-      inspiration: finding.inspiration,
-      decision: finding.decision,
-      description: finding.description,
-      scoreImpact: finding.scoreImpact,
-      runFocus: finding.runFocus,
-      sourceReport: reportPath,
-      automationPolicy:
-        "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      concernedFiles: resolveReviewFiles(result, finding),
-      evidenceSources: resolveEvidenceSources(result.researchEvidence, finding),
-      beforeState: buildReviewBeforeState(finding),
-      afterState: buildReviewAfterState(finding),
-    })),
+    items: finalItems,
   };
 };
 
@@ -1443,6 +1598,7 @@ const reviewFilesByModule = {
   Dashboard: ["src/pages/Dashboard.tsx", "src/pages/Create.tsx"],
   "Site Builder": ["src/pages/SiteBuilder.tsx", "src/modules/creation-engine", "supabase/functions/ai-orchestrator/index.ts"],
   "Agent Builder": ["src/pages/AgentBuilder.tsx", "src/pages/Agents.tsx", "src/modules/registries/index.ts"],
+  "AI Spaces": ["src/pages/AISpaces.tsx", "src/pages/AISpaceDetail.tsx", "src/modules/ai-spaces"],
   "Game Builder": ["src/pages/GameBuilder.tsx", "src/pages/Games.tsx", "src/modules/registries/index.ts"],
   "Multi-IA / Systeme": ["src/modules/ai", "supabase/functions/ai-orchestrator/index.ts", "scripts/product-lab-core.mjs"],
   "Integrations / Templates": ["src/pages/Integrations.tsx", "src/pages/Templates.tsx", "src/modules/registries/index.ts"],
@@ -1495,7 +1651,7 @@ const buildReviewAfterState = (finding) => {
   if (finding.module === "Site Builder") return "L'utilisateur comprend mieux quoi faire et comment ameliorer son projet sans casser le rendu.";
   if (finding.module === "Agent Builder") return "Chaque permission ou action sensible est explicite avant que le Product Lab puisse appliquer un patch.";
   if (finding.module === "Game Builder") return "Le statut beta reste honnete et aucune publication automatique n'est suggeree.";
-  if (finding.module === "Multi-IA / Systeme") return "Les generations restent mieux routees, mieux normalisees et plus stables en cas d'echec provider.";
+  if (finding.module === "Multi-IA / Systeme") return "Les generations restent mieux routees, mieux normalisees et plus stables en cas d'echec du moteur IA.";
   if (finding.module === "Integrations / Templates") return "Les cartes donnent une action claire et gardent des statuts honnetes entre mock, beta et reel.";
   if (finding.module === "Analytics") return "Le dashboard transforme davantage les signaux en prochaines actions priorisees.";
   if (finding.module === "Code Health") return "Aucune PR automatique n'est creee tant que lint, tests et build ne sont pas verts.";
@@ -1617,6 +1773,10 @@ export const runProductLab = ({
           itemId: finding.approvedItemId || getProductLabReviewItemId(finding, theme),
           title: finding.title,
           module: finding.module,
+          risk: finding.risk,
+          priority: finding.priority,
+          decision: finding.decision,
+          concernedFiles: Array.isArray(finding.concernedFiles) ? finding.concernedFiles : [],
         })),
         appliedImprovements,
         modifiedFiles,
@@ -1669,7 +1829,7 @@ export const buildDailyImprovementLines = (theme, safeFindings) => {
       : [`- Renforcer ${theme.label} avec un petit patch visible, testable et non destructif.`]),
     "",
     "Validation humaine obligatoire:",
-    "- auth, paiement, credits, Supabase sensible, provider IA principal, suppression de routes/fichiers, refonte majeure, publication jeux.",
+    "- auth, paiement, credits, Supabase sensible, moteur IA principal, suppression de routes/fichiers, refonte majeure, publication jeux.",
   ];
 };
 

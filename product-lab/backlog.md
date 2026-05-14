@@ -4,7 +4,15 @@ Ce backlog est maintenu par le Product Lab. Les changements sensibles restent en
 
 ## Critique
 
-- Aucun item pour le moment.
+- **Forcer un moteur anti-site generique par niche**
+  - Module: Site Builder
+  - Impact: Eleve (30/30)
+  - Risque: Faible
+  - Difficulte: Moyenne
+  - Priorite: Critique
+  - Statut: A renforcer
+  - Source inspiration: Lovable / v0 / Mobbin
+  - Decision: auto_safe
 
 ## Important
 
@@ -16,6 +24,15 @@ Ce backlog est maintenu par le Product Lab. Les changements sensibles restent en
   - Priorite: Important
   - Statut: A cadrer
   - Source inspiration: Shopify Admin / Base44
+  - Decision: auto_safe
+- **Mesurer la similarite entre previews generees**
+  - Module: Site Builder
+  - Impact: Eleve (30/30)
+  - Risque: Faible
+  - Difficulte: Moyenne
+  - Priorite: Important
+  - Statut: A ajouter
+  - Source inspiration: Mobbin / 21st.dev / Linear
   - Decision: auto_safe
 - **Aligner chaque patch sur la vision idee vers projet concret**
   - Module: Product Vision
@@ -35,14 +52,23 @@ Ce backlog est maintenu par le Product Lab. Les changements sensibles restent en
   - Statut: Propose
   - Source inspiration: Delos / Base44
   - Decision: human_validation
-- **Durcir le routing Multi-IA et les fallbacks Gateway**
+- **Auditer les AI Spaces comme couche d'accompagnement**
+  - Module: AI Spaces
+  - Impact: Eleve (30/30)
+  - Risque: Faible
+  - Difficulte: Moyenne
+  - Priorite: Important
+  - Statut: Propose
+  - Source inspiration: Delos / Base44 / ChatGPT-style workspaces
+  - Decision: auto_safe
+- **Durcir le routing Multi-IA et les secours IA**
   - Module: Multi-IA / Systeme
   - Impact: Eleve (24/30)
   - Risque: Moyen
   - Difficulte: Moyenne
   - Priorite: Important
   - Statut: A cadrer
-  - Source inspiration: Vercel AI Gateway / Base44
+  - Source inspiration: Moteur IA Pixelrises / Base44
   - Decision: human_validation
 - **Transformer analytics en recommandations exploitables**
   - Module: Analytics

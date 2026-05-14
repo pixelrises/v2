@@ -123,7 +123,7 @@ const Auth = () => {
     if (!isSupabaseConfigured) {
       toast({
         title: "Authentification indisponible",
-        description: "Ajoute les variables VITE_SUPABASE_* pour activer la connexion.",
+        description: "La connexion doit etre finalisee cote serveur avant d'etre disponible ici.",
         variant: "destructive",
       });
       return;
@@ -158,7 +158,7 @@ const Auth = () => {
         title: "Connexion Google impossible",
         description: getReadableErrorMessage(
           error,
-          "Vérifie la configuration Google OAuth dans Supabase.",
+          "La connexion Google doit etre finalisee avant d'etre disponible ici.",
         ),
         variant: "destructive",
       });
@@ -174,7 +174,7 @@ const Auth = () => {
       toast({
         title: "Authentification indisponible",
         description:
-          "Ce déploiement n'a pas encore ses variables Supabase. Ajoute les variables VITE_SUPABASE_* dans l'environnement.",
+          "La connexion doit etre finalisee cote serveur avant d'etre disponible ici.",
         variant: "destructive",
       });
       return;

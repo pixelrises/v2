@@ -6,6 +6,37 @@ on:
     - cron: "0 22 * * *"
     - cron: "0 23 * * *"
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "Product Lab mode to run"
+        required: true
+        default: "proposalOnly"
+        type: choice
+        options:
+          - dryRun
+          - proposalOnly
+          - prMode
+          - autoMergeControlled
+      dryRun:
+        description: "Analyze and generate reports without writing proposals to Supabase"
+        required: true
+        default: false
+        type: boolean
+      forceGenerate:
+        description: "Force at least one safe diagnostic proposal when testing manually"
+        required: true
+        default: true
+        type: boolean
+      maxProposals:
+        description: "Maximum proposals to display in the admin queue"
+        required: true
+        default: "8"
+        type: choice
+        options:
+          - "1"
+          - "3"
+          - "5"
+          - "8"
 
 permissions:
   contents: write
@@ -16,8 +47,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL || 'https://hxbbktdqrswnuarbzhsl.supabase.co' }}
-  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_w-EqzKSgOru4Bfvlcprwjg_4Oq1o4jW' }}
+  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
   PIXELRISES_GENERATOR_REAL_QA: ${{ vars.PIXELRISES_GENERATOR_REAL_QA || '1' }}
   PIXELRISES_GENERATOR_DAILY_REAL_BUDGET: ${{ vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '20' }}
   PRODUCT_LAB_MIN_REVIEW_ITEMS: "5"
@@ -73,6 +104,37 @@ jobs:
         run: |
           npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
+      - name: Resolve Product Lab mode
+        id: run_mode
+        if: steps.guard.outputs.run == 'true'
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            mode="${{ inputs.mode }}"
+            dry_run="${{ inputs.dryRun }}"
+            force_generate="${{ inputs.forceGenerate }}"
+            max_proposals="${{ inputs.maxProposals }}"
+            source="workflow_dispatch"
+          else
+            mode="proposalOnly"
+            dry_run="false"
+            force_generate="true"
+            max_proposals="${PRODUCT_LAB_MAX_REVIEW_ITEMS:-8}"
+            source="scheduled"
+          fi
+
+          if [ "$mode" = "dryRun" ]; then
+            dry_run="true"
+          fi
+
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "dry_run=$dry_run" >> "$GITHUB_OUTPUT"
+          echo "force_generate=$force_generate" >> "$GITHUB_OUTPUT"
+          echo "max_proposals=$max_proposals" >> "$GITHUB_OUTPUT"
+          echo "source=$source" >> "$GITHUB_OUTPUT"
+          echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          echo "Product Lab mode: $mode, dryRun=$dry_run, forceGenerate=$force_generate, maxProposals=$max_proposals, source=$source"
+
       - name: Pull admin-approved Product Lab decisions
         if: steps.guard.outputs.run == 'true'
         continue-on-error: true
@@ -93,9 +155,15 @@ jobs:
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
           PRODUCT_LAB_MAX_PATCHES: "2"
           PRODUCT_LAB_APPLY_SAFE_FIXES: "true"
+          PRODUCT_LAB_MODE: ${{ steps.run_mode.outputs.mode }}
+          PRODUCT_LAB_DRY_RUN: ${{ steps.run_mode.outputs.dry_run }}
+          PRODUCT_LAB_FORCE_GENERATE: ${{ steps.run_mode.outputs.force_generate }}
+          PRODUCT_LAB_MAX_REVIEW_ITEMS: ${{ steps.run_mode.outputs.max_proposals }}
+          PRODUCT_LAB_RUN_SOURCE: ${{ steps.run_mode.outputs.source }}
+          PRODUCT_LAB_RUN_STARTED_AT: ${{ steps.run_mode.outputs.started_at }}
         shell: bash
         run: |
-          npm run product-lab:daily
+          npm run product-lab:daily -- --mode "${{ steps.run_mode.outputs.mode }}" --max-proposals "${{ steps.run_mode.outputs.max_proposals }}"
 
       - name: Check V2 generator smoke QA configuration
         id: smoke_preflight
@@ -179,12 +247,33 @@ jobs:
 
       - name: Push Product Lab proposals to Supabase
         id: proposals_push
-        if: always() && steps.guard.outputs.run == 'true' && steps.admin_sync_preflight.outputs.ready == 'true'
+        if: >
+          always() &&
+          steps.guard.outputs.run == 'true' &&
+          steps.admin_sync_preflight.outputs.ready == 'true' &&
+          steps.run_mode.outputs.dry_run != 'true'
         continue-on-error: true
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: "true"
         run: npm run product-lab:proposals:push
+
+      - name: Record Product Lab run status
+        id: run_status_sync
+        if: >
+          always() &&
+          steps.guard.outputs.run == 'true' &&
+          steps.admin_sync_preflight.outputs.ready == 'true' &&
+          steps.run_mode.outputs.dry_run != 'true'
+        continue-on-error: true
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PRODUCT_LAB_MODE: ${{ steps.run_mode.outputs.mode }}
+          PRODUCT_LAB_FORCE_GENERATE: ${{ steps.run_mode.outputs.force_generate }}
+          PRODUCT_LAB_RUN_SOURCE: ${{ steps.run_mode.outputs.source }}
+          PRODUCT_LAB_RUN_STARTED_AT: ${{ steps.run_mode.outputs.started_at }}
+          PRODUCT_LAB_RUN_STATUS: completed
+        run: npm run product-lab:run-status:record
 
       - name: Lint
         id: lint
@@ -203,6 +292,12 @@ jobs:
         if: steps.guard.outputs.run == 'true'
         continue-on-error: true
         run: npm run build
+
+      - name: Check Product Lab report redaction
+        id: redaction
+        if: steps.guard.outputs.run == 'true'
+        continue-on-error: true
+        run: npm run product-lab:redaction:check
 
       - name: Check validation status
         id: validation
@@ -223,7 +318,16 @@ jobs:
 
           echo "smoke_passed=$smoke_passed" >> "$GITHUB_OUTPUT"
 
-          if [ "${{ steps.proposals_push.outcome }}" = "success" ] && [ "$smoke_passed" = "true" ] && [ "${{ steps.lint.outcome }}" = "success" ] && [ "${{ steps.test.outcome }}" = "success" ] && [ "${{ steps.build.outcome }}" = "success" ]; then
+          proposal_sync_passed=false
+          if [ "${{ steps.run_mode.outputs.dry_run }}" = "true" ]; then
+            proposal_sync_passed=true
+          elif [ "${{ steps.proposals_push.outcome }}" = "success" ] && [ "${{ steps.run_status_sync.outcome }}" = "success" ]; then
+            proposal_sync_passed=true
+          fi
+
+          echo "proposal_sync_passed=$proposal_sync_passed" >> "$GITHUB_OUTPUT"
+
+          if [ "$proposal_sync_passed" = "true" ] && [ "$smoke_passed" = "true" ] && [ "${{ steps.lint.outcome }}" = "success" ] && [ "${{ steps.test.outcome }}" = "success" ] && [ "${{ steps.build.outcome }}" = "success" ] && [ "${{ steps.redaction.outcome }}" = "success" ]; then
             echo "checks_passed=true" >> "$GITHUB_OUTPUT"
           else
             echo "checks_passed=false" >> "$GITHUB_OUTPUT"
@@ -261,6 +365,18 @@ jobs:
           esac
           echo "name=${paris_date}-${theme}" >> "$GITHUB_OUTPUT"
 
+      - name: Evaluate controlled Product Lab auto-merge
+        id: auto_merge_policy
+        if: >
+          steps.guard.outputs.run == 'true' &&
+          steps.validation.outputs.checks_passed == 'true' &&
+          steps.validation.outputs.has_changes == 'true' &&
+          steps.validation.outputs.has_approved_improvements == 'true'
+        shell: bash
+        env:
+          PRODUCT_LAB_CHECKS_PASSED: ${{ steps.validation.outputs.checks_passed }}
+        run: npm run product-lab:auto-merge:evaluate
+
       - name: Write validation failure report
         if: >
           steps.guard.outputs.run == 'true' &&
@@ -277,15 +393,19 @@ jobs:
           Le Product Lab a termine son run, mais la PR automatique est bloquee car une validation n'est pas verte.
 
           ## Tests lances
+          - mode: ${{ steps.run_mode.outputs.mode }}
+          - dry-run: ${{ steps.run_mode.outputs.dry_run }}
           - generator smoke QA: ${{ steps.generator_smoke.outcome }}
           - smoke QA preflight: ready=${{ steps.smoke_preflight.outputs.ready }}, missing=${{ steps.smoke_preflight.outputs.missing }}
           - Supabase proposals sync: ${{ steps.proposals_push.outcome }}
+          - Product Lab run status sync: ${{ steps.run_status_sync.outcome }}
           - lint: ${{ steps.lint.outcome }}
           - test: ${{ steps.test.outcome }}
           - build: ${{ steps.build.outcome }}
+          - redaction/secrets check: ${{ steps.redaction.outcome }}
 
           ## Resultat
-          Aucune PR Product Lab ne sera creee tant que smoke QA, lint, tests et build ne sont pas verts.
+          Aucune PR Product Lab ne sera creee tant que smoke QA, lint, tests, build et redaction ne sont pas verts.
 
           ## Priorite critique
           Corriger la validation bloquante avant toute PR Product Lab.
@@ -313,10 +433,12 @@ jobs:
           path: |
             reports/product-lab/daily/*.md
             reports/product-lab/weekly/*.md
+            reports/product-lab/diagnostics/*.md
             tmp/generator-smoke-last.json
             product-lab/backlog.md
             product-lab/state/product-scores.json
             product-lab/state/last-run-summary.json
+            product-lab/state/phase12-diagnostic.json
             product-lab/state/research-sources.json
             public/product-lab-review.json
           if-no-files-found: warn
@@ -341,14 +463,37 @@ jobs:
             - Lint: ${{ steps.lint.outcome }}
             - Tests: ${{ steps.test.outcome }}
             - Build: ${{ steps.build.outcome }}
+            - Redaction/secrets check: ${{ steps.redaction.outcome }}
             - V2 smoke QA: ${{ steps.generator_smoke.outcome }}
             - Supabase proposals sync: ${{ steps.proposals_push.outcome }}
             - Admin-approved improvements applied: ${{ steps.validation.outputs.has_approved_improvements }}
+            - Auto-merge policy: ${{ steps.auto_merge_policy.outputs.auto_merge_status }}
+            - Risk level: ${{ steps.auto_merge_policy.outputs.risk_level }}
 
-            No automatic merge. No production deployment. Human review required.
-          labels: product-lab, automation, safe-improvement
+            Controlled auto-merge can be requested only after admin approval, green checks, no detected secrets, and no sensitive files.
+            High-risk or sensitive changes remain manual-review only. No production deployment is triggered by this workflow.
+          labels: product-lab, automation, admin-approved, risk-${{ steps.auto_merge_policy.outputs.risk_level }}
 
-      - name: Mark approved decisions as PR-ready
+      - name: Request controlled Product Lab auto-merge
+        id: auto_merge
+        if: >
+          steps.guard.outputs.run == 'true' &&
+          steps.create-pr.outcome == 'success' &&
+          steps.auto_merge_policy.outputs.auto_merge_allowed == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh pr merge "${{ steps.create-pr.outputs.pull-request-number }}" --squash --auto --delete-branch
+          merged_at="$(gh pr view "${{ steps.create-pr.outputs.pull-request-number }}" --json mergedAt --jq '.mergedAt' 2>/dev/null || true)"
+          if [ -n "$merged_at" ] && [ "$merged_at" != "null" ]; then
+            echo "status=merged" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=auto_merge_requested" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Record Product Lab PR status
         if: >
           steps.guard.outputs.run == 'true' &&
           steps.validation.outputs.checks_passed == 'true' &&
@@ -357,7 +502,29 @@ jobs:
         continue-on-error: true
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run product-lab:decisions:mark-processed
+          PRODUCT_LAB_BRANCH: product-lab/${{ steps.branch.outputs.name }}
+          PRODUCT_LAB_PR_URL: ${{ steps.create-pr.outputs.pull-request-url }}
+          PRODUCT_LAB_PR_NUMBER: ${{ steps.create-pr.outputs.pull-request-number }}
+          PRODUCT_LAB_RISK_LEVEL: ${{ steps.auto_merge_policy.outputs.risk_level }}
+          PRODUCT_LAB_TOUCHED_SENSITIVE_FILES: ${{ steps.auto_merge_policy.outputs.touched_sensitive_files }}
+          PRODUCT_LAB_TEST_STATUS: passed
+          PRODUCT_LAB_BUILD_STATUS: passed
+        shell: bash
+        run: |
+          if [ "${{ steps.auto_merge_policy.outputs.auto_merge_allowed }}" = "true" ]; then
+            if [ "${{ steps.auto_merge.outcome }}" = "success" ]; then
+              export PRODUCT_LAB_AUTO_MERGE_STATUS="${{ steps.auto_merge.outputs.status || 'auto_merge_requested' }}"
+              export PRODUCT_LAB_AUTO_MERGE_BLOCK_REASON=""
+            else
+              export PRODUCT_LAB_AUTO_MERGE_STATUS="auto_merge_request_failed"
+              export PRODUCT_LAB_AUTO_MERGE_BLOCK_REASON="GitHub auto-merge request failed or repository auto-merge is not enabled."
+            fi
+          else
+            export PRODUCT_LAB_AUTO_MERGE_STATUS="blocked"
+            export PRODUCT_LAB_AUTO_MERGE_BLOCK_REASON="${{ steps.auto_merge_policy.outputs.auto_merge_block_reason }}"
+          fi
+          export PRODUCT_LAB_PR_STATUS="created"
+          npm run product-lab:pr-status:record
 
       - name: Report blocked Product Lab PR
         if: >
@@ -369,9 +536,11 @@ jobs:
       - name: Fail if Product Lab admin sync failed
         if: >
           steps.guard.outputs.run == 'true' &&
+          steps.run_mode.outputs.dry_run != 'true' &&
           (
             steps.admin_sync_preflight.outputs.ready != 'true' ||
-            steps.proposals_push.outcome != 'success'
+            steps.proposals_push.outcome != 'success' ||
+            steps.run_status_sync.outcome != 'success'
           )
         run: |
           if [ "${{ steps.admin_sync_preflight.outputs.ready }}" != "true" ]; then

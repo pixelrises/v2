@@ -1,20 +1,21 @@
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { reportFrontendError } from "./lib/monitoring";
+import { redactSecrets } from "./modules/ai/security/redactSecrets";
 
 const formatError = (value: unknown) => {
   if (value instanceof Error) {
-    return [value.name, value.message, value.stack].filter(Boolean).join("\n");
+    return redactSecrets([value.name, value.message, value.stack].filter(Boolean).join("\n"));
   }
 
   if (typeof value === "string") {
-    return value;
+    return redactSecrets(value);
   }
 
   try {
-    return JSON.stringify(value, null, 2);
+    return redactSecrets(JSON.stringify(value, null, 2));
   } catch {
-    return String(value);
+    return redactSecrets(String(value));
   }
 };
 
@@ -37,10 +38,17 @@ const showBootstrapError = (title: string, error: unknown) => {
     document.body.appendChild(overlay);
   }
 
-  overlay.innerHTML = `
-    <h1 style="font-size: 18px; margin: 0 0 16px;">${title}</h1>
-    <pre style="margin: 0; white-space: pre-wrap;">${formatError(error)}</pre>
-  `;
+  const heading = document.createElement("h1");
+  heading.style.fontSize = "18px";
+  heading.style.margin = "0 0 16px";
+  heading.textContent = title;
+
+  const details = document.createElement("pre");
+  details.style.margin = "0";
+  details.style.whiteSpace = "pre-wrap";
+  details.textContent = formatError(error);
+
+  overlay.replaceChildren(heading, details);
 };
 
 window.addEventListener("error", (event) => {

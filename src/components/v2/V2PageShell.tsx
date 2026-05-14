@@ -1,35 +1,42 @@
-import { Link, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
+  Bell,
   Bot,
   Boxes,
   Cable,
   ChartNoAxesCombined,
+  CreditCard,
   FolderKanban,
   Gamepad2,
+  HelpCircle,
   LayoutDashboard,
-  LogOut,
+  MessagesSquare,
   PlusCircle,
   Settings,
-  Sparkles,
+  UserCircle,
   Wand2,
   Workflow,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { GeneralAIFloatingAssistant } from "@/components/GeneralAIFloatingAssistant";
+import { InterfaceModeToggle } from "@/components/v2/InterfaceModeToggle";
 import pixelrisesLogo from "@/assets/pixelrises-logo.png";
+import { cn } from "@/lib/utils";
 
 const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Créer", href: "/create", icon: PlusCircle },
+  { label: "AI Spaces", href: "/ai-spaces", icon: MessagesSquare },
   { label: "Site Builder", href: "/builder/site", icon: Wand2 },
   { label: "Agents IA", href: "/agents", icon: Bot },
   { label: "Game Builder", href: "/builder/game", icon: Gamepad2 },
   { label: "Templates", href: "/templates", icon: Boxes },
-  { label: "Integrations", href: "/integrations", icon: Cable },
+  { label: "Intégrations", href: "/integrations", icon: Cable },
   { label: "Analytics", href: "/analytics", icon: ChartNoAxesCombined },
-  { label: "Projects", href: "/projects", icon: FolderKanban },
+  { label: "Projets", href: "/projects", icon: FolderKanban },
+  { label: "Crédits", href: "/billing", icon: CreditCard },
   { label: "Automatisations", href: "/automations", icon: Workflow },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Paramètres", href: "/settings", icon: Settings },
 ];
 
 export type V2PageShellProps = {
@@ -52,23 +59,25 @@ export function V2PageShell({
   const location = useLocation();
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#050505] text-white">
-      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_20%_0%,rgba(245,197,66,0.14),transparent_32%),radial-gradient(circle_at_90%_12%,rgba(91,141,239,0.12),transparent_28%),linear-gradient(180deg,#070707_0%,#050505_48%,#090909_100%)]" />
-      <div className="fixed inset-0 -z-10 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,.7)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.7)_1px,transparent_1px)] [background-size:64px_64px]" />
+    <div className="min-h-screen overflow-x-hidden bg-[#030303] text-white">
+      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_78%_17%,rgba(245,197,66,0.18),transparent_23%),radial-gradient(circle_at_16%_8%,rgba(245,197,66,0.08),transparent_24%),linear-gradient(180deg,#050505_0%,#030303_48%,#060606_100%)]" />
+      <div className="fixed inset-0 -z-10 opacity-[0.055] [background-image:linear-gradient(rgba(255,255,255,.75)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.75)_1px,transparent_1px)] [background-size:72px_72px]" />
+      <div className="fixed left-[35%] top-16 -z-10 hidden h-64 w-[58vw] rotate-[-7deg] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(245,197,66,0.24),rgba(245,197,66,0.06)_38%,transparent_72%)] blur-2xl lg:block" />
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[280px] border-r border-white/[0.08] bg-black/35 px-4 py-5 backdrop-blur-2xl lg:block">
-        <Link
-          to="/dashboard"
-          className="flex items-center gap-3 rounded-[24px] border border-white/[0.08] bg-white/[0.03] px-4 py-4"
-        >
-          <img src={pixelrisesLogo} alt="Pixelrises" className="h-10 w-10 rounded-2xl object-contain" />
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[240px] border-r border-white/[0.08] bg-[#050505]/88 px-4 py-6 shadow-[20px_0_80px_-60px_rgba(245,197,66,0.5)] backdrop-blur-2xl lg:block">
+        <Link to="/dashboard" className="flex items-center gap-3 px-1">
+          <img
+            src={pixelrisesLogo}
+            alt="Pixelrises"
+            className="h-11 w-11 rounded-2xl object-contain drop-shadow-[0_0_22px_rgba(245,197,66,0.35)]"
+          />
           <div>
-            <p className="text-sm font-semibold tracking-tight">Pixelrises</p>
-            <p className="text-xs text-white/45">Digital Creation OS</p>
+            <p className="text-base font-semibold uppercase tracking-[0.08em]">Pixelrises V2</p>
+            <p className="text-xs text-white/52">Business OS</p>
           </div>
         </Link>
 
-        <nav className="mt-8 max-h-[calc(100vh-260px)] space-y-2 overflow-y-auto pr-1">
+        <nav className="mt-9 max-h-[calc(100vh-300px)] space-y-2 overflow-y-auto pr-1">
           {navigation.map((item) => {
             const Icon = item.icon;
             const active =
@@ -81,31 +90,35 @@ export function V2PageShell({
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition",
+                  "group flex items-center gap-3 rounded-2xl border px-3.5 py-3.5 text-[15px] font-medium transition",
                   active
-                    ? "border-[#F5C542]/30 bg-[#F5C542]/10 text-[#F5C542]"
-                    : "border-transparent text-white/62 hover:border-white/[0.08] hover:bg-white/[0.03] hover:text-white",
+                    ? "border-[#F5C542]/55 bg-[#F5C542]/12 text-[#F5C542] shadow-[0_0_34px_-24px_rgba(245,197,66,0.8)]"
+                    : "border-transparent text-white/72 hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-white",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className={cn("h-[18px] w-[18px]", active ? "text-[#F5C542]" : "text-white/72 group-hover:text-white")} />
                 {item.label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="absolute inset-x-4 bottom-5 rounded-[24px] border border-[#F5C542]/15 bg-[#F5C542]/[0.07] p-4">
-          <div className="flex items-center gap-2 text-[#F5C542]">
-            <Sparkles className="h-4 w-4" />
-            <p className="text-sm font-semibold">IA automatique</p>
-          </div>
-          <p className="mt-2 text-xs leading-5 text-white/56">
-            Pixelrises choisit le meilleur moteur pour chaque tâche, sans exposer la complexité aux débutants.
-          </p>
+        <div className="absolute inset-x-4 bottom-5 space-y-4">
+          <InterfaceModeToggle />
+          <Link to="/profile" className="flex items-center gap-3 rounded-[18px] border border-white/[0.10] bg-white/[0.035] p-4 transition hover:border-[#F5C542]/25">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5C542] text-sm font-bold text-black">
+              P
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">Votre espace</p>
+              <p className="truncate text-xs text-white/42">Profil & préférences</p>
+            </div>
+            <UserCircle className="h-4 w-4 text-white/45" />
+          </Link>
         </div>
       </aside>
 
-      <header className="sticky top-0 z-20 border-b border-white/[0.08] bg-black/45 backdrop-blur-2xl lg:hidden">
+      <header className="sticky top-0 z-20 border-b border-white/[0.08] bg-black/60 backdrop-blur-2xl lg:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <Link to="/dashboard" className="flex items-center gap-2">
             <img src={pixelrisesLogo} alt="Pixelrises" className="h-9 w-9 rounded-xl object-contain" />
@@ -136,22 +149,46 @@ export function V2PageShell({
         </nav>
       </header>
 
-      <main className="lg:pl-[280px]">
-        <div className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <main className="lg:pl-[240px]">
+        <div className="mx-auto w-full max-w-[1660px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           {!hideHeader ? (
-            <div className="mb-7 flex flex-col gap-5 rounded-[30px] border border-white/[0.08] bg-white/[0.035] p-5 shadow-[0_24px_90px_-60px_rgba(245,197,66,0.45)] backdrop-blur-xl sm:p-7 lg:flex-row lg:items-end lg:justify-between">
+            <div className="mb-7 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#F5C542]">
                   {eyebrow}
                 </p>
-                <h1 className="mt-3 max-w-4xl text-3xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
+                <h1 className="mt-3 max-w-6xl text-[34px] font-semibold leading-[0.98] tracking-[-0.055em] text-white sm:text-[44px]">
                   {title}
                 </h1>
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-white/58 sm:text-base">
-                  {description}
-                </p>
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-white/58 sm:text-base">{description}</p>
               </div>
-              {action ? <div className="shrink-0">{action}</div> : null}
+              <div className="flex shrink-0 flex-wrap items-center gap-3">
+                {action}
+                <InterfaceModeToggle compact />
+                <div className="hidden items-center gap-2 lg:flex">
+                  <Link
+                    to="/notifications"
+                    aria-label="Ouvrir les notifications"
+                    className="relative rounded-2xl border border-white/[0.10] bg-black/25 p-3 text-white/70 transition hover:text-white"
+                  >
+                    <Bell className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    to="/support"
+                    aria-label="Ouvrir le support"
+                    className="rounded-2xl border border-white/[0.10] bg-black/25 p-3 text-white/70 transition hover:text-white"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    to="/profile"
+                    aria-label="Ouvrir le profil"
+                    className="rounded-2xl border border-white/[0.10] bg-black/25 p-3 text-white/70 transition hover:text-white"
+                  >
+                    <UserCircle className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
             </div>
           ) : null}
 
@@ -159,13 +196,8 @@ export function V2PageShell({
         </div>
       </main>
 
-      <Link
-        to="/"
-        className="fixed bottom-4 right-4 z-40 hidden items-center gap-2 rounded-full border border-white/[0.08] bg-black/60 px-4 py-2 text-xs text-white/55 backdrop-blur-xl transition hover:text-white sm:flex"
-      >
-        <LogOut className="h-3.5 w-3.5 rotate-180" />
-        Landing
-      </Link>
+      <div className="pointer-events-none fixed bottom-0 right-0 -z-10 h-72 w-72 rounded-full bg-[#F5C542]/[0.06] blur-3xl" />
+      <GeneralAIFloatingAssistant />
     </div>
   );
 }

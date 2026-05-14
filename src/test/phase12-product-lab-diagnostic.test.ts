@@ -1,0 +1,79 @@
+import fs from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+import { getProductLabScheduleInfo, getProductLabReviewLimits } from "../../scripts/product-lab-core.mjs";
+import { redactProductLabText } from "../../scripts/product-lab-governance.mjs";
+
+const readProjectFile = (relativePath: string) => fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+
+describe("Phase 12 Product Lab diagnostics", () => {
+  it("documents the UTC cron required for midnight Europe/Paris", () => {
+    const summer = getProductLabScheduleInfo(new Date("2026-05-14T12:00:00.000Z"));
+    const winter = getProductLabScheduleInfo(new Date("2026-01-14T12:00:00.000Z"));
+
+    expect(summer.targetLocalTime).toBe("00:00 Europe/Paris");
+    expect(summer.activeMidnightUtcLabel).toBe("22:00 UTC");
+    expect(winter.activeMidnightUtcLabel).toBe("23:00 UTC");
+    expect(summer.configuredCronsUtc).toContain("0 22 * * *");
+    expect(winter.configuredCronsUtc).toContain("0 23 * * *");
+  });
+
+  it("keeps proposal volume configurable but capped for the admin queue", () => {
+    const previous = process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS;
+    process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS = "3";
+
+    expect(getProductLabReviewLimits()).toEqual({ min: 3, max: 3 });
+
+    if (previous === undefined) {
+      delete process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS;
+    } else {
+      process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS = previous;
+    }
+  });
+
+  it("exposes manual Product Lab controls and blocks Supabase writes in dry-run mode", () => {
+    const workflow = readProjectFile(".github/workflows/product-lab-nightly.yml");
+
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("dryRun:");
+    expect(workflow).toContain("forceGenerate:");
+    expect(workflow).toContain("maxProposals:");
+    expect(workflow).toContain("mode:");
+    expect(workflow).toContain("Resolve Product Lab mode");
+    expect(workflow).toContain("steps.run_mode.outputs.dry_run != 'true'");
+    expect(workflow).toContain("npm run product-lab:run-status:record");
+    expect(readProjectFile("package.json")).toContain('"product-lab:diagnostic"');
+  });
+
+  it("prepares Product Lab run observability tables with RLS and explicit grants", () => {
+    const migration = readProjectFile("supabase/migrations/20260514063000_phase12_product_lab_runs_observability.sql");
+
+    expect(migration).toContain("create table if not exists public.product_lab_runs");
+    expect(migration).toContain("create table if not exists public.product_lab_reports");
+    expect(migration).toContain("create table if not exists public.product_lab_v1_runs");
+    expect(migration).toContain("alter table public.product_lab_runs enable row level security");
+    expect(migration).toContain("revoke all on table");
+    expect(migration).toContain("from anon");
+    expect(migration).toContain("grant select on table");
+    expect(migration).toContain("to authenticated");
+    expect(migration).toContain("grant all on table");
+    expect(migration).toContain("to service_role");
+  });
+
+  it("keeps the local diagnostic non-destructive and redacted", () => {
+    const diagnostic = readProjectFile("scripts/product-lab-diagnostic.mjs");
+
+    expect(diagnostic).toContain("Clarifier l'etat vide Product Lab dans l'admin");
+    expect(diagnostic).toContain("forceGenerate");
+    expect(diagnostic).toContain("redactProductLabObject");
+    expect(diagnostic).not.toContain("gh pr merge");
+    expect(diagnostic).not.toContain("create-pull-request");
+  });
+
+  it("redacts real secrets without redacting run dates or report paths", () => {
+    const redacted = redactProductLabText("reports/product-lab/diagnostics/phase12-2026-05-14.md token=sk_live_1234567890abcdef");
+
+    expect(redacted).toContain("phase12-2026-05-14.md");
+    expect(redacted).not.toContain("sk_live_1234567890abcdef");
+  });
+});

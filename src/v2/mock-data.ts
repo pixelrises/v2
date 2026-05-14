@@ -110,11 +110,26 @@ export type AnalyticsEventName =
   | "lead_created"
   | "checkout_start"
   | "publish_site"
+  | "site_generated"
+  | "site_improved"
+  | "site_published"
+  | "version_created"
+  | "builder_opened"
+  | "ai_space_opened"
   | "integration_connected"
+  | "integration_failed"
   | "agent_created"
+  | "agent_tested"
+  | "automation_created"
+  | "automation_run"
   | "game_created"
   | "generation_completed"
-  | "project_improved";
+  | "project_created"
+  | "project_improved"
+  | "export_requested"
+  | "publish_requested"
+  | "error_occurred"
+  | "dashboard_mode_changed";
 
 export const analyticsEvents: AnalyticsEventName[] = [
   "page_view",
@@ -123,11 +138,26 @@ export const analyticsEvents: AnalyticsEventName[] = [
   "lead_created",
   "checkout_start",
   "publish_site",
+  "site_generated",
+  "site_improved",
+  "site_published",
+  "version_created",
+  "builder_opened",
+  "ai_space_opened",
   "integration_connected",
+  "integration_failed",
   "agent_created",
+  "agent_tested",
+  "automation_created",
+  "automation_run",
   "game_created",
   "generation_completed",
+  "project_created",
   "project_improved",
+  "export_requested",
+  "publish_requested",
+  "error_occurred",
+  "dashboard_mode_changed",
 ];
 
 export const businessScoreDimensions: BusinessScoreDimension[] = [

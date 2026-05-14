@@ -40,6 +40,7 @@ import { buildAuthRoute, getCurrentRelativeUrl } from "@/lib/auth-redirect";
 import { getReadableErrorMessage, reportFrontendError } from "@/lib/monitoring";
 import { PUBLIC_ENV } from "@/lib/public-env";
 import { sanitizeTextDeep } from "@/lib/text-sanitize";
+import { buildUsagePreview } from "@/lib/billing";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import pixelrisesLogo from "@/assets/pixelrises-logo.png";
 
@@ -100,8 +101,18 @@ type SidebarFeatureItem = {
   href?: string;
 };
 
-const GENERATION_COST = 3;
-const OPTIMIZATION_COST = 5;
+const GENERATION_COST = buildUsagePreview({
+  balance: 999,
+  actionType: "site_generation",
+  planKey: "pro",
+  qualityMode: "standard",
+}).credits;
+const OPTIMIZATION_COST = buildUsagePreview({
+  balance: 999,
+  actionType: "site_section_improve",
+  planKey: "pro",
+  qualityMode: "standard",
+}).credits;
 const STYLES = ["Moderne", "Minimaliste", "Premium", "\u00c9l\u00e9gant", "Dynamique"];
 const POSITIONINGS = ["Accessible", "Professionnel", "Premium"];
 const OBJECTIVES = [
@@ -1497,6 +1508,22 @@ const PixelrisesAI = () => {
       return false;
     }
 
+    const confirmed = window.confirm(
+      `Cette action utilise ${GENERATION_COST} crédits. Solde après génération : ${Math.max(
+        credits - GENERATION_COST,
+        0,
+      )} crédit(s). Confirmer ?`,
+    );
+
+    if (!confirmed) {
+      return false;
+    }
+
+    const requestId =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
     setForm(workingForm);
     setStep("loading");
     setGenerationAlert(null);
@@ -1527,6 +1554,7 @@ const PixelrisesAI = () => {
           body: JSON.stringify({
             form: {
               ...workingForm,
+              requestId,
               regenerate,
               variationSeed: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
               enhancers: selectedBriefEnhancerInstructions,
@@ -1729,8 +1757,8 @@ const PixelrisesAI = () => {
             </div>
             <h1 className="text-2xl font-semibold text-white">Service indisponible</h1>
             <p className="mt-3 text-sm leading-7 text-[#9CA3AF]">
-              Le générateur a besoin d'une configuration Supabase valide. Vérifiez vos
-              variables publiques avant de continuer.
+              La création réelle doit être activée avant de continuer. Réessayez plus
+              tard ou contactez le support si le problème persiste.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Button asChild className="rounded-2xl">

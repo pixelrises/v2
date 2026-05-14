@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-05-14T05:30:11.892Z",
+  "source": "local",
+  "mode": "dryRun",
+  "dryRun": true,
+  "forceGenerate": true,
+  "workflow": {
+    "exists": true,
+    "hasSummerCron": true,
+    "hasWinterCron": true,
+    "hasWorkflowDispatch": true,
+    "hasDryRunInput": true,
+    "hasForceGenerateInput": true,
+    "hasMaxProposalsInput": true,
+    "hasModeInput": true,
+    "hasSupabasePush": true,
+    "hasRunStatusSync": true,
+    "hasAutoMergeGuard": true
+  },
+  "schedule": {
+    "timezone": "Europe/Paris",
+    "targetLocalTime": "00:00 Europe/Paris",
+    "configuredCronsUtc": [
+      "0 22 * * *",
+      "0 23 * * *"
+    ],
+    "activeMidnightUtcHour": 22,
+    "activeMidnightUtcLabel": "22:00 UTC",
+    "currentParisHour": 7,
+    "currentUtcHour": 5,
+    "offsetHours": 2,
+    "note": "GitHub Actions schedules are evaluated in UTC and can be delayed by the platform queue."
+  },
+  "env": {
+    "VITE_SUPABASE_URL": true,
+    "SUPABASE_SERVICE_ROLE_KEY": false,
+    "AI_GATEWAY_API_KEY": true,
+    "GITHUB_TOKEN": false
+  },
+  "supabase": {
+    "reviewItems": true,
+    "decisions": true,
+    "prStatus": true,
+    "runs": true,
+    "reports": true,
+    "rls": true,
+    "grants": true,
+    "anonRevoked": true
+  },
+  "result": {
+    "date": "2026-05-14",
+    "theme": "audit-roadmap",
+    "reportPath": "reports/product-lab/daily/daily-2026-05-14.md",
+    "queuePath": "public/product-lab-review.json",
+    "proposalsGenerated": 8,
+    "testProposalId": "2026-05-14-phase12-product-lab-diagnostic-test",
+    "approvedFindings": 0,
+    "appliedImprovements": 0
+  },
+  "blockers": [
+    "SUPABASE_SERVICE_ROLE_KEY non present localement"
+  ]
+}
