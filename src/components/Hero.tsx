@@ -8,6 +8,7 @@ import {
   Star,
   Briefcase,
   Globe,
+  LogOut,
   User,
 } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -142,6 +143,12 @@ const Hero = () => {
     navigate(isLoggedIn ? "/dashboard" : "/auth");
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setIsLoggedIn(false);
+    navigate("/", { replace: true });
+  };
+
   return (
     <section
       ref={sectionRef}
@@ -199,6 +206,17 @@ const Hero = () => {
                 <User className="h-3.5 w-3.5 text-primary" />
                 {isFr ? "Mon espace" : "My space"}
               </button>
+
+              {isLoggedIn && (
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-muted-foreground transition-all hover:border-primary/30 hover:bg-primary/10 hover:text-primary sm:text-sm"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  {isFr ? "Deconnexion" : "Sign out"}
+                </button>
+              )}
             </div>
           </div>
 

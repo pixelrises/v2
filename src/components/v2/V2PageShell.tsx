@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
   Bot,
@@ -10,7 +10,9 @@ import {
   FolderKanban,
   Gamepad2,
   HelpCircle,
+  Home,
   LayoutDashboard,
+  LogOut,
   MessagesSquare,
   PlusCircle,
   Settings,
@@ -21,6 +23,7 @@ import {
 import { GeneralAIFloatingAssistant } from "@/components/GeneralAIFloatingAssistant";
 import { InterfaceModeToggle } from "@/components/v2/InterfaceModeToggle";
 import pixelrisesLogo from "@/assets/pixelrises-logo.png";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -57,6 +60,12 @@ export function V2PageShell({
   hideHeader = false,
 }: V2PageShellProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/", { replace: true });
+  };
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#030303] text-white">
@@ -105,6 +114,23 @@ export function V2PageShell({
 
         <div className="absolute inset-x-4 bottom-5 space-y-4">
           <InterfaceModeToggle />
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              to="/"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/[0.10] bg-white/[0.035] px-3 py-2.5 text-xs font-semibold text-white/70 transition hover:border-[#F5C542]/25 hover:text-[#F5C542]"
+            >
+              <Home className="h-4 w-4" />
+              Accueil
+            </Link>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/[0.10] bg-white/[0.035] px-3 py-2.5 text-xs font-semibold text-white/70 transition hover:border-[#F5C542]/25 hover:text-[#F5C542]"
+            >
+              <LogOut className="h-4 w-4" />
+              Deconnexion
+            </button>
+          </div>
           <Link to="/profile" className="flex items-center gap-3 rounded-[18px] border border-white/[0.10] bg-white/[0.035] p-4 transition hover:border-[#F5C542]/25">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5C542] text-sm font-bold text-black">
               P
@@ -124,12 +150,29 @@ export function V2PageShell({
             <img src={pixelrisesLogo} alt="Pixelrises" className="h-9 w-9 rounded-xl object-contain" />
             <span className="text-sm font-semibold">Pixelrises V2</span>
           </Link>
-          <Link
-            to="/create"
-            className="rounded-full border border-[#F5C542]/20 bg-[#F5C542]/10 px-3 py-1.5 text-xs font-semibold text-[#F5C542]"
-          >
-            Créer
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/"
+              aria-label="Retour a l'accueil"
+              className="rounded-full border border-white/[0.10] bg-white/[0.035] p-2 text-white/70"
+            >
+              <Home className="h-4 w-4" />
+            </Link>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              aria-label="Deconnexion"
+              className="rounded-full border border-white/[0.10] bg-white/[0.035] p-2 text-white/70"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+            <Link
+              to="/create"
+              className="rounded-full border border-[#F5C542]/20 bg-[#F5C542]/10 px-3 py-1.5 text-xs font-semibold text-[#F5C542]"
+            >
+              Créer
+            </Link>
+          </div>
         </div>
         <nav className="flex gap-2 overflow-x-auto px-4 pb-3">
           {navigation.map((item) => (
@@ -166,6 +209,21 @@ export function V2PageShell({
                 {action}
                 <InterfaceModeToggle compact />
                 <div className="hidden items-center gap-2 lg:flex">
+                  <Link
+                    to="/"
+                    aria-label="Retour a l'accueil"
+                    className="rounded-2xl border border-white/[0.10] bg-black/25 p-3 text-white/70 transition hover:text-white"
+                  >
+                    <Home className="h-4 w-4" />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    aria-label="Deconnexion"
+                    className="rounded-2xl border border-white/[0.10] bg-black/25 p-3 text-white/70 transition hover:text-white"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
                   <Link
                     to="/notifications"
                     aria-label="Ouvrir les notifications"

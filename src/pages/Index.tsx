@@ -1,5 +1,4 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import SocialProof from "@/components/SocialProof";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -7,8 +6,6 @@ import GlobalBg from "@/components/ui/global-bg";
 import HowItWorks from "@/components/HowItWorks";
 import FinalCTA from "@/components/FinalCTA";
 import Hero from "@/components/Hero";
-import { supabase } from "@/integrations/supabase/client";
-import { isPixelrisesAppHostname } from "@/lib/browser-context";
 import { getPublishedSiteSlugFromHostname } from "@/lib/published-site";
 import Preview from "./Preview";
 
@@ -42,70 +39,15 @@ const FloatingButtons = lazy(() => import("@/components/FloatingButtons"));
 const ActivityNotifications = lazy(() => import("@/components/ActivityNotifications"));
 const ExitPopup = lazy(() => import("@/components/ExitPopup"));
 
-const SESSION_CHECK_TIMEOUT_MS = 2500;
-
 const getCurrentHostname = () => (typeof window === "undefined" ? "" : window.location.hostname);
 
-const isAppEntryHostname = () => isPixelrisesAppHostname(getCurrentHostname());
-
-const AppEntryLoading = () => (
-  <div className="min-h-screen bg-[#050505] text-white">
-    <div className="flex min-h-screen items-center justify-center px-6">
-      <div className="rounded-[28px] border border-yellow-400/15 bg-white/[0.03] px-8 py-7 text-center shadow-[0_24px_80px_rgba(0,0,0,0.42)]">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-400/10 text-yellow-300 shadow-[0_0_38px_rgba(250,204,21,0.22)]">
-          <span className="h-3 w-3 animate-pulse rounded-full bg-yellow-300" />
-        </div>
-        <p className="text-sm font-semibold text-white">Ouverture de votre espace Pixelrises</p>
-        <p className="mt-2 text-xs text-white/50">Vérification de votre session...</p>
-      </div>
-    </div>
-  </div>
-);
-
 const Index = () => {
-  const navigate = useNavigate();
   const [showDeferred, setShowDeferred] = useState(false);
   const [isCoarse, setIsCoarse] = useState(true);
   const publishedSiteSlug = getPublishedSiteSlugFromHostname(getCurrentHostname());
-  const shouldCheckAppSession = !publishedSiteSlug && isAppEntryHostname();
-  const [isCheckingAppSession, setIsCheckingAppSession] = useState(shouldCheckAppSession);
 
   useEffect(() => {
-    if (!shouldCheckAppSession) {
-      setIsCheckingAppSession(false);
-      return;
-    }
-
-    let isMounted = true;
-    const timeout = window.setTimeout(() => {
-      if (isMounted) setIsCheckingAppSession(false);
-    }, SESSION_CHECK_TIMEOUT_MS);
-
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        if (!isMounted) return;
-
-        if (data.session?.user) {
-          navigate("/dashboard", { replace: true });
-          return;
-        }
-
-        setIsCheckingAppSession(false);
-      })
-      .catch(() => {
-        if (isMounted) setIsCheckingAppSession(false);
-      })
-      .finally(() => window.clearTimeout(timeout));
-
-    return () => {
-      isMounted = false;
-      window.clearTimeout(timeout);
-    };
-  }, [navigate, shouldCheckAppSession]);
-
-  useEffect(() => {
-    if (publishedSiteSlug || isCheckingAppSession) return;
+    if (publishedSiteSlug) return;
 
     setIsCoarse(window.matchMedia("(pointer: coarse)").matches);
     const idleWindow = window as WindowWithIdleCallbacks;
@@ -122,14 +64,10 @@ const Index = () => {
       }
       window.clearTimeout(id);
     };
-  }, [isCheckingAppSession, publishedSiteSlug]);
+  }, [publishedSiteSlug]);
 
   if (publishedSiteSlug) {
     return <Preview />;
-  }
-
-  if (isCheckingAppSession) {
-    return <AppEntryLoading />;
   }
 
   return (
