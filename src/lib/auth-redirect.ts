@@ -1,5 +1,5 @@
 import { safeLocalStorage } from "@/lib/browser-storage";
-import { PIXELRISES_PUBLIC_APP_URL, isLocalhostHostname } from "@/lib/browser-context";
+import { getRuntimeAppOrigin } from "@/lib/browser-context";
 
 const AUTH_REDIRECT_KEY = "pixelrises.auth.redirect";
 const DEFAULT_AUTH_REDIRECT = "/dashboard";
@@ -50,13 +50,7 @@ export const consumeAuthRedirectTarget = () => {
 };
 
 export const getOAuthRedirectUrl = () => {
-  if (typeof window === "undefined") {
-    return new URL("/auth/callback", PIXELRISES_PUBLIC_APP_URL).toString();
-  }
-
-  if (isLocalhostHostname(window.location.hostname)) {
-    return new URL("/auth/callback", window.location.origin).toString();
-  }
-
-  return new URL("/auth/callback", PIXELRISES_PUBLIC_APP_URL).toString();
+  // Important for Vercel previews/staging: never force OAuth back to pixelrises.fr,
+  // because that domain can still point to another app version.
+  return new URL("/auth/callback", getRuntimeAppOrigin()).toString();
 };
