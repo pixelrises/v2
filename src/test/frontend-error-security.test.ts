@@ -38,4 +38,10 @@ describe("frontend error security", () => {
     expect(mainSource).toContain("textContent = formatError(error)");
     expect(mainSource).not.toContain("overlay.innerHTML");
   });
+
+  it("does not expose stack traces in the client bootstrap overlay", () => {
+    expect(mainSource).toContain("!import.meta.env.DEV");
+    expect(mainSource).toContain("Une erreur est survenue. Réessayez");
+    expect(mainSource).not.toContain("value.stack].filter");
+  });
 });

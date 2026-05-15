@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-15T00:03:26.061Z",
+  "generatedAt": "2026-05-15T14:06:24.246Z",
   "source": "local",
   "mode": "dryRun",
   "dryRun": true,
@@ -26,8 +26,8 @@
     ],
     "activeMidnightUtcHour": 22,
     "activeMidnightUtcLabel": "22:00 UTC",
-    "currentParisHour": 2,
-    "currentUtcHour": 0,
+    "currentParisHour": 16,
+    "currentUtcHour": 14,
     "offsetHours": 2,
     "note": "GitHub Actions schedules are evaluated in UTC and can be delayed by the platform queue."
   },

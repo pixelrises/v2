@@ -4,8 +4,12 @@ import { reportFrontendError } from "./lib/monitoring";
 import { redactSecrets } from "./modules/ai/security/redactSecrets";
 
 const formatError = (value: unknown) => {
+  if (!import.meta.env.DEV) {
+    return "Une erreur est survenue. Réessayez ou contactez le support si le problème continue.";
+  }
+
   if (value instanceof Error) {
-    return redactSecrets([value.name, value.message, value.stack].filter(Boolean).join("\n"));
+    return redactSecrets([value.name, value.message].filter(Boolean).join("\n"));
   }
 
   if (typeof value === "string") {
@@ -43,7 +47,7 @@ const showBootstrapError = (title: string, error: unknown) => {
   heading.style.margin = "0 0 16px";
   heading.textContent = title;
 
-  const details = document.createElement("pre");
+  const details = document.createElement("p");
   details.style.margin = "0";
   details.style.whiteSpace = "pre-wrap";
   details.textContent = formatError(error);
