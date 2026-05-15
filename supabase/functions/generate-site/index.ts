@@ -3074,10 +3074,10 @@ const buildContinuityServiceCards = (
   return services.map((service, index) => {
     const name = repairServiceName(service, index, form, profile);
     const descriptions = [
-      `${name} explique concretement ce que ${form.businessName} propose${cityContext}, pour qui, et pourquoi cela aide ${target} ?  ${action.verb}.`,
+      `${name} precise ce que ${form.businessName} propose${cityContext}, le moment ideal pour en profiter et les informations utiles avant de ${action.verb}.`,
       `${name} met en avant ${proofPhrase} afin de reduire les hesitations avant de ${action.nextStep}.`,
-      `${name} transforme le besoin client en reponse lisible : benefice, modalites, preuve et prochaine etape.`,
-      `${name} donne au visiteur les reperes utiles pour comparer, comprendre la valeur et avancer sans chercher ailleurs.`,
+      `${name} repond au besoin client avec les modalites, les benefices et les elements de confiance visibles avant la reservation.`,
+      `${name} donne au visiteur des reperes concrets pour comparer puis contacter ${form.businessName} sans chercher ailleurs.`,
     ];
 
     return {
@@ -3585,7 +3585,7 @@ const buildEmergencySitePayload = (
     hero: {
       eyebrow: `${form.businessType}${citySuffix}`,
       title: buildNicheHeroTitle(form, profile, action),
-      subtitle: `${form.businessName} aide ${profile.targetAudience.toLowerCase()} avec ${primaryService.toLowerCase()} : une promesse lisible, des preuves concretes et une prochaine etape claire.`,
+      subtitle: `${form.businessName} aide ${profile.targetAudience.toLowerCase()} avec ${primaryService.toLowerCase()} : ambiance, informations pratiques et bouton de reservation visibles des le premier ecran.`,
       promise: `${strategy.promise}. ${proofPhrase} aide ?  ${action.verb} avec plus de confiance.`,
       cta_primary: primaryCta,
       cta_secondary: secondaryCta,
@@ -3623,9 +3623,9 @@ const buildEmergencySitePayload = (
     faq: continuityFaq,
     final_cta: {
       title: form.city
-        ? `${form.businessName} est pret ?  recevoir des demandes qualifiees a ${form.city}`
-        : `${form.businessName} est pret ?  transformer l'interet en action`,
-      subtitle: `Le parcours met en avant ${profile.offer.toLowerCase()}, repond aux objections et guide le client vers "${primaryCta}".`,
+        ? `${form.businessName} vous accueille a ${form.city} pour votre prochaine reservation`
+        : `${form.businessName} vous aide a choisir le bon moment pour reserver`,
+      subtitle: `${profile.offer} met en avant les informations pratiques, les moments forts et le bouton "${primaryCta}" sans detour.`,
       button: primaryCta,
     },
     metadata: {
@@ -5295,15 +5295,16 @@ const autoImproveGeneratedSite = (
     ...userVision.explicitAmbiance,
     userVision.explicitChannel,
   ]).filter(Boolean);
-  const serviceCandidates = unique([
-    ...content.services.map((item) => item.name),
-    ...getCleanServiceList(form.services),
-    ...profile.serviceList,
-    ...buildFallbackServiceNames(form, profile),
-  ])
-    .map(toServiceTitle)
-    .filter(Boolean)
-    .slice(0, 6);
+  const serviceCandidates = unique(
+    unique([
+      ...content.services.map((item) => item.name),
+      ...getCleanServiceList(form.services),
+      ...profile.serviceList,
+      ...buildFallbackServiceNames(form, profile),
+    ])
+      .map(toServiceTitle)
+      .filter(Boolean),
+  ).slice(0, 6);
 
   const seenServiceNames: string[] = [];
   const seenServiceDescriptions: string[] = [];
@@ -5508,7 +5509,7 @@ const autoImproveGeneratedSite = (
     ctaSubtitle:
       content.ctaSubtitle && !isWeakGeneratedCopy(content.ctaSubtitle, 76) && !isPromptLeakageText(content.ctaSubtitle, form)
         ? content.ctaSubtitle
-        : `${form.businessName} met en avant ${profile.offer} avec un parcours simple, des preuves utiles et une prochaine \u00e9tape claire pour ${profile.conversionGoal}.`,
+        : `${form.businessName} met en avant ${profile.offer} avec les informations pratiques, les preuves utiles et un bouton d'action lisible pour ${profile.conversionGoal}.`,
     ctaButton:
       shouldReplaceGeneratedCta(content.ctaButton, form, userVision)
         ? lockedCta
@@ -10071,6 +10072,38 @@ Objectif de variation :
       return scrubbedCandidate;
     };
 
+    const buildValidatedSafeFallbackContent = async () => {
+      const fallbackRaw = buildEmergencySitePayload(form, profile, strategy);
+      const fallbackVisuals = await buildVisualAssets(
+        form,
+        profile,
+        fallbackRaw.visuals,
+        previousVisuals,
+      );
+      const fallbackCandidate = sanitizeTextDeep(
+        normalizeGeneratedSite(fallbackRaw, form, profile, fallbackVisuals, strategy),
+      );
+      const repairedFallback = autoImproveGeneratedSite(
+        fallbackCandidate,
+        form,
+        profile,
+        strategy,
+      );
+
+      const safeFallback = scrubGeneratedContentForPreview(
+        repairedFallback,
+        form,
+        profile,
+        strategy,
+      );
+
+      if (hasUnsafeVisibleGeneratedContent(safeFallback, form)) {
+        throw new Error("Le resultat de secours contient encore un element interne ou bloque.");
+      }
+
+      return safeFallback;
+    };
+
     let generatedContent = await buildGeneratedCandidate(rawGenerated);
     let qualityResult = repairAndValidateGeneratedContent(generatedContent);
     generatedContent = qualityResult.content;
@@ -10147,6 +10180,21 @@ Obligatoire :
         ...requestContext,
         reason: lastQualityError instanceof Error ? lastQualityError.message : String(lastQualityError),
       });
+    }
+
+    if (lastQualityError && !isImprovementRequest) {
+      console.warn("Generated content rejected; using a validated Pixelrises safe fallback.", {
+        ...requestContext,
+        reason: lastQualityError instanceof Error ? lastQualityError.message : String(lastQualityError),
+      });
+
+      try {
+        generatedContent = await buildValidatedSafeFallbackContent();
+        generationMode = "ai_repaired";
+        lastQualityError = null;
+      } catch (fallbackError) {
+        lastQualityError = fallbackError;
+      }
     }
 
     if (lastQualityError) {
