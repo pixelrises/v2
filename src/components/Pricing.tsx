@@ -284,8 +284,8 @@ const Pricing = () => {
 
   const reassurance = [
     isFr ? "Paiement clair, sans tunnel compliqué" : "Clear checkout, no messy funnel",
-    isFr ? "Objectif : publier et convertir, pas complexifier" : "Built to publish and convert, not to complicate",
-    isFr ? "Le plan Pro reste l'offre la plus logique pour la majorité" : "Pro remains the smartest default for most users",
+    isFr ? "Crédits débités uniquement après une action réussie" : "Credits charged only after successful actions",
+    isFr ? "Preview, modifications et publication restent sous votre contrôle" : "Preview, edits and publishing stay under your control",
   ];
 
   return (
@@ -487,11 +487,11 @@ const Pricing = () => {
           <div className="mx-auto mt-8 flex max-w-4xl flex-wrap items-center justify-center gap-3 text-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/65">
               <Star className="h-3.5 w-3.5 text-primary" />
-              {isFr ? "Pro reste l'offre la plus logique pour la majorité" : "Pro remains the smartest default for most users"}
+              {isFr ? "Pro est recommandé si vous voulez itérer sérieusement" : "Pro is recommended when you want to iterate seriously"}
             </span>
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/65">
               <Zap className="h-3.5 w-3.5 text-primary" />
-              {isFr ? "Pixelrises sert à lancer vite, pas à compliquer" : "Pixelrises is built to launch fast, not to complicate"}
+              {isFr ? "Vous pouvez commencer simple, puis upgrader quand le rythme augmente" : "Start simple, then upgrade when your pace increases"}
             </span>
           </div>
         </AnimatedSection>
