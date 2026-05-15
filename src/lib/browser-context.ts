@@ -34,6 +34,12 @@ export const isLocalhostHostname = (hostname: string) =>
   hostname === "0.0.0.0" ||
   hostname.endsWith(".localhost");
 
+export const isPixelrisesAppHostname = (hostname: string) => {
+  const normalized = hostname.trim().toLowerCase();
+
+  return normalized === "v2.pixelrises.fr" || normalized.endsWith(".vercel.app");
+};
+
 export const resolveRuntimeAppOrigin = (origin?: string | null) =>
   getHttpOrigin(origin) ?? getHttpOrigin(PIXELRISES_PUBLIC_APP_URL) ?? PIXELRISES_PUBLIC_APP_URL;
 
