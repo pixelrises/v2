@@ -6,6 +6,7 @@ import {
   calculateCreditCost,
   canPlanUseModel,
   getPlanBudgetConfig,
+  getPlanCreditValueEur,
   isPlanBudgetSafeForAction,
   requiresPremiumModelConfirmation,
   simulateUsageSettlement,
@@ -74,6 +75,9 @@ describe("Phase 10 billing config", () => {
     expect(starter.includedCredits).toBe(80);
     expect(pro.includedCredits).toBe(240);
     expect(business.includedCredits).toBe(850);
+    expect(getPlanCreditValueEur("starter")).toBe(0.2375);
+    expect(getPlanCreditValueEur("pro")).toBe(0.2042);
+    expect(getPlanCreditValueEur("business")).toBe(0.1753);
     expect(starter.monthlyAiBudgetEur).toBeLessThan(starter.monthlyRevenueEur || 0);
     expect(pro.targetGrossMarginRatio).toBeGreaterThanOrEqual(0.75);
     expect(business.dailyAiBudgetEur).toBeLessThanOrEqual(5);

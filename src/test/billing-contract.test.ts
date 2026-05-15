@@ -14,6 +14,7 @@ describe("billing contract", () => {
     const sharedBilling = readProjectFile("supabase/functions/_shared/billing.ts");
     const createCheckout = readProjectFile("supabase/functions/create-checkout/index.ts");
     const stripeWebhook = readProjectFile("supabase/functions/stripe-webhook/index.ts");
+    const adminPage = readProjectFile("src/pages/Admin.tsx");
 
     expect(BILLING_PLANS.find((plan) => plan.key === "starter")?.monthlyCredits).toBe(80);
     expect(BILLING_PLANS.find((plan) => plan.key === "pro")?.monthlyCredits).toBe(240);
@@ -39,6 +40,16 @@ describe("billing contract", () => {
 
     expect(createCheckout).toContain("resolveCheckoutSelection");
     expect(stripeWebhook).toContain("getPlanByPriceId");
+    expect(stripeWebhook).toContain('reason: "subscription_initial_grant"');
+    expect(stripeWebhook).toContain('reason: "subscription_monthly_refill"');
+    expect(stripeWebhook).toContain('existingEvent && existingEvent.status !== "error"');
+    expect(stripeWebhook).toContain("session.payment_status");
+    expect(adminPage).toContain("BILLING_ADMIN_PLAN_KEYS");
+    expect(adminPage).toContain("Prix des credits et recharges mensuelles");
+    expect(adminPage).toContain("Stripe ajoute les credits automatiquement");
+    expect(adminPage).not.toContain('{ key: "starter", label: "Starter", credits: 10 }');
+    expect(adminPage).not.toContain('{ key: "pro", label: "Pro", credits: 25 }');
+    expect(adminPage).not.toContain('{ key: "business", label: "Business", credits: 60 }');
 
     expect(pricingComponent).not.toContain("buy.stripe.com/7sYbJ3dvveF90jJf0ZaZi0q");
     expect(pricingComponent).not.toContain("buy.stripe.com/7sYdRbcrrcx1d6vdWVaZi0r");

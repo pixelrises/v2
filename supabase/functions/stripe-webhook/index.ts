@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
       .or(`id.eq.${event.id},stripe_event_id.eq.${event.id}`)
       .maybeSingle();
 
-    if (existingEvent) {
+    if (existingEvent && existingEvent.status !== "error") {
       return json({ received: true, duplicate: true });
     }
 
@@ -196,6 +196,14 @@ Deno.serve(async (req) => {
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
+      if (session.payment_status && session.payment_status !== "paid") {
+        await recordEvent("skip", {
+          reason: "checkout_not_paid",
+          paymentStatus: session.payment_status,
+        });
+        return json({ received: true, skipped: true });
+      }
+
       const customerId = typeof session.customer === "string" ? session.customer : null;
       const subscriptionId = typeof session.subscription === "string" ? session.subscription : null;
       const customerEmail = session.customer_details?.email || session.customer_email || null;

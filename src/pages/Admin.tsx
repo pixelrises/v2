@@ -28,6 +28,7 @@ import { buildAuthRoute, getCurrentRelativeUrl } from "@/lib/auth-redirect";
 import { tryBootstrapAdmin } from "@/lib/admin-bootstrap";
 import { sanitizeTextDeep } from "@/lib/text-sanitize";
 import { resolvePublishedSiteUrl } from "@/lib/published-site";
+import { BILLING_PLANS, getPlanBudgetConfig, getPlanCreditValueEur, type PlanKey } from "@/lib/billing";
 import { redactSecrets } from "@/modules/ai/security/redactSecrets";
 import {
   exportProductLabDecisions,
@@ -303,9 +304,13 @@ interface ProfileSummaryRow {
 }
 
 interface MonthlyCreditPreset {
-  key: string;
+  key: PlanKey;
   label: string;
   credits: number;
+  priceMonthlyEur: number;
+  creditValueEur: number | null;
+  monthlyAiBudgetEur: number | null;
+  targetGrossMarginRatio: number | null;
 }
 
 interface StripeEventPayload {
@@ -361,11 +366,32 @@ const STATUS_COLORS: Record<string, string> = {
   archived: "bg-muted text-muted-foreground",
 };
 
-const MONTHLY_CREDIT_PRESETS: MonthlyCreditPreset[] = [
-  { key: "starter", label: "Starter", credits: 10 },
-  { key: "pro", label: "Pro", credits: 25 },
-  { key: "business", label: "Business", credits: 60 },
-];
+const BILLING_ADMIN_PLAN_KEYS: PlanKey[] = ["starter", "pro", "business"];
+
+const formatAdminEuro = (value: number | null | undefined, maximumFractionDigits = 2) => {
+  if (value === null || value === undefined) return "-";
+
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits,
+  }).format(value);
+};
+
+const MONTHLY_CREDIT_PRESETS: MonthlyCreditPreset[] = BILLING_ADMIN_PLAN_KEYS.map((planKey) => {
+  const plan = BILLING_PLANS.find((item) => item.key === planKey);
+  const budget = getPlanBudgetConfig(planKey);
+
+  return {
+    key: planKey,
+    label: plan?.name ?? planKey,
+    credits: plan?.monthlyCredits ?? 0,
+    priceMonthlyEur: plan?.priceMonthlyEur ?? 0,
+    creditValueEur: getPlanCreditValueEur(planKey),
+    monthlyAiBudgetEur: budget.monthlyAiBudgetEur,
+    targetGrossMarginRatio: budget.targetGrossMarginRatio,
+  };
+});
 
 const adminBusinessControlPillars = [
   {
@@ -957,15 +983,26 @@ const Admin = () => {
       const sourceType = getMonthlyGrantSourceType(presetKey);
 
       return creditTransactions.some((entry) => {
-        if (entry.user_id !== userId || entry.source_type !== sourceType || entry.delta <= 0) {
+        if (entry.user_id !== userId || entry.delta <= 0) {
           return false;
         }
 
+        const metadataPlan =
+          typeof entry.metadata?.plan === "string"
+            ? entry.metadata.plan
+            : typeof entry.metadata?.plan_key === "string"
+              ? entry.metadata.plan_key
+              : null;
+        const isSamePlan = metadataPlan === presetKey || entry.source_type === sourceType;
+        const isMonthlyCreditSource =
+          entry.source_type === sourceType ||
+          entry.source_type === "stripe_invoice" ||
+          entry.source_type === "stripe_checkout_session";
         const metadataMonth =
           typeof entry.metadata?.month === "string" ? entry.metadata.month : null;
         const createdMonth = entry.created_at.slice(0, 7);
 
-        return metadataMonth === monthKey || createdMonth === monthKey;
+        return isSamePlan && isMonthlyCreditSource && (metadataMonth === monthKey || createdMonth === monthKey);
       });
     },
     [creditTransactions],
@@ -989,7 +1026,7 @@ const Admin = () => {
     const requestKey = `${userId}:${preset.key}:${monthKey}`;
     setMonthlyGrantLoading(requestKey);
 
-    const reason = `Ajout mensuel automatique ${preset.label}`;
+    const reason = `Ajout mensuel admin ${preset.label}`;
     const sourceType = getMonthlyGrantSourceType(preset.key);
     const sourceId = `${userId}:${preset.key}:${monthKey}`;
 
@@ -1005,7 +1042,7 @@ const Admin = () => {
           reason,
           month: monthKey,
           plan: preset.key,
-          automated: true,
+          manual_refill: true,
         },
       });
 
@@ -1032,7 +1069,7 @@ const Admin = () => {
             reason,
             month: monthKey,
             plan: preset.key,
-            automated: true,
+            manual_refill: true,
           },
           created_at: new Date().toISOString(),
           display_name: user.display_name,
@@ -1617,6 +1654,59 @@ const Admin = () => {
 
         {tab === "credits" && (
           <div className="space-y-6">
+            <div className="rounded-3xl border border-border bg-card/80 p-5 shadow-sm">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold">Prix des credits et recharges mensuelles</h2>
+                  <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">
+                    Stripe ajoute les credits automatiquement apres paiement confirme, puis a chaque facture mensuelle payee.
+                    Ces boutons servent uniquement de secours admin idempotent si une verification manuelle est necessaire.
+                  </p>
+                </div>
+                <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
+                  <Link to="/admin/billing">
+                    Voir rentabilite
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                {MONTHLY_CREDIT_PRESETS.map((preset) => (
+                  <div key={preset.key} className="rounded-2xl border border-border bg-background/45 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-semibold">{preset.label}</p>
+                      <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                        {preset.credits} credits / mois
+                      </span>
+                    </div>
+                    <div className="mt-3 grid gap-2 text-xs text-muted-foreground">
+                      <div className="flex justify-between gap-3">
+                        <span>Prix abonnement</span>
+                        <strong className="text-foreground">{formatAdminEuro(preset.priceMonthlyEur, 0)}</strong>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span>Valeur par credit</span>
+                        <strong className="text-foreground">{formatAdminEuro(preset.creditValueEur, 4)}</strong>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span>Budget IA max conseille</span>
+                        <strong className="text-foreground">{formatAdminEuro(preset.monthlyAiBudgetEur, 0)}</strong>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span>Marge cible</span>
+                        <strong className="text-foreground">
+                          {preset.targetGrossMarginRatio === null
+                            ? "-"
+                            : `${Math.round(preset.targetGrossMarginRatio * 100)}%`}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className={tableWrap}>
               <div className="flex flex-col gap-2 border-b border-border px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-sm font-semibold">Gestion des crédits</h2>
