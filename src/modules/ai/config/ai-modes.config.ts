@@ -19,7 +19,7 @@ export const aiModesConfig: Record<AIExecutionMode, AIModeConfig> = {
   qualite: {
     mode: "qualite",
     label: "Qualite",
-    description: "Priorise les providers specialises pour un resultat plus riche.",
+    description: "Priorise les moteurs specialises pour un resultat plus riche.",
     exposeProviders: false,
     costGuard: true,
   },
@@ -40,14 +40,14 @@ export const aiModesConfig: Record<AIExecutionMode, AIModeConfig> = {
   cout_optimise: {
     mode: "cout_optimise",
     label: "Cout optimise",
-    description: "Limite les appels specialises et utilise des fallbacks economiques.",
+    description: "Limite les appels specialises et utilise des secours economiques.",
     exposeProviders: false,
     costGuard: true,
   },
   avance: {
     mode: "avance",
     label: "Avance",
-    description: "Prepare l'affichage futur du routing et des providers selectionnes.",
+    description: "Prepare l'affichage futur des options IA avancees.",
     exposeProviders: true,
     costGuard: true,
   },

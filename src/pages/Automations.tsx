@@ -83,7 +83,7 @@ const panelContent: Record<Exclude<AutomationPanel, "overview">, { title: string
   runs: {
     title: "Runs et validations",
     description: "Suivez les dry runs, les validations nécessaires et les blocages de sécurité avant toute exécution réelle.",
-    items: ["Aucun email réel envoyé", "Actions externes bloquées", "Logs redacted", "Fallback local explicite"],
+    items: ["Aucun email réel envoyé", "Actions externes bloquées", "Logs filtrés", "Secours local explicite"],
     cta: "Voir les derniers logs",
     target: "/automations",
   },
@@ -370,7 +370,7 @@ const Automations = () => {
           <div className="rounded-[30px] border border-white/[0.08] bg-white/[0.035] p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Logs / historique</p>
-              <DataBadge state="mock" label="Fallback local" />
+              <DataBadge state="mock" label="Secours local" />
             </div>
             <div className="mt-4 space-y-3">
               {runLogs.length ? (
