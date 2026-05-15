@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-14T05:30:11.892Z",
+  "generatedAt": "2026-05-15T00:03:26.061Z",
   "source": "local",
   "mode": "dryRun",
   "dryRun": true,
@@ -26,8 +26,8 @@
     ],
     "activeMidnightUtcHour": 22,
     "activeMidnightUtcLabel": "22:00 UTC",
-    "currentParisHour": 7,
-    "currentUtcHour": 5,
+    "currentParisHour": 2,
+    "currentUtcHour": 0,
     "offsetHours": 2,
     "note": "GitHub Actions schedules are evaluated in UTC and can be delayed by the platform queue."
   },
@@ -48,12 +48,12 @@
     "anonRevoked": true
   },
   "result": {
-    "date": "2026-05-14",
+    "date": "2026-05-15",
     "theme": "audit-roadmap",
-    "reportPath": "reports/product-lab/daily/daily-2026-05-14.md",
+    "reportPath": "reports/product-lab/daily/daily-2026-05-15.md",
     "queuePath": "public/product-lab-review.json",
-    "proposalsGenerated": 8,
-    "testProposalId": "2026-05-14-phase12-product-lab-diagnostic-test",
+    "proposalsGenerated": 2,
+    "testProposalId": "2026-05-15-phase12-product-lab-diagnostic-test",
     "approvedFindings": 0,
     "appliedImprovements": 0
   },

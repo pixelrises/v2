@@ -1,5 +1,5 @@
 import { config } from "dotenv";
-import { streamText } from "ai";
+import { createGateway, streamText } from "ai";
 
 config({ path: ".env.local", quiet: true });
 
@@ -21,13 +21,14 @@ const getErrorMessage = (error: unknown) => {
 
 const main = async () => {
   let streamErrorMessage = "";
+  const gateway = createGateway({ apiKey });
 
   console.log("Pixelrises V2 AI Gateway smoke test");
   console.log("Model: openai/gpt-5.4");
   console.log("Streaming response:\n");
 
   const result = streamText({
-    model: "openai/gpt-5.4",
+    model: gateway.languageModel("openai/gpt-5.4"),
     prompt:
       "In two concise paragraphs, explain why Pixelrises V2 should use an AI Gateway for multi-provider routing, cost control, and fallback.",
     providerOptions: {

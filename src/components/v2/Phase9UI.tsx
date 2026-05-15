@@ -6,7 +6,7 @@ import { DataBadge } from "@/components/ui/data-state";
 import type { DataState } from "@/lib/data-state";
 import { cn } from "@/lib/utils";
 
-export const clientDataLabel: Record<DataState, string> = {
+const clientDataLabel: Record<DataState, string> = {
   real: "Données réelles",
   example: "Exemple",
   mock: "Données locales",

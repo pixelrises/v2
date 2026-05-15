@@ -1,0 +1,17 @@
+{
+  "evaluatedAt": "2026-05-15T00:03:51.564Z",
+  "allowed": false,
+  "riskLevel": "low",
+  "autoMergeStatus": "blocked",
+  "blockReason": "aucune validation admin approuvee ; lint/test/build/smoke non valides ; aucune amelioration approuvee appliquee",
+  "touchedSensitiveFiles": [],
+  "changedFiles": [
+    "product-lab/state/phase12-diagnostic.json",
+    "product-lab/state/product-scores.json",
+    "public/product-lab-review.json",
+    "src/components/v2/Phase9UI.tsx",
+    ".codex-tmp/",
+    "reports/product-lab/daily/daily-2026-05-15.md",
+    "reports/product-lab/diagnostics/phase12-2026-05-15.md"
+  ]
+}
