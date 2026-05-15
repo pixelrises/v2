@@ -25,12 +25,12 @@ begin
       create function public.update_updated_at_column()
       returns trigger
       language plpgsql
-      as $$
+      as $body$
       begin
         new.updated_at = now();
         return new;
       end;
-      $$;
+      $body$;
     $function$;
   end if;
 end$$;
@@ -45,14 +45,14 @@ begin
       stable
       security definer
       set search_path = public
-      as $$
+      as $body$
         select exists (
           select 1
           from public.user_roles
           where user_id = _user_id
             and role::text = _role::text
         )
-      $$;
+      $body$;
     $function$;
   end if;
 end$$;
