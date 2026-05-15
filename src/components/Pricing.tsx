@@ -129,21 +129,22 @@ const Pricing = () => {
       badge: isFr ? "Lien public Pixelrises" : "Pixelrises public link",
       volume: isFr ? "80 crédits mensuels" : "80 monthly credits",
       summary: isFr
-        ? "Pour publier vite sur un lien public Pixelrises et valider votre message."
-        : "Publish quickly on a Pixelrises public link and validate your message.",
+        ? "Pour lancer un premier site avec l'IA Pixelrises, tester une idée et publier rapidement sans complexité."
+        : "Launch a first site with Pixelrises AI, test an idea and publish quickly without complexity.",
+      result: isFr ? "80 crédits / mois - idéal pour 1 projet principal" : "80 credits / month - ideal for 1 main project",
       link: getSubscriptionPaymentLink("starter"),
       features: isFr
         ? [
-            "Créer, prévisualiser et publier seul",
-            "Édition manuelle dans le dashboard",
-            "Publication sur un lien public Pixelrises",
-            "Parfait pour tester la qualité",
+            "Créer un site complet avec preview",
+            "Améliorer textes, sections et CTA",
+            "Publier sur un lien Pixelrises",
+            "Historique simple et exports standards",
           ]
         : [
-            "Create, preview and publish on your own",
-            "Manual editing from the dashboard",
-            "Publish on a Pixelrises public link",
-            "Perfect to test quality",
+            "Create a complete site with preview",
+            "Improve copy, sections and CTAs",
+            "Publish on a Pixelrises link",
+            "Simple history and standard exports",
           ],
     },
     {
@@ -152,22 +153,23 @@ const Pricing = () => {
       badge: isFr ? "Offre recommandée" : "Recommended",
       volume: isFr ? "240 crédits mensuels" : "240 monthly credits",
       summary: isFr
-        ? "Le meilleur plan pour itérer, améliorer vos pages et lancer un vrai rythme."
-        : "The best plan to iterate, improve pages and launch a real cadence.",
+        ? "Le plan recommandé pour construire, améliorer et publier régulièrement avec plus de crédits et de modes qualité."
+        : "The recommended plan to build, improve and publish regularly with more credits and quality modes.",
+      result: isFr ? "240 crédits / mois - meilleur équilibre" : "240 credits / month - best balance",
       link: getSubscriptionPaymentLink("pro"),
       featured: true,
       features: isFr
         ? [
-            "Plus de créations et d'optimisations",
-            "Export HTML",
-            "Domaine personnalisé inclus",
-            "Le plan le plus logique pour progresser vite",
+            "Sites, agents et AI Spaces plus réguliers",
+            "Mode Qualité et Premium encadré",
+            "SEO, versions et améliorations avancées",
+            "Export HTML et domaine personnalisé",
           ]
         : [
-            "More creations and optimizations",
-            "HTML export",
-            "Custom domain included",
-            "The smartest plan to move faster",
+            "More regular sites, agents and AI Spaces",
+            "Guarded Quality and Premium modes",
+            "SEO, versions and advanced improvements",
+            "HTML export and custom domain",
           ],
     },
     {
@@ -176,21 +178,22 @@ const Pricing = () => {
       badge: isFr ? "Pour scaler" : "Scale",
       volume: isFr ? "850 crédits mensuels" : "850 monthly credits",
       summary: isFr
-        ? "Pour gérer plusieurs projets avec un rythme intensif et plus d'autonomie."
-        : "For multiple projects with an intensive pace and more autonomy.",
+        ? "Pour une activité qui lance plusieurs projets, produit souvent et veut plus d'autonomie sans perdre le contrôle des coûts."
+        : "For businesses launching several projects, producing often and needing more autonomy without losing cost control.",
+      result: isFr ? "850 crédits / mois - production intensive" : "850 credits / month - intensive production",
       link: getSubscriptionPaymentLink("business"),
       features: isFr
         ? [
-            "Production fréquente",
             "Plusieurs projets en parallèle",
-            "Domaine personnalisé inclus",
-            "Pensé pour ceux qui lancent souvent",
+            "Premium Multi-IA selon les marges",
+            "Quotas élevés et historique étendu",
+            "Support prioritaire et suivi rentabilité",
           ]
         : [
-            "Frequent production",
             "Multiple parallel projects",
-            "Custom domain included",
-            "Made for teams launching often",
+            "Premium Multi-AI with margin guardrails",
+            "Higher quotas and extended history",
+            "Priority support and profitability tracking",
           ],
     },
   ];
