@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import {
   BILLING_PLANS,
+  CREDIT_PACKS,
   buildUsagePreview,
   calculateCreditCost,
   canPlanUseModel,
@@ -78,6 +79,12 @@ describe("Phase 10 billing config", () => {
     expect(getPlanCreditValueEur("starter")).toBe(0.2375);
     expect(getPlanCreditValueEur("pro")).toBe(0.2042);
     expect(getPlanCreditValueEur("business")).toBe(0.1753);
+    expect(CREDIT_PACKS.map((pack) => Number((pack.priceEur / pack.credits).toFixed(3)))).toEqual([
+      0.29,
+      0.263,
+      0.239,
+      0.219,
+    ]);
     expect(starter.monthlyAiBudgetEur).toBeLessThan(starter.monthlyRevenueEur || 0);
     expect(pro.targetGrossMarginRatio).toBeGreaterThanOrEqual(0.75);
     expect(business.dailyAiBudgetEur).toBeLessThanOrEqual(5);

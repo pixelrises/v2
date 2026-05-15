@@ -209,6 +209,7 @@ Deno.serve(async (req) => {
       const customerEmail = session.customer_details?.email || session.customer_email || null;
       const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
       const priceId = lineItems.data[0]?.price?.id || (session.metadata?.price_id as string | undefined) || null;
+      const checkoutKind = session.metadata?.checkout_kind || null;
       const plan =
         getPlanByKey(session.metadata?.plan_key) ||
         getPlanByPriceId(priceId);
@@ -221,6 +222,44 @@ Deno.serve(async (req) => {
       if (!userId) {
         await recordEvent("error", { reason: "user_not_resolved", customerId, priceId }, "user_not_resolved");
         return json({ received: true, warning: "User not resolved" });
+      }
+
+      if (checkoutKind === "credit_pack") {
+        const packKey = session.metadata?.pack_key || null;
+        const credits = Number(session.metadata?.credit_amount || 0);
+
+        if (!priceId || !packKey || !Number.isFinite(credits) || credits <= 0) {
+          await recordEvent("skip", {
+            reason: "credit_pack_metadata_invalid",
+            priceId,
+            userId,
+            packKey,
+          });
+          return json({ received: true, skipped: true });
+        }
+
+        const grantResult = await grantCredits({
+          userId,
+          credits,
+          sourceType: "stripe_credit_pack_purchase",
+          sourceId: session.id,
+          metadata: {
+            pack_key: packKey,
+            price_id: priceId,
+            resolved_via: via,
+            reason: "credit_pack_purchase",
+          },
+        });
+
+        await recordEvent("ok", {
+          userId,
+          packKey,
+          priceId,
+          creditsAdded: credits,
+          duplicateGrant: Boolean(grantResult?.duplicate),
+        });
+
+        return json({ received: true });
       }
 
       if (!priceId || !plan?.monthlyCredits) {

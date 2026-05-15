@@ -198,6 +198,14 @@ const formatPlanPrice = (price: number | null) => {
   return `${price} EUR / mois`;
 };
 
+const formatOneTimePrice = (price: number) => `${price} EUR`;
+
+const formatCreditUnitPrice = (price: number, credits: number) =>
+  `${(price / credits).toLocaleString("fr-FR", {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  })} EUR / credit`;
+
 const statusLabel = (status: string) => {
   const map: Record<string, string> = {
     active: "Actif",
@@ -312,7 +320,7 @@ const useBillingAccount = () => {
 
 const useCheckout = () => {
   const navigate = useNavigate();
-  const [loadingPlan, setLoadingPlan] = useState<PlanKey | null>(null);
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
   const startCheckout = async (planKey: PlanKey) => {
     if (!isSupabaseConfigured) {
@@ -333,7 +341,7 @@ const useCheckout = () => {
       return;
     }
 
-    setLoadingPlan(planKey);
+    setLoadingKey(`plan:${planKey}`);
 
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
@@ -355,11 +363,61 @@ const useCheckout = () => {
         variant: "destructive",
       });
     } finally {
-      setLoadingPlan(null);
+      setLoadingKey(null);
     }
   };
 
-  return { startCheckout, loadingPlan };
+  const startCreditPackCheckout = async (packKey: string) => {
+    if (!isSupabaseConfigured) {
+      toast({
+        title: "Paiement indisponible",
+        description: "La configuration de paiement n'est pas encore active.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      navigate(buildAuthRoute(getCurrentRelativeUrl()), { replace: true });
+      return;
+    }
+
+    setLoadingKey(`pack:${packKey}`);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { packKey, mode: "payment" },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      throw new Error("checkout_url_missing");
+    } catch {
+      toast({
+        title: "Paiement indisponible",
+        description: "Impossible d'ouvrir le paiement pour ce pack. Verifiez les Price IDs Stripe.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingKey(null);
+    }
+  };
+
+  return {
+    startCheckout,
+    startCreditPackCheckout,
+    loadingPlan: loadingKey?.startsWith("plan:") ? (loadingKey.replace("plan:", "") as PlanKey) : null,
+    loadingPack: loadingKey?.startsWith("pack:") ? loadingKey.replace("pack:", "") : null,
+  };
 };
 
 const BillingDataBadge = ({ state }: { state: "real" | "local" | "error" | "empty" }) => {
@@ -441,6 +499,7 @@ export const PricingPage = () => {
 export const BillingPage = () => {
   const [searchParams] = useSearchParams();
   const { loading, wallet, subscription, dataState } = useBillingAccount();
+  const { startCreditPackCheckout, loadingPack } = useCheckout();
   const plan = getPlanByKey(subscription.planKey);
   const [portalLoading, setPortalLoading] = useState(false);
 
@@ -546,13 +605,38 @@ export const BillingPage = () => {
         <P9Panel>
           <h3 className="text-lg font-bold">Packs de credits</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Architecture prete, activation reservee a la validation Phase 11.
+            Credits ponctuels pour continuer a produire sans changer immediatement de plan. Les credits sont ajoutes apres paiement confirme.
           </p>
-          <div className="mt-4 space-y-2">
+          <div className="mt-4 grid gap-3">
             {CREDIT_PACKS.map((pack) => (
-              <div key={pack.key} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.025] p-3">
-                <span className="text-sm font-semibold">{pack.label}</span>
-                <P9Badge tone="soon">Bientot</P9Badge>
+              <div key={pack.key} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold">{pack.label}</span>
+                      <P9Badge tone={pack.status === "active" ? "ready" : "soon"}>
+                        {pack.status === "active" ? "Disponible" : "Bientot"}
+                      </P9Badge>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{pack.description}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black text-white">{formatOneTimePrice(pack.priceEur)}</p>
+                    <p className="mt-1 text-xs text-primary">{pack.credits} credits</p>
+                    <p className="mt-1 text-[11px] text-white/38">
+                      {formatCreditUnitPrice(pack.priceEur, pack.credits)}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  className="mt-3 w-full rounded-2xl"
+                  variant={pack.status === "active" ? "default" : "outline"}
+                  disabled={pack.status !== "active" || loadingPack === pack.key}
+                  onClick={() => void startCreditPackCheckout(pack.key)}
+                >
+                  {loadingPack === pack.key ? "Ouverture..." : "Acheter ce pack"}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </div>
             ))}
           </div>

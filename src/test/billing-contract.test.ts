@@ -31,9 +31,22 @@ describe("billing contract", () => {
     expect(BILLING_PLANS.find((plan) => plan.key === "business")?.stripePaymentLink).toBe(
       "https://buy.stripe.com/28E7sN3UV9kPfeD1a9aZi0A",
     );
-    expect(CREDIT_PACKS.every((pack) => pack.status === "coming_soon")).toBe(true);
+    expect(CREDIT_PACKS.map((pack) => [pack.key, pack.credits, pack.priceEur, pack.status])).toEqual([
+      ["credits_100", 100, 29, "active"],
+      ["credits_300", 300, 79, "active"],
+      ["credits_750", 750, 179, "active"],
+      ["credits_1500", 1500, 329, "active"],
+    ]);
 
-    for (const envName of ["STRIPE_PRICE_STARTER", "STRIPE_PRICE_PRO", "STRIPE_PRICE_BUSINESS"]) {
+    for (const envName of [
+      "STRIPE_PRICE_STARTER",
+      "STRIPE_PRICE_PRO",
+      "STRIPE_PRICE_BUSINESS",
+      "STRIPE_PRICE_CREDITS_100",
+      "STRIPE_PRICE_CREDITS_300",
+      "STRIPE_PRICE_CREDITS_750",
+      "STRIPE_PRICE_CREDITS_1500",
+    ]) {
       expect(billingConfig).toContain(envName);
       expect(sharedBilling).toContain(envName);
     }
@@ -42,6 +55,8 @@ describe("billing contract", () => {
     expect(stripeWebhook).toContain("getPlanByPriceId");
     expect(stripeWebhook).toContain('reason: "subscription_initial_grant"');
     expect(stripeWebhook).toContain('reason: "subscription_monthly_refill"');
+    expect(stripeWebhook).toContain('checkoutKind === "credit_pack"');
+    expect(stripeWebhook).toContain('reason: "credit_pack_purchase"');
     expect(stripeWebhook).toContain('existingEvent && existingEvent.status !== "error"');
     expect(stripeWebhook).toContain("session.payment_status");
     expect(adminPage).toContain("BILLING_ADMIN_PLAN_KEYS");

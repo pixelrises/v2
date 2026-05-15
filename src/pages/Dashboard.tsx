@@ -37,6 +37,7 @@ import { buildAuthRoute, getCurrentRelativeUrl } from "@/lib/auth-redirect";
 import { tryBootstrapAdmin } from "@/lib/admin-bootstrap";
 import { setPaymentReturnIntent, type PaymentReturnIntent } from "@/lib/payment-return-intent";
 import { resolvePublishedSiteUrl } from "@/lib/published-site";
+import { BILLING_PLANS, CREDIT_PACKS } from "@/lib/billing";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import {
   businessScoreDimensions,
@@ -70,11 +71,11 @@ type BillingFocus = "packs" | "subscriptions";
 type DashboardMode = "guided" | "cockpit";
 
 type BillingOffer = {
+  key: string;
   name: string;
   priceLabel: string;
   creditsLabel: string;
   description: string;
-  priceId: string;
   mode: "payment" | "subscription";
   recommended?: boolean;
 };
@@ -92,61 +93,27 @@ const persistDashboardMode = (mode: DashboardMode) => {
   window.localStorage.setItem(DASHBOARD_MODE_STORAGE_KEY, mode);
 };
 
-const creditPacks: BillingOffer[] = [
-  {
-    name: "Pack Starter",
-    priceLabel: "13 €/paiement",
-    creditsLabel: "10 crédits",
-    description: "Tester, générer et améliorer une première présence.",
-    priceId: "price_1TOQD8Ro0fDYDUP3kzJA5CrL",
-    mode: "payment",
-  },
-  {
-    name: "Pack Pro",
-    priceLabel: "25 €/paiement",
-    creditsLabel: "25 crédits",
-    description: "Créer plusieurs variations et optimiser sans friction.",
-    priceId: "price_1TOQEIRo0fDYDUP3gOijNdUZ",
-    mode: "payment",
-    recommended: true,
-  },
-  {
-    name: "Pack Business",
-    priceLabel: "49 €/paiement",
-    creditsLabel: "60 crédits",
-    description: "Volume confortable pour production régulière.",
-    priceId: "price_1TOQEwRo0fDYDUP3BrzOoPEM",
-    mode: "payment",
-  },
-];
+const creditPacks: BillingOffer[] = CREDIT_PACKS.map((pack) => ({
+  key: pack.key,
+  name: `Pack ${pack.label}`,
+  priceLabel: `${pack.priceEur} EUR`,
+  creditsLabel: `${pack.credits} crédits`,
+  description: pack.description,
+  mode: "payment",
+  recommended: pack.key === "credits_300",
+}));
 
-const subscriptionOffers: BillingOffer[] = [
-  {
-    name: "Starter",
-    priceLabel: "13 €/mois",
-    creditsLabel: "10 crédits / mois",
-    description: "Pour lancer proprement un premier rythme.",
-    priceId: "price_1TLA8ARo0fDYDUP3fbZmq3nR",
-    mode: "subscription",
-  },
-  {
-    name: "Pro",
-    priceLabel: "25 €/mois",
-    creditsLabel: "25 crédits / mois",
-    description: "Le meilleur équilibre pour produire régulièrement.",
-    priceId: "price_1TLADZRo0fDYDUP3dk4Rpcfq",
-    mode: "subscription",
-    recommended: true,
-  },
-  {
-    name: "Business",
-    priceLabel: "49 €/mois",
-    creditsLabel: "60 crédits / mois",
-    description: "Pour agences, studios et volumes plus soutenus.",
-    priceId: "price_1TLAEwRo0fDYDUP3zmetuEq5",
-    mode: "subscription",
-  },
-];
+const subscriptionOffers: BillingOffer[] = BILLING_PLANS.filter((plan) =>
+  ["starter", "pro", "business"].includes(plan.key),
+).map((plan) => ({
+  key: plan.key,
+  name: plan.name,
+  priceLabel: `${plan.priceMonthlyEur} EUR/mois`,
+  creditsLabel: `${plan.monthlyCredits} crédits / mois`,
+  description: plan.description,
+  mode: "subscription",
+  recommended: plan.key === "pro",
+}));
 
 const demoSites: GeneratedSite[] = [
   {
@@ -654,7 +621,7 @@ const Dashboard = () => {
   };
 
   const startCheckout = useCallback(
-    async (priceId: string, mode: "payment" | "subscription") => {
+    async (offer: BillingOffer) => {
       if (!isSupabaseConfigured) {
         toast({
           title: "Backend V2 non connecté",
@@ -664,10 +631,10 @@ const Dashboard = () => {
       }
 
       try {
-        setCheckoutLoadingPriceId(priceId);
-        trackV2Event("checkout_start", { priceId, mode });
+        setCheckoutLoadingPriceId(offer.key);
+        trackV2Event("checkout_start", { key: offer.key, mode: offer.mode });
         const { data, error } = await supabase.functions.invoke("create-checkout", {
-          body: { priceId, mode },
+          body: offer.mode === "subscription" ? { planKey: offer.key } : { packKey: offer.key },
         });
 
         if (error) throw error;
@@ -1589,7 +1556,7 @@ const Dashboard = () => {
             <div className="mt-5 grid gap-4 md:grid-cols-3">
               {(billingFocus === "packs" ? creditPacks : subscriptionOffers).map((offer) => (
                 <article
-                  key={offer.priceId}
+                  key={offer.key}
                   className={`rounded-[26px] border p-5 ${
                     offer.recommended
                       ? "border-[#F5C542]/40 bg-[#F5C542]/[0.08]"
@@ -1607,10 +1574,10 @@ const Dashboard = () => {
                   <p className="mt-3 min-h-[72px] text-sm leading-6 text-white/52">{offer.description}</p>
                   <Button
                     className="mt-5 w-full rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]"
-                    disabled={checkoutLoadingPriceId === offer.priceId}
-                    onClick={() => void startCheckout(offer.priceId, offer.mode)}
+                    disabled={checkoutLoadingPriceId === offer.key}
+                    onClick={() => void startCheckout(offer)}
                   >
-                    {checkoutLoadingPriceId === offer.priceId ? "Ouverture..." : "Choisir"}
+                    {checkoutLoadingPriceId === offer.key ? "Ouverture..." : "Choisir"}
                   </Button>
                 </article>
               ))}

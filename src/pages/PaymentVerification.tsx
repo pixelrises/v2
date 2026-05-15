@@ -18,6 +18,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAuthRoute, getCurrentRelativeUrl } from "@/lib/auth-redirect";
 import { tryBootstrapAdmin } from "@/lib/admin-bootstrap";
+import { BILLING_PLANS, CREDIT_PACKS } from "@/lib/billing";
 import { reportFrontendError } from "@/lib/monitoring";
 
 interface StripeEvent {
@@ -34,13 +35,24 @@ interface CreditRow {
   updated_at: string;
 }
 
-const PRICE_LABEL: Record<string, string> = {
-  price_1TOQD8Ro0fDYDUP3kzJA5CrL: "Recharge 10 crédits",
-  price_1TOQEIRo0fDYDUP3gOijNdUZ: "Recharge 25 crédits",
-  price_1TOQEwRo0fDYDUP3BrzOoPEM: "Recharge 60 crédits",
-  price_1TLA8ARo0fDYDUP3fbZmq3nR: "Starter mensuel",
-  price_1TLADZRo0fDYDUP3dk4Rpcfq: "Pro mensuel",
-  price_1TLAEwRo0fDYDUP3zmetuEq5: "Business mensuel",
+const getStripeEventDetails = (event: StripeEvent) =>
+  ((event.payload?.info || event.payload?.details || {}) as Record<string, unknown>);
+
+const getPaymentProductLabel = (details: Record<string, unknown>) => {
+  const packKey = typeof details.packKey === "string" ? details.packKey : typeof details.pack_key === "string" ? details.pack_key : null;
+  const planKey = typeof details.planKey === "string" ? details.planKey : typeof details.plan_key === "string" ? details.plan_key : null;
+
+  if (packKey) {
+    const pack = CREDIT_PACKS.find((item) => item.key === packKey);
+    return pack ? `Pack ${pack.label} - ${pack.credits} crédits` : "Pack crédits";
+  }
+
+  if (planKey) {
+    const plan = BILLING_PLANS.find((item) => item.key === planKey);
+    return plan ? `${plan.name} mensuel` : "Abonnement Pixelrises";
+  }
+
+  return "Produit Pixelrises";
 };
 
 const STATUS_BADGE: Record<string, { label: string; cls: string; Icon: typeof CheckCircle2 }> = {
@@ -158,9 +170,9 @@ const PaymentVerification = () => {
   const duplicates = useMemo(() => {
     const byKey = new Map<string, StripeEvent[]>();
     okEvents.forEach((event) => {
-      const info = event.payload?.info || {};
+      const info = getStripeEventDetails(event);
       const day = String(event.processed_at || "").slice(0, 10);
-      const key = `${info.userId || "unknown"}|${info.priceId || "unknown"}|${day}`;
+      const key = `${info.userId || "unknown"}|${info.packKey || info.pack_key || info.planKey || info.plan_key || "unknown"}|${day}`;
       const current = byKey.get(key) || [];
       current.push(event);
       byKey.set(key, current);
@@ -172,7 +184,7 @@ const PaymentVerification = () => {
     const today = new Date().toISOString().slice(0, 10);
     return okEvents
       .filter((event) => String(event.processed_at).slice(0, 10) === today)
-      .reduce((sum, event) => sum + Number(event.payload?.info?.creditsAdded || 0), 0);
+      .reduce((sum, event) => sum + Number(getStripeEventDetails(event).creditsAdded || 0), 0);
   }, [okEvents]);
 
   if (!authorized) {
@@ -251,10 +263,10 @@ const PaymentVerification = () => {
             </h2>
             <ul className="text-xs space-y-1 text-foreground/80">
               {duplicates.map((group, index) => {
-                const info = group[0]?.payload?.info || {};
+                const info = group[0] ? getStripeEventDetails(group[0]) : {};
                 return (
                   <li key={index} className="font-mono">
-                    user {String(info.userId || "unknown").slice(0, 8)}... · {PRICE_LABEL[info.priceId] || info.priceId || "Produit inconnu"} · <strong className="text-destructive">{group.length}x crédités</strong>
+                    user {String(info.userId || "unknown").slice(0, 8)}... · {getPaymentProductLabel(info)} · <strong className="text-destructive">{group.length}x crédités</strong>
                   </li>
                 );
               })}
@@ -289,7 +301,7 @@ const PaymentVerification = () => {
                 <tbody>
                   {events.map((event) => {
                     const status = event.payload?.status || "skip";
-                    const info = event.payload?.info || {};
+                    const info = getStripeEventDetails(event);
                     const badge = STATUS_BADGE[status] || STATUS_BADGE.skip;
                     const Icon = badge.Icon;
 
@@ -302,7 +314,7 @@ const PaymentVerification = () => {
                           </Badge>
                         </td>
                         <td className="px-4 py-2.5 text-xs font-mono text-muted-foreground">{event.type}</td>
-                        <td className="px-4 py-2.5 text-xs">{PRICE_LABEL[info.priceId] || "—"}</td>
+                        <td className="px-4 py-2.5 text-xs">{getPaymentProductLabel(info)}</td>
                         <td className="px-4 py-2.5 text-xs font-mono text-muted-foreground">{info.userId ? `${String(info.userId).slice(0, 8)}...` : "—"}</td>
                         <td className="px-4 py-2.5 text-xs font-semibold">{info.creditsAdded ? `+${info.creditsAdded}` : "—"}</td>
                         <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
