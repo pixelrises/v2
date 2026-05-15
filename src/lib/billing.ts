@@ -52,6 +52,7 @@ export type PlanConfig = {
   description: string;
   priceMonthlyEur: number | null;
   stripePriceEnv?: string;
+  stripePaymentLink?: string;
   monthlyCredits: number | null;
   isRecommended?: boolean;
   isCustom?: boolean;
@@ -205,6 +206,7 @@ export const BILLING_PLANS: PlanConfig[] = [
     description: "Usage leger pour creer et ameliorer un premier projet.",
     priceMonthlyEur: 19,
     stripePriceEnv: "STRIPE_PRICE_STARTER",
+    stripePaymentLink: "https://buy.stripe.com/dRm14p8bb68Dc2rbONaZi0C",
     monthlyCredits: 80,
     isActive: true,
     sortOrder: 1,
@@ -227,6 +229,7 @@ export const BILLING_PLANS: PlanConfig[] = [
     description: "Le meilleur equilibre pour lancer, iterer et convertir.",
     priceMonthlyEur: 49,
     stripePriceEnv: "STRIPE_PRICE_PRO",
+    stripePaymentLink: "https://buy.stripe.com/dRmeVf3UV54zgiHf0ZaZi0B",
     monthlyCredits: 240,
     isRecommended: true,
     isActive: true,
@@ -250,6 +253,7 @@ export const BILLING_PLANS: PlanConfig[] = [
     description: "Usage intensif avec quotas plus hauts et marge protegee.",
     priceMonthlyEur: 149,
     stripePriceEnv: "STRIPE_PRICE_BUSINESS",
+    stripePaymentLink: "https://buy.stripe.com/28E7sN3UV9kPfeD1a9aZi0A",
     monthlyCredits: 850,
     isActive: true,
     sortOrder: 3,

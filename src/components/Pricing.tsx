@@ -14,10 +14,14 @@ import AnimatedSection from "./AnimatedSection";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Sparkles as SparklesParticles } from "@/components/ui/sparkles";
+import { getPlanByKey } from "@/lib/billing";
 import { useTranslation } from "@/i18n/useTranslation";
 import { cn } from "@/lib/utils";
 
 const WHATSAPP_LINK = "https://wa.me/33775256214";
+
+const getSubscriptionPaymentLink = (planKey: "starter" | "pro" | "business") =>
+  getPlanByKey(planKey).stripePaymentLink ?? "/pricing";
 
 type View = "service" | "ai" | "maintenance";
 
@@ -121,13 +125,13 @@ const Pricing = () => {
   const aiPlans: PricingCard[] = [
     {
       name: "Starter",
-      price: "13",
+      price: "19",
       badge: isFr ? "Lien public Pixelrises" : "Pixelrises public link",
       volume: isFr ? "80 crédits mensuels" : "80 monthly credits",
       summary: isFr
         ? "Pour publier vite sur un lien public Pixelrises et valider votre message."
         : "Publish quickly on a Pixelrises public link and validate your message.",
-      link: "/pricing",
+      link: getSubscriptionPaymentLink("starter"),
       features: isFr
         ? [
             "Créer, prévisualiser et publier seul",
@@ -144,13 +148,13 @@ const Pricing = () => {
     },
     {
       name: "Pro",
-      price: "25",
+      price: "49",
       badge: isFr ? "Offre recommandée" : "Recommended",
       volume: isFr ? "240 crédits mensuels" : "240 monthly credits",
       summary: isFr
         ? "Le meilleur plan pour itérer, améliorer vos pages et lancer un vrai rythme."
         : "The best plan to iterate, improve pages and launch a real cadence.",
-      link: "/pricing",
+      link: getSubscriptionPaymentLink("pro"),
       featured: true,
       features: isFr
         ? [
@@ -168,13 +172,13 @@ const Pricing = () => {
     },
     {
       name: "Business",
-      price: "49",
+      price: "149",
       badge: isFr ? "Pour scaler" : "Scale",
       volume: isFr ? "850 crédits mensuels" : "850 monthly credits",
       summary: isFr
         ? "Pour gérer plusieurs projets avec un rythme intensif et plus d'autonomie."
         : "For multiple projects with an intensive pace and more autonomy.",
-      link: "/pricing",
+      link: getSubscriptionPaymentLink("business"),
       features: isFr
         ? [
             "Production fréquente",

@@ -18,6 +18,18 @@ describe("billing contract", () => {
     expect(BILLING_PLANS.find((plan) => plan.key === "starter")?.monthlyCredits).toBe(80);
     expect(BILLING_PLANS.find((plan) => plan.key === "pro")?.monthlyCredits).toBe(240);
     expect(BILLING_PLANS.find((plan) => plan.key === "business")?.monthlyCredits).toBe(850);
+    expect(BILLING_PLANS.find((plan) => plan.key === "starter")?.priceMonthlyEur).toBe(19);
+    expect(BILLING_PLANS.find((plan) => plan.key === "pro")?.priceMonthlyEur).toBe(49);
+    expect(BILLING_PLANS.find((plan) => plan.key === "business")?.priceMonthlyEur).toBe(149);
+    expect(BILLING_PLANS.find((plan) => plan.key === "starter")?.stripePaymentLink).toBe(
+      "https://buy.stripe.com/dRm14p8bb68Dc2rbONaZi0C",
+    );
+    expect(BILLING_PLANS.find((plan) => plan.key === "pro")?.stripePaymentLink).toBe(
+      "https://buy.stripe.com/dRmeVf3UV54zgiHf0ZaZi0B",
+    );
+    expect(BILLING_PLANS.find((plan) => plan.key === "business")?.stripePaymentLink).toBe(
+      "https://buy.stripe.com/28E7sN3UV9kPfeD1a9aZi0A",
+    );
     expect(CREDIT_PACKS.every((pack) => pack.status === "coming_soon")).toBe(true);
 
     for (const envName of ["STRIPE_PRICE_STARTER", "STRIPE_PRICE_PRO", "STRIPE_PRICE_BUSINESS"]) {
