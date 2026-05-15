@@ -198,17 +198,17 @@ const roleForTask = (taskType: AITaskType): AIRole => {
     "strategy_analysis",
     "business_positioning",
     "offer_generation",
+    "site_structure",
     "site_copywriting",
     "site_seo",
     "site_conversion",
+    "site_improvement",
     "agent_prompt",
     "analytics_insights",
   ].includes(taskType)) {
     return "openai";
   }
   if ([
-    "site_structure",
-    "site_improvement",
     "agent_config",
     "agent_permissions",
     "game_design",
@@ -235,7 +235,10 @@ const modelForRole = (role: AIRole) => {
     return readEnv("AI_GATEWAY_CLAUDE_MODEL") || readEnv("AI_GATEWAY_REASONING_MODEL") || "anthropic/claude-3.5-haiku";
   }
   if (role === "cloud-design") {
-    return readEnv("AI_GATEWAY_DESIGN_MODEL") || readEnv("AI_GATEWAY_DESIGN_PREMIUM_MODEL") || "mistral/pixtral-12b";
+    return readEnv("AI_GATEWAY_DESIGN_MODEL") ||
+      readEnv("AI_GATEWAY_CLAUDE_MODEL") ||
+      readEnv("AI_GATEWAY_REASONING_MODEL") ||
+      "anthropic/claude-3.5-haiku";
   }
   if (role === "cloud-code") {
     return readEnv("AI_GATEWAY_CODE_MODEL") || "mistral/codestral";

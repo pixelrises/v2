@@ -48,10 +48,10 @@ export const defaultRoutingRules: Record<AITaskType, AIRoutingRule> = {
   },
   site_structure: {
     taskType: "site_structure",
-    provider: "claude",
+    provider: "openai",
     fallbackProvider: "gemini",
     schema: "site-structure",
-    reason: "Claude gere la logique, la structure et la coherence du site.",
+    reason: "OpenAI gere la logique, la structure, la clarte commerciale et la coherence du site.",
   },
   site_copywriting: {
     taskType: "site_copywriting",
@@ -65,7 +65,7 @@ export const defaultRoutingRules: Record<AITaskType, AIRoutingRule> = {
     provider: "cloud-design",
     fallbackProvider: "gemini",
     schema: "site-design",
-    reason: "Cloud Design gere direction artistique, UI, spacing et coherence visuelle.",
+    reason: "Claude Design gere direction artistique, UI, spacing et coherence visuelle.",
   },
   site_seo: {
     taskType: "site_seo",
@@ -83,10 +83,10 @@ export const defaultRoutingRules: Record<AITaskType, AIRoutingRule> = {
   },
   site_improvement: {
     taskType: "site_improvement",
-    provider: "claude",
+    provider: "openai",
     fallbackProvider: "gemini",
     schema: "site-improvement",
-    reason: "Claude analyse les changements cibles sans regenerer tout le projet.",
+    reason: "OpenAI analyse les changements cibles sans regenerer tout le projet.",
   },
   design_system: {
     taskType: "design_system",

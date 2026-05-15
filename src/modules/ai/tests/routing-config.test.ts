@@ -24,7 +24,8 @@ describe("AI routing config", () => {
     expect(vercelGatewayModelStack.balanced).toBe("openai/gpt-4o-mini");
     expect(vercelGatewayModelStack.generalValue).toBe("meta/llama-3.3-70b");
     expect(vercelGatewayModelStack.reasoning).toBe("anthropic/claude-3.5-haiku");
-    expect(vercelGatewayModelStack.designValue).toBe("mistral/pixtral-12b");
+    expect(vercelGatewayModelStack.designValue).toBe("anthropic/claude-3.5-haiku");
+    expect(vercelGatewayModelStack.visualValue).toBe("mistral/pixtral-12b");
     expect(vercelGatewayModelStack.codeValue).toBe("mistral/codestral");
     expect(vercelGatewayModelStack.safety).toBe("openai/gpt-oss-safeguard-20b");
     expect(vercelGatewayModelStack.embedding).toBe("openai/text-embedding-3-small");
@@ -37,7 +38,9 @@ describe("AI routing config", () => {
   });
 
   it("routes design tasks to Cloud Design", () => {
+    expect(defaultRoutingRules.site_structure.provider).toBe("openai");
     expect(defaultRoutingRules.site_design.provider).toBe("cloud-design");
+    expect(defaultRoutingRules.site_improvement.provider).toBe("openai");
     expect(defaultRoutingRules.design_system.provider).toBe("cloud-design");
   });
 });
