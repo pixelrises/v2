@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "gateway:test": "tsx index.ts",
+    "gateway:quick": "node --env-file=.env.local index.mjs",
     "gateway:image": "tsx image.ts",
     "gateway:models": "tsx gateway-models.ts",
     "product-lab": "node scripts/product-lab.mjs daily --run-checks",
