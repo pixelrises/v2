@@ -40,3 +40,5 @@ vite-dev.pid
 .vercel
 supabase/.temp/
 .env*.local
+tmp/
+.codex-tmp/
