@@ -1,6 +1,16 @@
 export const PIXELRISES_ROOT_DOMAIN = "pixelrises.fr";
 
-const RESERVED_SUBDOMAINS = new Set(["www", "demo", "app", "admin", "auth"]);
+const RESERVED_SUBDOMAINS = new Set([
+  "www",
+  "demo",
+  "app",
+  "admin",
+  "auth",
+  "v2",
+  "staging",
+  "preview",
+  "beta",
+]);
 const BLOCKED_CUSTOM_DOMAIN_SUFFIXES = [
   ".vercel.app",
   ".netlify.app",
