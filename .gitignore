@@ -39,3 +39,4 @@ vite-dev.pid
 
 .vercel
 supabase/.temp/
+.env*.local

@@ -1,13 +1,18 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { config } from "dotenv";
-import { generateText } from "ai";
+import { createGateway, generateText } from "ai";
 
 config({ path: ".env.local", quiet: true });
 
 const model = "google/gemini-3.1-flash-image-preview";
 const outputDir = "generated";
-const apiKey = process.env.AI_GATEWAY_API_KEY?.trim();
+const apiKey = process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_AI_GATEWAY_API_KEY?.trim();
+const oidcToken = process.env.VERCEL_OIDC_TOKEN?.trim();
+
+if (apiKey && !process.env.AI_GATEWAY_API_KEY) {
+  process.env.AI_GATEWAY_API_KEY = apiKey;
+}
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
@@ -22,20 +27,21 @@ const extensionFromMediaType = (mediaType: string) => {
   return extname(mediaType) || ".png";
 };
 
-if (!apiKey || apiKey === "your_vercel_ai_gateway_key_here") {
-  console.error("Missing AI_GATEWAY_API_KEY in .env.local.");
-  console.error("Add your Vercel AI Gateway key, then run: npm run gateway:image");
+if ((!apiKey || apiKey === "your_vercel_ai_gateway_key_here") && !oidcToken) {
+  console.error("Missing AI Gateway auth in .env.local.");
+  console.error("Use either AI_GATEWAY_API_KEY=*** or run: vc env pull .env.local");
   process.exit(1);
 }
 
 const main = async () => {
   const startedAt = Date.now();
+  const gateway = apiKey ? createGateway({ apiKey }) : createGateway();
 
   console.log("Pixelrises V2 AI Gateway image smoke test");
   console.log(`Model: ${model}`);
 
   const result = await generateText({
-    model,
+    model: gateway.languageModel(model),
     prompt:
       "Create a premium dark-gold SaaS hero illustration for Pixelrises V2: an entrepreneur turning one idea into a website, AI agent, and game blueprint. Cinematic, elegant, no text, no watermark.",
     providerOptions: {
