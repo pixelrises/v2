@@ -19,11 +19,15 @@ describe("AI routing config", () => {
   });
 
   it("defines a Vercel Gateway model stack optimized for quality and cost", () => {
-    expect(vercelGatewayModelStack.balanced).toBe("openai/gpt-5.4-mini");
-    expect(vercelGatewayModelStack.wow).toBe("openai/gpt-5.5");
-    expect(vercelGatewayModelStack.reasoning).toBe("anthropic/claude-sonnet-4.6");
-    expect(vercelGatewayModelStack.codeValue).toBe("deepseek/deepseek-v3.1-terminus");
-    expect(vercelGatewayModelStack.embedding).toBe("google/gemini-embedding-2");
+    expect(vercelGatewayModelStack.fast).toBe("mistral/mistral-small");
+    expect(vercelGatewayModelStack.cheapLongContext).toBe("mistral/ministral-8b");
+    expect(vercelGatewayModelStack.balanced).toBe("openai/gpt-4o-mini");
+    expect(vercelGatewayModelStack.generalValue).toBe("meta/llama-3.3-70b");
+    expect(vercelGatewayModelStack.reasoning).toBe("anthropic/claude-3.5-haiku");
+    expect(vercelGatewayModelStack.designValue).toBe("mistral/pixtral-12b");
+    expect(vercelGatewayModelStack.codeValue).toBe("mistral/codestral");
+    expect(vercelGatewayModelStack.safety).toBe("openai/gpt-oss-safeguard-20b");
+    expect(vercelGatewayModelStack.embedding).toBe("openai/text-embedding-3-small");
   });
 
   it("routes code tasks to Cloud Code with safe fallback", () => {

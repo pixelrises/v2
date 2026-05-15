@@ -15,8 +15,11 @@ describe("Supabase Claude provider contract", () => {
     expect(provider).toContain("createVercelGatewayChatCompletion");
     expect(provider).toContain('provider.name === "vercel-gateway"');
     expect(provider).toContain("AI_GATEWAY_FALLBACK_MODELS");
-    expect(provider).toContain("gemini-2\\.5-pro");
-    expect(provider).toContain("openai/gpt-5.4-mini");
+    expect(provider).toContain("openai/gpt-4o-mini");
+    expect(provider).toContain("mistral/mistral-small");
+    expect(provider).toContain("meta/llama-3.3-70b");
+    expect(provider).toContain("anthropic/claude-3.5-haiku");
+    expect(provider).toContain("mistral/codestral");
   });
 
   it("supports OpenAI through server-side Supabase secrets only", () => {

@@ -229,21 +229,21 @@ const roleForTask = (taskType: AITaskType): AIRole => {
 
 const modelForRole = (role: AIRole) => {
   if (role === "openai") {
-    return readEnv("AI_GATEWAY_OPENAI_MODEL") || readEnv("AI_GATEWAY_COPY_MODEL") || readEnv("AI_GATEWAY_MODEL") || "openai/gpt-5.4-mini";
+    return readEnv("AI_GATEWAY_OPENAI_MODEL") || readEnv("AI_GATEWAY_COPY_MODEL") || readEnv("AI_GATEWAY_MODEL") || "openai/gpt-4o-mini";
   }
   if (role === "claude") {
-    return readEnv("AI_GATEWAY_CLAUDE_MODEL") || readEnv("AI_GATEWAY_REASONING_MODEL") || "anthropic/claude-sonnet-4.6";
+    return readEnv("AI_GATEWAY_CLAUDE_MODEL") || readEnv("AI_GATEWAY_REASONING_MODEL") || "anthropic/claude-3.5-haiku";
   }
   if (role === "cloud-design") {
-    return readEnv("AI_GATEWAY_DESIGN_MODEL") || readEnv("AI_GATEWAY_CLAUDE_MODEL") || readEnv("AI_GATEWAY_REASONING_MODEL") || "anthropic/claude-sonnet-4.6";
+    return readEnv("AI_GATEWAY_DESIGN_MODEL") || readEnv("AI_GATEWAY_DESIGN_PREMIUM_MODEL") || "mistral/pixtral-12b";
   }
   if (role === "cloud-code") {
-    return readEnv("AI_GATEWAY_CODE_MODEL") || "deepseek/deepseek-v3.1-terminus";
+    return readEnv("AI_GATEWAY_CODE_MODEL") || "mistral/codestral";
   }
   if (role === "mistral") {
-    return readEnv("AI_GATEWAY_FAST_MODEL") || "mistral/mistral-medium";
+    return readEnv("AI_GATEWAY_FAST_MODEL") || "mistral/mistral-small";
   }
-  return readEnv("AI_GATEWAY_GEMINI_MODEL") || readEnv("AI_GATEWAY_BALANCED_MODEL") || "google/gemini-3-flash";
+  return readEnv("AI_GATEWAY_BALANCED_MODEL") || readEnv("AI_GATEWAY_GEMINI_MODEL") || "meta/llama-3.3-70b";
 };
 
 const taskMaxTokens = (taskType: AITaskType) => {

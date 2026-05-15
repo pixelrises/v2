@@ -7,15 +7,18 @@ const GEMINI_OPENAI_IMAGE_URL =
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const CLAUDE_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
 const VERCEL_AI_GATEWAY_CHAT_URL = "https://ai-gateway.vercel.sh/v1/chat/completions";
-const DEFAULT_OPENAI_MODEL = "gpt-5.4-mini";
-const DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-5";
-const DEFAULT_GATEWAY_MODEL = "openai/gpt-5.4-mini";
-const DEFAULT_GATEWAY_BALANCED_MODEL = "google/gemini-3-flash";
+const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
+const DEFAULT_CLAUDE_MODEL = "claude-3-5-haiku-latest";
+const DEFAULT_GATEWAY_MODEL = "openai/gpt-4o-mini";
+const DEFAULT_GATEWAY_FAST_MODEL = "mistral/mistral-small";
+const DEFAULT_GATEWAY_BALANCED_MODEL = "meta/llama-3.3-70b";
+const DEFAULT_GATEWAY_REASONING_MODEL = "anthropic/claude-3.5-haiku";
+const DEFAULT_GATEWAY_CODE_MODEL = "mistral/codestral";
 const DEFAULT_GATEWAY_FALLBACK_MODELS = [
-  "google/gemini-3-flash",
-  "anthropic/claude-haiku-4.5",
-  "deepseek/deepseek-v3.1-terminus",
-  "mistral/mistral-medium",
+  DEFAULT_GATEWAY_MODEL,
+  DEFAULT_GATEWAY_FAST_MODEL,
+  DEFAULT_GATEWAY_BALANCED_MODEL,
+  DEFAULT_GATEWAY_REASONING_MODEL,
 ];
 
 interface AIProviderConfig {
@@ -74,13 +77,26 @@ const isGatewayModelName = (model: unknown) =>
 
 const normalizeVercelGatewayModelName = (model: unknown) => {
   const configuredModel = readOptionalEnv("AI_GATEWAY_MODEL") || readOptionalEnv("VERCEL_AI_GATEWAY_MODEL");
+  const value = typeof model === "string" ? model.trim() : "";
 
-  if (typeof model === "string" && /gemini-2\.5-flash/i.test(model)) {
+  if (/gpt-5\.4-mini|gpt-5\.5/i.test(value)) {
+    return configuredModel || DEFAULT_GATEWAY_MODEL;
+  }
+
+  if (/gemini-2\.5|gemini-3|gemini/i.test(value)) {
     return readOptionalEnv("AI_GATEWAY_BALANCED_MODEL") || DEFAULT_GATEWAY_BALANCED_MODEL;
   }
 
-  if (typeof model === "string" && /gemini-2\.5-pro/i.test(model)) {
-    return DEFAULT_GATEWAY_MODEL;
+  if (/claude-sonnet-4|claude-haiku-4|claude-opus-4\.7/i.test(value)) {
+    return readOptionalEnv("AI_GATEWAY_CLAUDE_MODEL") ||
+      readOptionalEnv("AI_GATEWAY_REASONING_MODEL") ||
+      DEFAULT_GATEWAY_REASONING_MODEL;
+  }
+
+  if (/deepseek|mistral-medium/i.test(value)) {
+    return readOptionalEnv("AI_GATEWAY_CODE_MODEL") ||
+      readOptionalEnv("AI_GATEWAY_FAST_MODEL") ||
+      DEFAULT_GATEWAY_CODE_MODEL;
   }
 
   if (isGatewayModelName(model)) return String(model);

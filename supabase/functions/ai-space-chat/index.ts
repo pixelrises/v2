@@ -37,12 +37,16 @@ const redactForResponse = (value: unknown) => {
 };
 
 const modelForSpace = (spaceType: AISpaceType) => {
-  if (spaceType === "business") return readEnv("AI_GATEWAY_OPENAI_MODEL") || "openai/gpt-5.4-mini";
-  if (spaceType === "student") return readEnv("AI_GATEWAY_BALANCED_MODEL") || "google/gemini-3-flash";
-  if (spaceType === "management") return readEnv("AI_GATEWAY_FAST_MODEL") || "mistral/mistral-medium";
-  if (spaceType === "enterprise") return readEnv("AI_GATEWAY_CLAUDE_MODEL") || "anthropic/claude-sonnet-4.6";
-  if (spaceType === "creator") return readEnv("AI_GATEWAY_OPENAI_MODEL") || "openai/gpt-5.4-mini";
-  return readEnv("AI_GATEWAY_BALANCED_MODEL") || "google/gemini-3-flash";
+  if (spaceType === "business") return readEnv("AI_GATEWAY_OPENAI_MODEL") || "openai/gpt-4o-mini";
+  if (spaceType === "student") return readEnv("AI_GATEWAY_FAST_MODEL") || "mistral/mistral-small";
+  if (spaceType === "management") {
+    return readEnv("AI_GATEWAY_CHEAP_MODEL") || readEnv("AI_GATEWAY_FAST_MODEL") || "mistral/ministral-8b";
+  }
+  if (spaceType === "enterprise") {
+    return readEnv("AI_GATEWAY_CLAUDE_MODEL") || readEnv("AI_GATEWAY_REASONING_MODEL") || "anthropic/claude-3.5-haiku";
+  }
+  if (spaceType === "creator") return readEnv("AI_GATEWAY_OPENAI_MODEL") || "openai/gpt-4o-mini";
+  return readEnv("AI_GATEWAY_BALANCED_MODEL") || "meta/llama-3.3-70b";
 };
 
 const fallbackAnswer = (spaceName: string, prompt: string) => [
