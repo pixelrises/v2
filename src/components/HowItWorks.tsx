@@ -26,8 +26,8 @@ const HowItWorks = () => {
       number: "03",
       title: isFr ? "Validation et mise en ligne" : "Validation & launch",
       description: isFr
-        ? "Vous validez le rendu, puis nous finalisons la publication sur votre lien public Pixelrises ou votre domaine."
-        : "You validate the result, then we finalize the launch on your Pixelrises public link or your domain.",
+        ? "Vous validez le rendu, puis nous finalisons la publication sur votre sous-domaine Pixelrises ou votre domaine."
+        : "You validate the result, then we finalize the launch on your Pixelrises subdomain or your domain.",
     },
   ];
 

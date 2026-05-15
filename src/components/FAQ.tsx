@@ -17,7 +17,7 @@ const FAQ = () => {
         { question: "L'hébergement est-il obligatoire ?", answer: "Non. Le site vous est livré avec un paiement unique. L'hébergement premium à 29€/mois est facultatif et inclut maintenance, sauvegardes et support prioritaire." },
         { question: "Suis-je obligé de finaliser après le diagnostic ?", answer: "Non. Le diagnostic est là pour vous donner de la clarté. Vous êtes libre de ne pas donner suite. Zéro pression." },
         { question: "Le paiement est-il sécurisé ?", answer: "Oui, tous les paiements transitent par Stripe, leader mondial du paiement en ligne. Vos données bancaires ne passent jamais par nos serveurs." },
-        { question: "Qu'est-ce que le SEO inclut ?", answer: "Balises Title et Meta descriptions optimisées, hiérarchie H1-H2-H3 structurée, URLs propres, indexation Google et performance mobile optimisée." },
+        { question: "Qu'est-ce que le SEO inclus ?", answer: "Balises Title et Meta descriptions optimisées, hiérarchie H1-H2-H3 structurée, URLs propres, indexation Google et performance mobile optimisée." },
         { question: "Et si le résultat ne me convient pas ?", answer: "Nous offrons une garantie satisfait ou remboursé. Nous travaillons avec vous jusqu'à ce que le site vous convienne parfaitement." },
       ]
     : [

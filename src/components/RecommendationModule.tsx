@@ -25,10 +25,8 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AnimatedCounter from "@/components/ui/animated-counter";
-import { buildPixelrisesRootUrl } from "@/lib/published-site";
 
 const WHATSAPP_LINK = "https://wa.me/33775256214";
-const DEMO_URL = "https://demo.pixelrises.fr/";
 
 type ResultMode = "idle" | "real" | "estimate" | "unavailable";
 
@@ -92,8 +90,8 @@ const RecommendationModule = () => {
       question: isFr ? "Quel budget envisagez-vous ?" : "What budget are you considering?",
       key: "budget" as const,
       options: isFr
-        ? ["Moins de 600 €", "Entre 600 € et 1000 €", "Plus de 1000 €"]
-        : ["Under 600 €", "Between 600 € and 1000 €", "More than 1000 €"],
+        ? ["Moins de 600€", "Entre 600€ et 1000€", "Plus de 1000€"]
+        : ["Under 600€", "Between 600€ and 1000€", "More than 1000€"],
     },
   ];
 
@@ -207,19 +205,19 @@ const RecommendationModule = () => {
 
     if (recommendedOffer === "Essentiel") {
       return isFr
-        ? `Avec un budget autour de ${displayBudget} €, la formule Essentiel est la plus logique pour publier une base sérieuse sans partir dans un projet trop lourd.`
-        : `With a budget around ${displayBudget} €, the Essentiel plan is the most logical way to publish a solid first version without going too heavy.`;
+        ? `Avec un budget autour de ${displayBudget}€, la formule Essentiel est la plus logique pour publier une base sérieuse sans partir dans un projet trop lourd.`
+        : `With a budget around ${displayBudget}€, the Essentiel plan is the most logical way to publish a solid first version without going too heavy.`;
     }
 
     if (recommendedOffer === "Professionnel") {
       return isFr
-        ? `Avec un budget autour de ${displayBudget} €, la formule Professionnel offre le meilleur équilibre entre crédibilité, conversion et vitesse de mise en ligne.`
-        : `With a budget around ${displayBudget} €, the Professionnel plan gives the best balance between credibility, conversion and launch speed.`;
+        ? `Avec un budget autour de ${displayBudget}€, la formule Professionnel offre le meilleur équilibre entre crédibilité, conversion et vitesse de mise en ligne.`
+        : `With a budget around ${displayBudget}€, the Professionnel plan gives the best balance between credibility, conversion and launch speed.`;
     }
 
     return isFr
-      ? `Avec un budget supérieur à ${displayBudget === "1000+" ? "1000 €" : `${displayBudget} €`}, la formule Premium est la plus cohérente pour un site plus ambitieux, plus premium et plus différenciant.`
-      : `With a budget above ${displayBudget === "1000+" ? "1000 €" : `${displayBudget} €`}, the Premium plan is the strongest fit for a more ambitious, premium and differentiated website.`;
+      ? `Avec un budget supérieur à ${displayBudget === "1000+" ? "1000€" : `${displayBudget}€`}, la formule Premium est la plus cohérente pour un site plus ambitieux, plus premium et plus différenciant.`
+      : `With a budget above ${displayBudget === "1000+" ? "1000€" : `${displayBudget}€`}, the Premium plan is the strongest fit for a more ambitious, premium and differentiated website.`;
   })();
 
   const next = () => {
@@ -278,7 +276,7 @@ const RecommendationModule = () => {
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 backdrop-blur-sm">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               <span className="text-xs font-semibold uppercase tracking-widest text-primary">
-                {isFr ? "Diagnostic guid\u00E9" : "Guided diagnostic"}
+                {isFr ? "Diagnostic guidé" : "Guided diagnostic"}
               </span>
             </div>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
@@ -577,7 +575,7 @@ const RecommendationModule = () => {
                         {isFr ? "Recommandation Pixelrises" : "Pixelrises recommendation"}
                       </p>
                       <h3 className="text-2xl font-bold">
-                        {recommendedOffer} - {offer.price} €
+                        {recommendedOffer} - {offer.price}€
                       </h3>
                     </div>
                   </div>
@@ -607,7 +605,7 @@ const RecommendationModule = () => {
 
                     <Button asChild size="lg" className="w-full glow-primary">
                       <a href={offer.link} target="_blank" rel="noopener noreferrer">
-                        {isFr ? "Passer \u00E0 l'\u00E9tape suivante" : "Move to the next step"}
+                        {isFr ? "Passer à l'étape suivante" : "Move to the next step"}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </a>
                     </Button>
@@ -621,7 +619,7 @@ const RecommendationModule = () => {
 
                     <div className="grid grid-cols-2 gap-3">
                       <Button asChild variant="ghost" size="sm" className="text-xs">
-                        <a href={DEMO_URL} target="_blank" rel="noopener noreferrer">
+                        <a href="https://demo.pixelrises.fr/" target="_blank" rel="noopener noreferrer">
                           <Eye className="mr-1 h-3.5 w-3.5" />
                           {isFr ? "Voir un exemple" : "See an example"}
                         </a>
@@ -643,6 +641,5 @@ const RecommendationModule = () => {
 };
 
 export default RecommendationModule;
-
 
 

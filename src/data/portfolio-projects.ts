@@ -1,5 +1,3 @@
-import { buildPixelrisesRootUrl } from "@/lib/published-site";
-
 export interface PortfolioProject {
   title: string;
   category: string;
@@ -19,7 +17,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "Luxe Immobilier",
     category: "Immobilier",
-    link: buildPixelrisesRootUrl("/s/luxeimmobilier"),
+    link: "https://luxeimmobilier.pixelrises.fr/",
     image: "/projects/luxeimmobilier.webp",
     description: "Site premium pour une agence immobilière de prestige",
     descriptionEn: "Premium image for a prestigious real estate agency",
@@ -35,7 +33,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "CoachFit",
     category: "Sport",
-    link: buildPixelrisesRootUrl("/s/coachfit"),
+    link: "https://coachfit.pixelrises.fr/",
     image: "/projects/coachfit.webp",
     description: "Site clair pour un coach sportif",
     descriptionEn: "Lead generation for a sports coach",
@@ -51,7 +49,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "Élégance Salon",
     category: "Beauté",
-    link: buildPixelrisesRootUrl("/s/elegant-salon"),
+    link: "https://elegant-salon.pixelrises.fr/",
     image: "/projects/elegant-salon.webp",
     description: "Réservation en ligne pour un salon premium",
     descriptionEn: "Online booking for a premium hair salon",
@@ -66,7 +64,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "Luxe Events",
     category: "Événementiel",
-    link: buildPixelrisesRootUrl("/s/luxe-events"),
+    link: "https://luxe-events.pixelrises.fr/",
     image: "/projects/luxe-events.webp",
     description: "Site haut de gamme pour une agence événementielle",
     descriptionEn: "High-end image for an event agency",
@@ -82,7 +80,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "Voyages Paris",
     category: "Tourisme",
-    link: buildPixelrisesRootUrl("/s/agence-voyage"),
+    link: "https://agence-voyage.pixelrises.fr/",
     image: "/projects/agence-voyage.webp",
     description: "Réservations et devis pour une agence de voyage",
     descriptionEn: "Booking and quotes for a travel agency",
@@ -98,7 +96,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "Agence Marketing",
     category: "Marketing",
-    link: buildPixelrisesRootUrl("/s/agence-marketing"),
+    link: "https://agence-marketing.pixelrises.fr/",
     image: "/projects/agence-marketing.webp",
     description: "Crédibilité et demandes qualifiées pour une agence digitale",
     descriptionEn: "Credibility and leads for a digital agency",
@@ -114,7 +112,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "Paysagiste Paris",
     category: "Services",
-    link: buildPixelrisesRootUrl("/s/paysagiste"),
+    link: "https://paysagiste.pixelrises.fr/",
     image: "/projects/paysagiste.webp",
     description: "Devis et visibilité locale pour un paysagiste professionnel",
     descriptionEn: "Quotes and visibility for a professional landscaper",
@@ -130,7 +128,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "TechStore Paris",
     category: "Tech",
-    link: buildPixelrisesRootUrl("/s/tech"),
+    link: "https://tech.pixelrises.fr/",
     image: "/projects/tech.webp",
     description: "Site lisible pour un magasin informatique",
     descriptionEn: "High-performance site for a computer store",
@@ -146,7 +144,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "DéménagePro",
     category: "Services",
-    link: buildPixelrisesRootUrl("/s/demenagepro"),
+    link: "https://demenagepro.pixelrises.fr/",
     image: "/projects/demenagepro.webp",
     description: "Demandes de devis pour un service de déménagement",
     descriptionEn: "Lead generation for a moving service",
@@ -162,7 +160,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "La Table d'Or",
     category: "Restauration",
-    link: buildPixelrisesRootUrl("/s/restaurant"),
+    link: "https://restaurant.pixelrises.fr/",
     image: "/projects/restaurant.webp",
     description: "Site premium pour un restaurant gastronomique",
     descriptionEn: "Premium image for a gourmet restaurant",
@@ -177,7 +175,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "Studio Photo",
     category: "Créatif",
-    link: buildPixelrisesRootUrl("/s/photographe"),
+    link: "https://photographe.pixelrises.fr/",
     image: "/projects/photographe.webp",
     description: "Portfolio élégant pour un photographe professionnel",
     descriptionEn: "Elegant portfolio for a professional photographer",
@@ -193,7 +191,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "Danse Studio",
     category: "Éducation",
-    link: buildPixelrisesRootUrl("/s/danse-school"),
+    link: "https://danse-school.pixelrises.fr/",
     image: "/projects/danse-school.webp",
     description: "Inscriptions en ligne pour une école de danse",
     descriptionEn: "Online registration for a dance school",
@@ -209,7 +207,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "Dr. Sourire",
     category: "Santé",
-    link: buildPixelrisesRootUrl("/s/caring"),
+    link: "https://caring.pixelrises.fr/",
     image: "/projects/caring.webp",
     description: "Confiance et crédibilité pour un cabinet dentaire",
     descriptionEn: "Trust and credibility for a dental practice",
@@ -225,7 +223,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "Médical",
     category: "Santé",
-    link: buildPixelrisesRootUrl("/s/medical"),
+    link: "https://medical.pixelrises.fr/",
     image: "/projects/medical.webp",
     description: "Positionnement clair et rassurant pour une activité médicale",
     descriptionEn: "Reassuring and clear positioning for a medical activity",
@@ -241,7 +239,7 @@ export const portfolioProjects: PortfolioProject[] = [
   {
     title: "Auto-École Paris",
     category: "Éducation",
-    link: buildPixelrisesRootUrl("/s/auto-ecole"),
+    link: "https://auto-ecole.pixelrises.fr/",
     image: "/projects/auto-ecole.webp",
     description: "Inscriptions et visibilité locale pour une auto-école",
     descriptionEn: "Registration and visibility for a driving school",

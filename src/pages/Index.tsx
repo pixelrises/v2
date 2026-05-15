@@ -71,7 +71,7 @@ const Index = () => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden relative">
       <GlobalBg />
       <div className="relative z-10">
         {!isCoarse && (
@@ -80,8 +80,8 @@ const Index = () => {
           </Suspense>
         )}
         <SEOHead
-          title="Pixelrises | Création de sites web professionnels qui inspirent confiance"
-          description="Créez un site professionnel clair, crédible et pensé pour attirer vos premiers clients. Design premium, mobile-first et prêt à être publié rapidement."
+          title="Pixelrises - Création de site web professionnel | Site qui convertit"
+          description="Créez un site web professionnel qui attire des clients : création rapide en autonomie ou service clé en main. Design premium, mobile-first, SEO optimisé. Dès 490€. Livraison rapide."
           path="/"
           keywords={[
             "création site web",

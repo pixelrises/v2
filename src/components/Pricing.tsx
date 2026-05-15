@@ -43,18 +43,18 @@ const Pricing = () => {
     {
       name: "Essentiel",
       price: "490",
-      badge: isFr ? "Pour d\u00E9marrer vite" : "Fast start",
+      badge: isFr ? "Pour démarrer vite" : "Fast start",
       summary: isFr
-        ? "Une pr\u00E9sence simple, propre et cr\u00E9dible pour mettre l'activit\u00E9 en ligne rapidement."
+        ? "Une présence simple, propre et crédible pour mettre l'activité en ligne rapidement."
         : "A simple, clean and credible presence to launch your business online quickly.",
       result: isFr
-        ? "Id\u00E9al pour une premi\u00E8re version s\u00E9rieuse."
+        ? "Idéal pour une première version sérieuse."
         : "Ideal for a solid first version.",
       link: "https://buy.stripe.com/eVqaEZgHHeF9d6v5qpaZi0k",
       features: isFr
         ? [
             "1 page forte, claire et mobile",
-            "Message business structur\u00E9",
+            "Message business structuré",
             "Contact / devis / prise de rendez-vous",
             "Mise en ligne rapide",
           ]
@@ -68,7 +68,7 @@ const Pricing = () => {
     {
       name: "Professionnel",
       price: "790",
-      badge: isFr ? "Le meilleur \u00E9quilibre" : "Best balance",
+      badge: isFr ? "Le meilleur équilibre" : "Best balance",
       summary: isFr
         ? "L'offre la plus forte pour vendre mieux, rassurer vite et donner une image plus premium."
         : "The strongest package to sell better, build trust faster and feel more premium.",
@@ -79,8 +79,8 @@ const Pricing = () => {
       featured: true,
       features: isFr
         ? [
-            "3 \u00E0 5 pages coh\u00E9rentes",
-            "Structure orient\u00E9e conversion",
+            "3 à 5 pages cohérentes",
+            "Structure orientée conversion",
             "Sections preuve sociale + CTA",
             "Base SEO + image plus haut de gamme",
           ]
@@ -96,18 +96,18 @@ const Pricing = () => {
       price: "1190",
       badge: isFr ? "Positionnement fort" : "Strong positioning",
       summary: isFr
-        ? "Pour un site plus ambitieux, plus premium et plus diff\u00E9renciant."
+        ? "Pour un site plus ambitieux, plus premium et plus différenciant."
         : "For a more ambitious, premium and differentiated website.",
       result: isFr
-        ? "Parfait pour asseoir une image d'autorit\u00E9."
+        ? "Parfait pour asseoir une image d'autorité."
         : "Perfect to build authority.",
       link: "https://buy.stripe.com/bJe00l4YZ9kP3vV1a9aZi0i",
       features: isFr
         ? [
-            "Site sur-mesure plus pouss\u00E9",
-            "Hi\u00E9rarchie visuelle premium",
-            "Exp\u00E9rience plus diff\u00E9renciante",
-            "Base pr\u00EAte \u00E0 scaler ensuite",
+            "Site sur-mesure plus poussé",
+            "Hiérarchie visuelle premium",
+            "Expérience plus différenciante",
+            "Base prête à scaler ensuite",
           ]
         : [
             "More advanced custom website",
@@ -123,17 +123,17 @@ const Pricing = () => {
       name: "Starter",
       price: "13",
       badge: isFr ? "Lien public Pixelrises" : "Pixelrises public link",
-      volume: isFr ? "80 cr\u00E9dits mensuels" : "80 monthly credits",
+      volume: isFr ? "80 crédits mensuels" : "80 monthly credits",
       summary: isFr
         ? "Pour publier vite sur un lien public Pixelrises et valider votre message."
         : "Publish quickly on a Pixelrises public link and validate your message.",
       link: "/pricing",
       features: isFr
         ? [
-            "Cr\u00E9er, pr\u00E9visualiser et publier seul",
-            "\u00C9dition manuelle dans le dashboard",
+            "Créer, prévisualiser et publier seul",
+            "Édition manuelle dans le dashboard",
             "Publication sur un lien public Pixelrises",
-            "Parfait pour tester la qualit\u00E9",
+            "Parfait pour tester la qualité",
           ]
         : [
             "Create, preview and publish on your own",
@@ -145,18 +145,18 @@ const Pricing = () => {
     {
       name: "Pro",
       price: "25",
-      badge: isFr ? "Offre recommand\u00E9e" : "Recommended",
-      volume: isFr ? "240 cr\u00E9dits mensuels" : "240 monthly credits",
+      badge: isFr ? "Offre recommandée" : "Recommended",
+      volume: isFr ? "240 crédits mensuels" : "240 monthly credits",
       summary: isFr
-        ? "Le meilleur plan pour it\u00E9rer, am\u00E9liorer vos pages et lancer un vrai rythme."
+        ? "Le meilleur plan pour itérer, améliorer vos pages et lancer un vrai rythme."
         : "The best plan to iterate, improve pages and launch a real cadence.",
       link: "/pricing",
       featured: true,
       features: isFr
         ? [
-            "Plus de cr\u00E9ations et d'optimisations",
+            "Plus de créations et d'optimisations",
             "Export HTML",
-            "Domaine personnalis\u00E9 inclus",
+            "Domaine personnalisé inclus",
             "Le plan le plus logique pour progresser vite",
           ]
         : [
@@ -170,17 +170,17 @@ const Pricing = () => {
       name: "Business",
       price: "49",
       badge: isFr ? "Pour scaler" : "Scale",
-      volume: isFr ? "850 cr\u00E9dits mensuels" : "850 monthly credits",
+      volume: isFr ? "850 crédits mensuels" : "850 monthly credits",
       summary: isFr
-        ? "Pour g\u00E9rer plusieurs projets avec un rythme intensif et plus d'autonomie."
+        ? "Pour gérer plusieurs projets avec un rythme intensif et plus d'autonomie."
         : "For multiple projects with an intensive pace and more autonomy.",
       link: "/pricing",
       features: isFr
         ? [
-            "Production fr\u00E9quente",
-            "Plusieurs projets en parall\u00E8le",
-            "Domaine personnalis\u00E9 inclus",
-            "Pens\u00E9 pour ceux qui lancent souvent",
+            "Production fréquente",
+            "Plusieurs projets en parallèle",
+            "Domaine personnalisé inclus",
+            "Pensé pour ceux qui lancent souvent",
           ]
         : [
             "Frequent production",
@@ -195,16 +195,16 @@ const Pricing = () => {
     {
       name: isFr ? "Maintenance Premium" : "Premium Maintenance",
       price: "29",
-      subtitle: isFr ? "1 site en d\u00E9l\u00E9gation" : "1 delegated site",
+      subtitle: isFr ? "1 site en délégation" : "1 delegated site",
       summary: isFr
-        ? "Pour garder un site d\u00E9l\u00E9gu\u00E9 stable, rapide et suivi sans friction."
+        ? "Pour garder un site délégué stable, rapide et suivi sans friction."
         : "Keep a delegated site stable, fast and monitored without friction.",
       link: "https://buy.stripe.com/14A3cx8bbdB59Uj9GFaZi08",
       features: isFr
         ? [
-            "Uniquement pour un site r\u00E9alis\u00E9 par d\u00E9l\u00E9gation",
-            "H\u00E9bergement haute performance",
-            "Surveillance et s\u00E9curit\u00E9",
+            "Uniquement pour un site réalisé par délégation",
+            "Hébergement haute performance",
+            "Surveillance et sécurité",
             "Sauvegardes automatiques",
           ]
         : [
@@ -217,15 +217,15 @@ const Pricing = () => {
     {
       name: isFr ? "Maintenance Ultra" : "Ultra Maintenance",
       price: "45",
-      subtitle: isFr ? "2 sites en d\u00E9l\u00E9gation" : "2 delegated sites",
+      subtitle: isFr ? "2 sites en délégation" : "2 delegated sites",
       summary: isFr
-        ? "La solution la plus sereine pour g\u00E9rer plusieurs sites livr\u00E9s par Pixelrises."
+        ? "La solution la plus sereine pour gérer plusieurs sites livrés par Pixelrises."
         : "The calmest way to manage several websites delivered by Pixelrises.",
       link: "https://buy.stripe.com/9B6bJ3bnncx19Uj7yxaZi0h",
       featured: true,
       features: isFr
         ? [
-            "Uniquement pour des sites r\u00E9alis\u00E9s par d\u00E9l\u00E9gation",
+            "Uniquement pour des sites réalisés par délégation",
             "2 sites inclus",
             "Support prioritaire",
             "Optimisation continue",
@@ -240,8 +240,8 @@ const Pricing = () => {
   ];
 
   const tabs = [
-    { key: "service" as const, label: isFr ? "D\u00E9l\u00E9guer" : "Delegation" },
-    { key: "ai" as const, label: isFr ? "Cr\u00E9er seul" : "Self-serve" },
+    { key: "service" as const, label: isFr ? "Déléguer" : "Delegation" },
+    { key: "ai" as const, label: isFr ? "Créer seul" : "Self-serve" },
     { key: "maintenance" as const, label: isFr ? "Maintenance" : "Maintenance" },
   ];
 
@@ -251,34 +251,34 @@ const Pricing = () => {
   const headerCopy = useMemo(() => {
     if (view === "service") {
       return {
-        title: isFr ? "Des offres pens\u00E9es pour vendre vite" : "Plans designed to sell fast",
+        title: isFr ? "Des offres pensées pour vendre vite" : "Plans designed to sell fast",
         text: isFr
-          ? "Choisissez entre d\u00E9l\u00E9guer compl\u00E8tement, avancer seul avec Pixelrises ou s\u00E9curiser l'exploitation de vos sites livr\u00E9s."
+          ? "Choisissez entre déléguer complètement, avancer seul avec Pixelrises ou sécuriser l'exploitation de vos sites livrés."
           : "Choose between full delegation, moving on your own with Pixelrises or securing operations for delivered sites.",
       };
     }
 
     if (view === "ai") {
       return {
-        title: isFr ? "Cr\u00E9er, am\u00E9liorer, publier" : "Create, improve, publish",
+        title: isFr ? "Créer, améliorer, publier" : "Create, improve, publish",
         text: isFr
-          ? "Le mode autonome Pixelrises est fait pour lancer vite, it\u00E9rer et garder un tunnel simple."
+          ? "Le mode autonome Pixelrises est fait pour lancer vite, itérer et garder un tunnel simple."
           : "Pixelrises self-serve mode is built to launch fast, iterate and keep the funnel simple.",
       };
     }
 
     return {
-      title: isFr ? "Maintenance pour les sites d\u00E9l\u00E9gu\u00E9s" : "Maintenance for delegated sites",
+      title: isFr ? "Maintenance pour les sites délégués" : "Maintenance for delegated sites",
       text: isFr
-        ? "Cette maintenance concerne uniquement les sites r\u00E9alis\u00E9s par d\u00E9l\u00E9gation avec Pixelrises."
+        ? "Cette maintenance concerne uniquement les sites réalisés par délégation avec Pixelrises."
         : "This maintenance only applies to websites delivered through Pixelrises delegation.",
     };
   }, [isFr, view]);
 
   const reassurance = [
-    isFr ? "Paiement clair, sans tunnel compliqu\u00E9" : "Clear checkout, no messy funnel",
+    isFr ? "Paiement clair, sans tunnel compliqué" : "Clear checkout, no messy funnel",
     isFr ? "Objectif : publier et convertir, pas complexifier" : "Built to publish and convert, not to complicate",
-    isFr ? "Le plan Pro reste l'offre la plus logique pour la majorit\u00E9" : "Pro remains the smartest default for most users",
+    isFr ? "Le plan Pro reste l'offre la plus logique pour la majorité" : "Pro remains the smartest default for most users",
   ];
 
   return (
@@ -316,7 +316,7 @@ const Pricing = () => {
 
             <p className="mx-auto mt-3 max-w-xl text-xs leading-relaxed text-white/55">
               {isFr
-                ? "Nouveaux comptes : cr\u00E9dits offerts pour tester la qualit\u00E9, la preview et la publication avant de passer en rythme payant."
+                ? "Nouveaux comptes : crédits offerts pour tester la qualité, la preview et la publication avant de passer en rythme payant."
                 : "New accounts: free credits to test quality, preview and publishing before moving into paid usage."}
             </p>
           </div>
@@ -413,7 +413,11 @@ const Pricing = () => {
                     )}
                     variant={card.featured ? "default" : "outline"}
                   >
-                    <a href={card.link} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={card.link}
+                      target={card.link.startsWith("http") ? "_blank" : undefined}
+                      rel={card.link.startsWith("http") ? "noopener noreferrer" : undefined}
+                    >
                       <CreditCard className="mr-2 h-4 w-4" />
                       {isFr ? "Choisir cette offre" : "Choose this plan"}
                     </a>
@@ -480,7 +484,7 @@ const Pricing = () => {
             </span>
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/65">
               <Zap className="h-3.5 w-3.5 text-primary" />
-              {isFr ? "Pixelrises sert \u00E0 lancer vite, pas \u00E0 compliquer" : "Pixelrises is built to launch fast, not to complicate"}
+              {isFr ? "Pixelrises sert à lancer vite, pas à compliquer" : "Pixelrises is built to launch fast, not to complicate"}
             </span>
           </div>
         </AnimatedSection>

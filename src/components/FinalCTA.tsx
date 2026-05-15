@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import AnimatedSection from "./AnimatedSection";
 import { ArrowRight, Shield, Zap, MessageCircle } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
-import { Link } from "react-router-dom";
 
 const WHATSAPP_LINK = "https://api.whatsapp.com/send/?phone=33775256214&text=Bonjour%2C+je+souhaite+creer+un+site+web.";
 
@@ -40,10 +39,10 @@ const FinalCTA = () => {
             </div>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button asChild size="lg" className="glow-primary px-10 py-6 text-base btn-hover-lift">
-                <Link to="/ai">
+                <a href="/ai">
                   {isFr ? "Créer mon site" : "Create my site"}
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                </a>
               </Button>
               <Button asChild size="lg" variant="outline" className="border-border hover:border-primary/40">
                 <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">

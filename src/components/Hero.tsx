@@ -153,7 +153,7 @@ const Hero = () => {
     <section
       ref={sectionRef}
       onMouseMove={handleMouseMove}
-      className="relative overflow-hidden pb-16 pt-20 sm:pb-20 sm:pt-24 lg:pb-28 lg:pt-32"
+      className="relative overflow-hidden pb-20 pt-24 lg:pb-28 lg:pt-32"
     >
       <div ref={spotlightRef} className="pointer-events-none absolute inset-0 -z-10 hidden md:block" />
 
@@ -164,8 +164,8 @@ const Hero = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="mb-6 flex justify-center sm:justify-end">
-            <div className="inline-flex w-full max-w-full flex-wrap items-center justify-center gap-2 rounded-2xl border border-white/10 bg-background/70 px-2 py-2 shadow-[0_20px_60px_-35px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:w-auto sm:justify-end">
+          <div className="mb-6 flex justify-end">
+            <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-background/70 px-2 py-2 shadow-[0_20px_60px_-35px_rgba(0,0,0,0.8)] backdrop-blur-xl">
               <div
                 className="inline-flex items-center rounded-xl border border-border/70 bg-background/70 p-1"
                 role="group"
@@ -214,7 +214,7 @@ const Hero = () => {
                   className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-muted-foreground transition-all hover:border-primary/30 hover:bg-primary/10 hover:text-primary sm:text-sm"
                 >
                   <LogOut className="h-3.5 w-3.5" />
-                  {isFr ? "Deconnexion" : "Sign out"}
+                  {isFr ? "Déconnexion" : "Sign out"}
                 </button>
               )}
             </div>
@@ -226,7 +226,7 @@ const Hero = () => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.15 }}
-                className="inline-flex flex-wrap items-center justify-center gap-3 rounded-full border border-primary/20 bg-card/60 px-3 py-1.5 backdrop-blur-sm"
+                className="inline-flex items-center gap-3 rounded-full border border-primary/20 bg-card/60 px-3 py-1.5 backdrop-blur-sm"
               >
                 <div className="flex -space-x-2">
                   {[
@@ -255,13 +255,13 @@ const Hero = () => {
                     <span className="text-muted-foreground">
                       {" "}
                       · 8 {isFr ? "avis Google vérifiés" : "verified Google reviews"} · +
-                        {siteCount ?? 30} {isFr ? "sites créés" : "sites created"}
+                      {siteCount ?? 30} {isFr ? "sites créés" : "sites created"}
                     </span>
                   </span>
                 </div>
               </motion.div>
 
-              <h1 className="mt-6 flex min-h-[3em] items-center justify-center text-[2rem] font-extrabold leading-[1.02] tracking-tight sm:min-h-[3.2em] sm:text-5xl md:text-6xl lg:text-7xl">
+              <h1 className="mt-6 flex min-h-[3.6em] items-center justify-center text-[2.3rem] font-extrabold leading-[1.04] tracking-tight sm:min-h-[3.2em] sm:text-5xl md:text-6xl lg:text-7xl">
                 <AnimatePresence mode="wait">
                   <motion.span
                     key={headlineIdx}
@@ -335,8 +335,8 @@ const Hero = () => {
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-center text-xs text-muted-foreground sm:text-sm">
-                  <span>{isFr ? "Essai simple" : "Simple start"}</span>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground sm:text-sm">
+                  <span>{isFr ? "✨ Essai simple" : "✨ Simple start"}</span>
                   <span>·</span>
                   <span>{isFr ? "Aucune carte bancaire pour démarrer" : "No card to start"}</span>
                   <span>·</span>

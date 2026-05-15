@@ -47,7 +47,7 @@ const DemoShowcase = () => {
   const deviceTabs: { id: Device; icon: typeof Monitor; label: string }[] = [
     { id: "desktop", icon: Monitor, label: "Desktop" },
     { id: "tablet", icon: Tablet, label: "Tablet" },
-    { id: "mobile", icon: Smartphone, label: "Mobile" },
+    { id: "mobile", icon: Smartphone, label: isFr ? "Mobile" : "Mobile" },
   ];
 
   return (
@@ -135,10 +135,10 @@ const DemoShowcase = () => {
               </div>
 
               <div className="relative flex-1 p-3 sm:p-5">
-                  <div
-                    className="relative mx-auto h-full w-full overflow-hidden rounded-[22px] border border-white/10 bg-background/90 shadow-2xl transition-all duration-500"
-                    style={{ maxWidth: deviceWidths[device] }}
-                  >
+                <div
+                  className="relative mx-auto h-full overflow-hidden rounded-[22px] border border-white/10 bg-background/90 shadow-2xl transition-all duration-500"
+                  style={{ maxWidth: deviceWidths[device] }}
+                >
                   {!iframeLoaded && !iframeFailed && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/85 backdrop-blur-sm">
                       <div className="flex flex-col items-center gap-3">

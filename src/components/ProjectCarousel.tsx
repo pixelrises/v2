@@ -7,7 +7,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { portfolioProjects } from "@/data/portfolio-projects";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const AUTO_ROTATE_MS = 7000;
+const AUTO_ROTATE_MS = 5200;
 
 const ProjectCarousel = () => {
   const { locale } = useTranslation();
@@ -31,10 +31,10 @@ const ProjectCarousel = () => {
   }, [total]);
 
   useEffect(() => {
-    if (isPaused || !isInView || isMobile) return;
+    if (isPaused || !isInView) return;
     const timer = window.setInterval(next, AUTO_ROTATE_MS);
     return () => window.clearInterval(timer);
-  }, [isPaused, isInView, isMobile, next]);
+  }, [isPaused, isInView, next]);
 
   const getOffset = useCallback(
     (index: number) => {
@@ -69,10 +69,10 @@ const ProjectCarousel = () => {
           <div className="landing-section-header">
             <span className="landing-eyebrow">
               <Sparkles className="h-3.5 w-3.5" />
-              Exemples
+              Portfolio
             </span>
             <h2 className="landing-title">
-              {isFr ? "Des sites qui inspirent confiance et convertissent" : "Work that creates real business signals"}
+              {isFr ? "Des realisations qui donnent de vrais signaux business" : "Work that creates real business signals"}
             </h2>
           </div>
         </AnimatedSection>
@@ -82,24 +82,24 @@ const ProjectCarousel = () => {
             <div className="pointer-events-none absolute left-1/2 top-1/2 h-[320px] w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[90px] sm:h-[420px] sm:w-[520px] sm:blur-[120px]" />
 
             <div
-              className="relative flex h-[300px] items-center justify-center sm:h-[460px] lg:h-[620px]"
-              style={{ perspective: isMobile ? "900px" : "1500px" }}
+              className="relative flex h-[390px] items-center justify-center sm:h-[540px] lg:h-[650px]"
+              style={{ perspective: isMobile ? "1100px" : "1600px" }}
             >
               {visibleProjects.map(({ project, index, offset }) => {
                 const abs = Math.abs(offset);
                 const isActive = offset === 0;
-                const x = isMobile ? offset * 110 : offset * 220;
-                const z = isActive ? 0 : -90 - abs * (isMobile ? 40 : 70);
-                const rotateY = offset * (isMobile ? -7 : -14);
+                const x = isMobile ? offset * 135 : offset * 240;
+                const z = isActive ? 0 : -100 - abs * (isMobile ? 55 : 85);
+                const rotateY = offset * (isMobile ? -10 : -16);
                 const scale = isActive ? 1 : 0.89 - abs * 0.07;
                 const opacity = isActive ? 1 : abs === 1 ? 0.62 : 0.28;
-                const blur = isMobile ? 0 : isActive ? 0 : abs === 1 ? 1.5 : 3;
+                const blur = isActive ? 0 : abs === 1 ? 1.5 : 3;
                 const zIndex = 20 - abs;
 
                 return (
                   <motion.div
                     key={project.title}
-                    className="absolute left-1/2 top-1/2 w-[min(100%,280px)] cursor-pointer px-2 sm:w-[430px] sm:px-0 lg:w-[540px]"
+                    className="absolute left-1/2 top-1/2 w-[300px] cursor-pointer sm:w-[450px] lg:w-[560px]"
                     style={{ transformStyle: "preserve-3d", zIndex }}
                     animate={{
                       x: `calc(-50% + ${x}px)`,
@@ -110,7 +110,7 @@ const ProjectCarousel = () => {
                       opacity,
                       filter: `blur(${blur}px)`,
                     }}
-                    transition={{ type: "spring", stiffness: 170, damping: 24, mass: 0.85 }}
+                    transition={{ type: "spring", stiffness: 180, damping: 26, mass: 0.9 }}
                     onClick={() => !isActive && setActiveIdx(index)}
                   >
                     <div
@@ -141,8 +141,7 @@ const ProjectCarousel = () => {
                         <img
                           src={project.image}
                           alt={project.title}
-                          loading={isActive ? "eager" : "lazy"}
-                          decoding="async"
+                          loading="lazy"
                           draggable={false}
                           className={`h-full w-full object-cover object-top transition-transform duration-700 ${
                             isActive ? "scale-[1.01]" : "scale-100"
@@ -173,7 +172,7 @@ const ProjectCarousel = () => {
             <div className="mt-6 flex items-center justify-center gap-3">
               <button
                 onClick={prev}
-                aria-label={isFr ? "Précédent" : "Previous"}
+                aria-label={isFr ? "Precedent" : "Previous"}
                 className="group flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card/85 transition-all hover:border-primary/40 hover:bg-primary/10"
               >
                 <ChevronLeft className="h-5 w-5 text-foreground transition-colors group-hover:text-primary" />
@@ -189,10 +188,10 @@ const ProjectCarousel = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.28 }}
-                  className="group flex w-full max-w-[280px] flex-col items-center gap-1 rounded-full border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/15 px-5 py-3 text-center transition-all hover:border-primary/60 sm:min-w-[220px]"
+                  className="group flex min-w-[220px] flex-col items-center gap-1 rounded-full border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/15 px-5 py-3 transition-all hover:border-primary/60"
                 >
                   <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground transition-colors group-hover:text-primary sm:text-sm">
-                    {isFr ? "Voir le site en ligne" : "View active site"}
+                    {isFr ? "Voir le site actif" : "View active site"}
                     <ExternalLink className="h-3.5 w-3.5" />
                   </span>
                   <span className="text-[10px] text-muted-foreground sm:text-xs">
@@ -229,14 +228,14 @@ const ProjectCarousel = () => {
                         </p>
                       </div>
                       <h3 className="text-lg font-bold sm:text-xl">
-                        {isFr ? `${active.title} transforme mieux les visiteurs` : `${active.title} helps convert better`}
+                        {isFr ? `${active.title} aide a mieux convertir` : `${active.title} helps convert better`}
                       </h3>
                       <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
                         {isFr ? active.impact : active.impactEn}
                       </p>
                     </div>
 
-                    <div className="w-full rounded-2xl border border-primary/15 bg-primary/8 p-4 lg:w-auto lg:min-w-[180px]">
+                    <div className="min-w-[180px] rounded-2xl border border-primary/15 bg-primary/8 p-4">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                         {isFr ? active.resultLabel : active.resultLabelEn}
                       </p>

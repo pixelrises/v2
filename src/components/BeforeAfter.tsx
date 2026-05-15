@@ -15,19 +15,11 @@ const BeforeAfter = () => {
 
   const beforeItems = locale === "en"
     ? ["Visitors leave in seconds", "Low trust, no credibility", "Lost clients to competitors"]
-    : [
-        "Les visiteurs partent en quelques secondes",
-        "Peu de confiance, aucune crédibilité",
-        "Des clients perdus au profit de vos concurrents",
-      ];
+    : ["Les visiteurs partent en quelques secondes", "Peu de confiance, aucune crédibilité", "Des clients perdus au profit de vos concurrents"];
 
   const afterItems = locale === "en"
     ? ["Visitors stay and take action", "Professional image that sells", "A site that works for you 24/7"]
-    : [
-        "Les visiteurs restent et passent à l'action",
-        "Une image professionnelle qui vend",
-        "Un site qui travaille pour vous 24h/24",
-      ];
+    : ["Les visiteurs restent et passent à l'action", "Une image professionnelle qui vend", "Un site qui travaille pour vous 24h/24"];
 
   return (
     <section className="landing-section">
@@ -133,7 +125,7 @@ const BeforeAfter = () => {
                     value={stat.value}
                     prefix={stat.prefix}
                     suffix={stat.suffix}
-                      decimals={stat.decimals ?? 0}
+                    decimals={stat.decimals ?? 0}
                   />
                 </div>
                 <p className="text-[11px] font-medium leading-tight text-muted-foreground sm:text-xs">
