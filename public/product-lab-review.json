@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-15T14:06:24.237Z",
+  "generatedAt": "2026-05-15T20:13:47.920Z",
   "sourceRun": {
     "date": "2026-05-15",
     "week": "2026-W20",
@@ -8,9 +8,9 @@
     "runId": "2026-05-15-audit-roadmap"
   },
   "summary": {
-    "total": 2,
-    "actionableTotal": 2,
-    "rejectedVagueProposals": 2,
+    "total": 3,
+    "actionableTotal": 3,
+    "rejectedVagueProposals": 3,
     "maxAutoSafePatches": 2,
     "sensitiveChangesRequireApproval": true,
     "dailySummary": "Diagnostic Phase 12: proposition test non destructive generee localement pour verifier l'affichage admin et la boucle de validation.",
@@ -90,6 +90,62 @@
       ],
       "beforeState": "Le Site Builder possede deja des blueprints, mais certains runs peuvent encore produire une preview trop proche d'un template standard.",
       "afterState": "Chaque niche force une recette de structure, une variation de layout, des preuves, objections et CTA differents avant validation.",
+      "dataState": "real"
+    },
+    {
+      "id": "2026-05-15-audit-roadmap-code-health-bloquer-toute-pr-si-lint-tests-ou-build-echouent-ci-sans-surprise",
+      "title": "Bloquer toute PR si lint tests ou build echouent - CI sans surprise",
+      "module": "Code Health",
+      "simpleSummary": "Code Health: Verifier que l'automatisation ne cree jamais de PR tant que lint, tests et build ne sont pas verts. Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent. Impact eleve, risque faible.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Faible",
+      "difficulty": "Faible",
+      "status": "En continu",
+      "inspiration": "Vercel / Linear",
+      "decision": "auto_safe",
+      "description": "Verifier que l'automatisation ne cree jamais de PR tant que lint, tests et build ne sont pas verts. Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent.",
+      "scoreImpact": 30,
+      "runFocus": {
+        "id": "ci-blockers",
+        "short": "CI sans surprise",
+        "description": "bloquer les PR Product Lab si lint, tests, build ou sync admin echouent"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-15.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "scripts/product-lab-core.mjs",
+        ".github/workflows/product-lab-nightly.yml",
+        "src/test/product-lab-core.test.ts"
+      ],
+      "evidenceSources": [
+        {
+          "id": "vercel-ai-gateway-models",
+          "name": "Modes IA Pixelrises",
+          "url": "https://vercel.com/docs/ai-gateway/models-and-providers",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-09T16:55:23.825Z"
+        },
+        {
+          "id": "supabase-rls",
+          "name": "Supabase Row Level Security",
+          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-09T16:55:23.707Z"
+        },
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-09T16:55:24.478Z"
+        }
+      ],
+      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"CI sans surprise\" pour eviter les cartes repetitives.",
+      "afterState": "La prochaine iteration cible \"CI sans surprise\" avec une action concrete, mesurable et limitee au scope V2.",
       "dataState": "real"
     }
   ]

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-15T14:06:24.246Z",
+  "generatedAt": "2026-05-15T20:13:47.931Z",
   "source": "local",
   "mode": "dryRun",
   "dryRun": true,
@@ -26,16 +26,16 @@
     ],
     "activeMidnightUtcHour": 22,
     "activeMidnightUtcLabel": "22:00 UTC",
-    "currentParisHour": 16,
-    "currentUtcHour": 14,
+    "currentParisHour": 22,
+    "currentUtcHour": 20,
     "offsetHours": 2,
     "note": "GitHub Actions schedules are evaluated in UTC and can be delayed by the platform queue."
   },
   "env": {
     "VITE_SUPABASE_URL": true,
-    "SUPABASE_SERVICE_ROLE_KEY": false,
+    "SUPABASE_SERVICE_ROLE_KEY": true,
     "AI_GATEWAY_API_KEY": true,
-    "GITHUB_TOKEN": false
+    "GITHUB_TOKEN": true
   },
   "supabase": {
     "reviewItems": true,
@@ -52,12 +52,10 @@
     "theme": "audit-roadmap",
     "reportPath": "reports/product-lab/daily/daily-2026-05-15.md",
     "queuePath": "public/product-lab-review.json",
-    "proposalsGenerated": 2,
+    "proposalsGenerated": 3,
     "testProposalId": "2026-05-15-phase12-product-lab-diagnostic-test",
     "approvedFindings": 0,
     "appliedImprovements": 0
   },
-  "blockers": [
-    "SUPABASE_SERVICE_ROLE_KEY non present localement"
-  ]
+  "blockers": []
 }
