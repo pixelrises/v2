@@ -36,7 +36,7 @@ const publishableKey = requiredEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
 const realQaEnabled = process.env.PIXELRISES_GENERATOR_REAL_QA === "1";
 const dailyRealBudget = Math.max(
   0,
-  Math.min(20, Number.parseInt(process.env.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || "0", 10) || 0),
+  Math.min(10, Number.parseInt(process.env.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || "0", 10) || 0),
 );
 
 const cases = [

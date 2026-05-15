@@ -29,8 +29,10 @@ describe("V2 Multi-AI Gateway routing contract", () => {
       provider.indexOf("const getVercelGatewayFallbackModels"),
     );
 
-    expect(gatewayModelResolver).toContain("if (isGatewayModelName(model)) return String(model);");
-    expect(gatewayModelResolver.indexOf("if (isGatewayModelName(model)) return String(model);")).toBeLessThan(
+    expect(gatewayModelResolver).toContain("if (isGatewayModelName(model)) {");
+    expect(gatewayModelResolver).toContain("isPremiumGatewayModelName(value)");
+    expect(gatewayModelResolver).toContain("return value;");
+    expect(gatewayModelResolver.indexOf("if (isGatewayModelName(model)) {")).toBeLessThan(
       gatewayModelResolver.indexOf("if (configuredModel) return configuredModel;"),
     );
   });

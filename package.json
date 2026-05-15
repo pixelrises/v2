@@ -28,7 +28,7 @@
     "product-lab:auto-merge:evaluate": "node scripts/product-lab-governance.mjs evaluate-auto-merge",
     "product-lab:redaction:check": "node scripts/product-lab-governance.mjs check-redaction",
     "product-lab:proposals:push": "node scripts/product-lab-supabase.mjs push-proposals",
-    "product-lab:diagnostic": "node scripts/product-lab-diagnostic.mjs --force-generate --max-proposals 8",
+    "product-lab:diagnostic": "node scripts/product-lab-diagnostic.mjs --force-generate --max-proposals 3",
     "smoke:generator": "node scripts/smoke-generate-site.mjs",
     "test": "vitest run",
     "test:watch": "vitest"

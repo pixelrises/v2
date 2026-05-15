@@ -202,9 +202,9 @@ describe("Pixelrises Product Lab core", () => {
     const queue = JSON.parse(fs.readFileSync(path.join(root, "public/product-lab-review.json"), "utf8"));
     const modules = new Set(queue.items.map((item: { module: string }) => item.module));
 
-    expect(queue.items.length).toBeGreaterThanOrEqual(5);
-    expect(queue.items.length).toBeLessThanOrEqual(8);
-    expect(modules.size).toBeGreaterThanOrEqual(5);
+    expect(queue.items.length).toBeGreaterThanOrEqual(2);
+    expect(queue.items.length).toBeLessThanOrEqual(3);
+    expect(modules.size).toBeGreaterThanOrEqual(1);
     expect(queue.items.every((item: { runFocus?: unknown }) => item.runFocus)).toBe(true);
     expect(queue.items.map((item: { title: string }) => item.title).join(" ")).toContain("anti-site generique");
     expect(queue.summary.total).toBe(queue.items.length);
@@ -236,11 +236,11 @@ describe("Pixelrises Product Lab core", () => {
     expect(firstQueue.items.map((item: { title: string }) => item.title)).not.toEqual(
       secondQueue.items.map((item: { title: string }) => item.title),
     );
-    expect(firstQueue.items.length).toBeGreaterThanOrEqual(5);
-    expect(secondQueue.items.length).toBeGreaterThanOrEqual(5);
+    expect(firstQueue.items.length).toBeGreaterThanOrEqual(2);
+    expect(secondQueue.items.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("caps review findings at eight while keeping module diversity", () => {
+  it("caps review findings at three while keeping module diversity", () => {
     const findings = Array.from({ length: 12 }, (_, index) => ({
       title: `Proposition ${index}`,
       module: index === 0 ? "Site Builder" : `Module ${index}`,
@@ -257,9 +257,9 @@ describe("Pixelrises Product Lab core", () => {
 
     const selected = selectProductLabReviewFindings(findings, { id: "site-builder" });
 
-    expect(selected).toHaveLength(8);
+    expect(selected).toHaveLength(3);
     expect(selected[0].module).toBe("Site Builder");
-    expect(new Set(selected.map((finding) => finding.module)).size).toBe(8);
+    expect(new Set(selected.map((finding) => finding.module)).size).toBe(3);
   });
 
   it("renders a report with mandatory sections", () => {
@@ -369,7 +369,7 @@ describe("Pixelrises Product Lab core", () => {
     const queue = JSON.parse(fs.readFileSync(path.join(root, "public/product-lab-review.json"), "utf8"));
 
     expect(result.date).toBe("2026-05-05");
-    expect(queue.items.length).toBeGreaterThanOrEqual(5);
+    expect(queue.items.length).toBeGreaterThanOrEqual(2);
     expect(queue.items.every((item: { id: string }) => item.id.startsWith("2026-05-05-site-builder-"))).toBe(true);
     expect(queue.sourceRun.runId).toBe("2026-05-05-site-builder");
   });
@@ -443,7 +443,9 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("Run V2 generator smoke QA");
     expect(workflow).toContain("Check V2 generator smoke QA configuration");
     expect(workflow).toContain("npm run smoke:generator");
-    expect(workflow).toContain("vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '20'");
+    expect(workflow).toContain("vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '10'");
+    expect(workflow).toContain('PRODUCT_LAB_MIN_REVIEW_ITEMS: "2"');
+    expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "3"');
     expect(workflow).toContain("steps.smoke_preflight.outputs.ready == 'true'");
     expect(workflow).toContain("steps.generator_smoke.outcome");
     expect(workflow).toContain("PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: \"true\"");

@@ -4,6 +4,10 @@ import {
   BILLING_PLANS,
   buildUsagePreview,
   calculateCreditCost,
+  canPlanUseModel,
+  getPlanBudgetConfig,
+  isPlanBudgetSafeForAction,
+  requiresPremiumModelConfirmation,
   simulateUsageSettlement,
 } from "@/lib/billing";
 import { PricingPage } from "@/pages/BillingPages";
@@ -55,6 +59,37 @@ describe("Phase 10 billing config", () => {
       refunded: 0,
     });
     expect(simulateUsageSettlement({ balance: 12, estimatedCredits: 5, status: "succeeded" }).balance).toBe(7);
+  });
+
+  it("keeps launch credits profitable through budget guards instead of overly generous quotas", () => {
+    const starter = getPlanBudgetConfig("starter");
+    const pro = getPlanBudgetConfig("pro");
+    const business = getPlanBudgetConfig("business");
+    const siteSafety = isPlanBudgetSafeForAction({
+      planKey: "pro",
+      actionType: "site_generation",
+      qualityMode: "standard",
+    });
+
+    expect(starter.includedCredits).toBe(80);
+    expect(pro.includedCredits).toBe(240);
+    expect(business.includedCredits).toBe(850);
+    expect(starter.monthlyAiBudgetEur).toBeLessThan(starter.monthlyRevenueEur || 0);
+    expect(pro.targetGrossMarginRatio).toBeGreaterThanOrEqual(0.75);
+    expect(business.dailyAiBudgetEur).toBeLessThanOrEqual(5);
+    expect(siteSafety.withinSingleActionBudget).toBe(true);
+    expect(siteSafety.requiresConfirmation).toBe(true);
+  });
+
+  it("gates expensive Gateway models by plan and human confirmation", () => {
+    expect(canPlanUseModel("starter", "openai/gpt-4o-mini")).toBe(true);
+    expect(requiresPremiumModelConfirmation("starter", "openai/gpt-4o-mini")).toBe(false);
+    expect(canPlanUseModel("starter", "openai/gpt-4o")).toBe(false);
+    expect(canPlanUseModel("pro", "openai/gpt-4o")).toBe(true);
+    expect(requiresPremiumModelConfirmation("pro", "openai/gpt-4o")).toBe(true);
+    expect(canPlanUseModel("business", "anthropic/claude-opus-4.5")).toBe(true);
+    expect(requiresPremiumModelConfirmation("business", "anthropic/claude-opus-4.5")).toBe(true);
+    expect(canPlanUseModel("business", "openai/gpt-5-pro")).toBe(false);
   });
 });
 

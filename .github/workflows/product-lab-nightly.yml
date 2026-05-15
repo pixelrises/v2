@@ -30,13 +30,13 @@ on:
       maxProposals:
         description: "Maximum proposals to display in the admin queue"
         required: true
-        default: "8"
+        default: "3"
         type: choice
         options:
           - "1"
+          - "2"
           - "3"
           - "5"
-          - "8"
 
 permissions:
   contents: write
@@ -50,9 +50,9 @@ env:
   VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
   VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
   PIXELRISES_GENERATOR_REAL_QA: ${{ vars.PIXELRISES_GENERATOR_REAL_QA || '1' }}
-  PIXELRISES_GENERATOR_DAILY_REAL_BUDGET: ${{ vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '20' }}
-  PRODUCT_LAB_MIN_REVIEW_ITEMS: "5"
-  PRODUCT_LAB_MAX_REVIEW_ITEMS: "8"
+  PIXELRISES_GENERATOR_DAILY_REAL_BUDGET: ${{ vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '10' }}
+  PRODUCT_LAB_MIN_REVIEW_ITEMS: "2"
+  PRODUCT_LAB_MAX_REVIEW_ITEMS: "3"
 
 jobs:
   product-lab:
@@ -119,7 +119,7 @@ jobs:
             mode="proposalOnly"
             dry_run="false"
             force_generate="true"
-            max_proposals="${PRODUCT_LAB_MAX_REVIEW_ITEMS:-8}"
+            max_proposals="${PRODUCT_LAB_MAX_REVIEW_ITEMS:-3}"
             source="scheduled"
           fi
 
@@ -175,7 +175,7 @@ jobs:
           PIXELRISES_SMOKE_PASSWORD: ${{ secrets.PIXELRISES_SMOKE_PASSWORD }}
         run: |
           enabled="${PIXELRISES_GENERATOR_REAL_QA:-1}"
-          budget="${PIXELRISES_GENERATOR_DAILY_REAL_BUDGET:-20}"
+          budget="${PIXELRISES_GENERATOR_DAILY_REAL_BUDGET:-10}"
           missing=()
 
           if [ "$enabled" = "1" ] && [ "${budget:-0}" != "0" ]; then

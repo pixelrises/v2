@@ -20,6 +20,12 @@ const DEFAULT_GATEWAY_FALLBACK_MODELS = [
   DEFAULT_GATEWAY_BALANCED_MODEL,
   DEFAULT_GATEWAY_REASONING_MODEL,
 ];
+const PREMIUM_GATEWAY_MODEL_PATTERNS = [
+  /^anthropic\/claude-opus-4\.5$/i,
+  /^openai\/o1$/i,
+  /^openai\/o3-deep-research$/i,
+  /^openai\/gpt-5-pro$/i,
+];
 
 interface AIProviderConfig {
   apiKey: string;
@@ -75,8 +81,22 @@ const isGatewayModelName = (model: unknown) =>
   typeof model === "string" &&
   /^(openai|anthropic|google|deepseek|mistral|xai|meta|perplexity|cohere)\//i.test(model.trim());
 
-const normalizeVercelGatewayModelName = (model: unknown) => {
+const allowPremiumGatewayModels = () => readOptionalEnv("AI_GATEWAY_ALLOW_PREMIUM_MODELS").toLowerCase() === "true";
+
+const isPremiumGatewayModelName = (model: unknown) =>
+  typeof model === "string" && PREMIUM_GATEWAY_MODEL_PATTERNS.some((pattern) => pattern.test(model.trim()));
+
+const getSafeConfiguredGatewayModel = () => {
   const configuredModel = readOptionalEnv("AI_GATEWAY_MODEL") || readOptionalEnv("VERCEL_AI_GATEWAY_MODEL");
+  if (configuredModel && (!isPremiumGatewayModelName(configuredModel) || allowPremiumGatewayModels())) {
+    return configuredModel;
+  }
+
+  return "";
+};
+
+const normalizeVercelGatewayModelName = (model: unknown) => {
+  const configuredModel = getSafeConfiguredGatewayModel();
   const value = typeof model === "string" ? model.trim() : "";
 
   if (/gpt-5\.4-mini|gpt-5\.5/i.test(value)) {
@@ -99,7 +119,13 @@ const normalizeVercelGatewayModelName = (model: unknown) => {
       DEFAULT_GATEWAY_CODE_MODEL;
   }
 
-  if (isGatewayModelName(model)) return String(model);
+  if (isGatewayModelName(model)) {
+    if (isPremiumGatewayModelName(value) && !allowPremiumGatewayModels()) {
+      return configuredModel || DEFAULT_GATEWAY_MODEL;
+    }
+
+    return value;
+  }
 
   if (configuredModel) return configuredModel;
 

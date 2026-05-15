@@ -64,6 +64,23 @@ describe("Product Lab governance", () => {
     expect(result.touchedSensitiveFiles[0].reason).toContain("Supabase");
   });
 
+  it("blocks billing, AI routing and dependency changes from automatic merge", () => {
+    const touched = classifySensitiveFiles([
+      "src/lib/billing.ts",
+      "src/modules/ai/config/ai-providers.config.ts",
+      "package.json",
+    ]);
+
+    expect(touched.map((item) => item.file)).toEqual([
+      "src/lib/billing.ts",
+      "src/modules/ai/config/ai-providers.config.ts",
+      "package.json",
+    ]);
+    expect(touched[0].reason).toContain("credits");
+    expect(touched[1].reason).toContain("modeles IA");
+    expect(touched[2].reason).toContain("dependances");
+  });
+
   it("blocks auto-merge when checks fail or risk is high", () => {
     const result = evaluateAutoMergeSafety({
       adminApproved: true,

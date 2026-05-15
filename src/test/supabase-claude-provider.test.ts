@@ -20,6 +20,8 @@ describe("Supabase Claude provider contract", () => {
     expect(provider).toContain("meta/llama-3.3-70b");
     expect(provider).toContain("anthropic/claude-3.5-haiku");
     expect(provider).toContain("mistral/codestral");
+    expect(provider).toContain("AI_GATEWAY_ALLOW_PREMIUM_MODELS");
+    expect(provider).toContain("gpt-5-pro");
   });
 
   it("supports OpenAI through server-side Supabase secrets only", () => {

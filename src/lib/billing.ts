@@ -101,6 +101,31 @@ export type CreditCostResult = {
   minimumMarginRatio: number;
 };
 
+export type AIModelTier = "economy" | "standard" | "quality" | "premium" | "enterprise";
+
+export type AIModelAccessConfig = {
+  model: string;
+  label: string;
+  tier: AIModelTier;
+  planRequired: PlanKey;
+  qualityMode: QualityMode;
+  manualApprovalRequired: boolean;
+  recommendedUse: string;
+};
+
+export type PlanBudgetConfig = {
+  planKey: PlanKey;
+  monthlyRevenueEur: number | null;
+  includedCredits: number | null;
+  creditValueEur: number | null;
+  monthlyAiBudgetEur: number | null;
+  dailyAiBudgetEur: number | null;
+  targetGrossMarginRatio: number | null;
+  expensiveActionConfirmationCredits: number;
+  maxEstimatedInternalCostPerActionEur: number | null;
+  premiumModelPolicy: "blocked" | "allowed_with_margin_guard" | "custom_contract";
+};
+
 const PLAN_ORDER: Record<PlanKey, number> = {
   free: 0,
   starter: 1,
@@ -263,6 +288,189 @@ export const BILLING_PLANS: PlanConfig[] = [
     },
     features: ["Contrat dedie", "Quotas sur mesure", "Securite renforcee", "Accompagnement"],
     qualityModes: ["economy", "standard", "quality", "premium"],
+  },
+];
+
+const PLAN_AI_BUDGETS: Record<
+  PlanKey,
+  Pick<
+    PlanBudgetConfig,
+    | "monthlyAiBudgetEur"
+    | "dailyAiBudgetEur"
+    | "targetGrossMarginRatio"
+    | "expensiveActionConfirmationCredits"
+    | "maxEstimatedInternalCostPerActionEur"
+    | "premiumModelPolicy"
+  >
+> = {
+  free: {
+    monthlyAiBudgetEur: 0.2,
+    dailyAiBudgetEur: 0.05,
+    targetGrossMarginRatio: null,
+    expensiveActionConfirmationCredits: 4,
+    maxEstimatedInternalCostPerActionEur: 0.12,
+    premiumModelPolicy: "blocked",
+  },
+  starter: {
+    monthlyAiBudgetEur: 3,
+    dailyAiBudgetEur: 0.5,
+    targetGrossMarginRatio: 0.75,
+    expensiveActionConfirmationCredits: 10,
+    maxEstimatedInternalCostPerActionEur: 0.5,
+    premiumModelPolicy: "blocked",
+  },
+  pro: {
+    monthlyAiBudgetEur: 8,
+    dailyAiBudgetEur: 1.5,
+    targetGrossMarginRatio: 0.78,
+    expensiveActionConfirmationCredits: 12,
+    maxEstimatedInternalCostPerActionEur: 1.5,
+    premiumModelPolicy: "allowed_with_margin_guard",
+  },
+  business: {
+    monthlyAiBudgetEur: 25,
+    dailyAiBudgetEur: 5,
+    targetGrossMarginRatio: 0.8,
+    expensiveActionConfirmationCredits: 20,
+    maxEstimatedInternalCostPerActionEur: 5,
+    premiumModelPolicy: "allowed_with_margin_guard",
+  },
+  enterprise: {
+    monthlyAiBudgetEur: null,
+    dailyAiBudgetEur: null,
+    targetGrossMarginRatio: null,
+    expensiveActionConfirmationCredits: 30,
+    maxEstimatedInternalCostPerActionEur: null,
+    premiumModelPolicy: "custom_contract",
+  },
+};
+
+export const AI_MODEL_ACCESS_RULES: AIModelAccessConfig[] = [
+  {
+    model: "mistral/mistral-small",
+    label: "Mistral Small",
+    tier: "economy",
+    planRequired: "free",
+    qualityMode: "economy",
+    manualApprovalRequired: false,
+    recommendedUse: "Chat rapide, petites reformulations, Product Lab leger.",
+  },
+  {
+    model: "mistral/ministral-8b",
+    label: "Ministral 8B",
+    tier: "economy",
+    planRequired: "free",
+    qualityMode: "economy",
+    manualApprovalRequired: false,
+    recommendedUse: "Long contexte economique et brouillons internes.",
+  },
+  {
+    model: "openai/gpt-oss-safeguard-20b",
+    label: "Safety Guard",
+    tier: "economy",
+    planRequired: "free",
+    qualityMode: "economy",
+    manualApprovalRequired: false,
+    recommendedUse: "Controle securite et moderation.",
+  },
+  {
+    model: "openai/gpt-4o-mini",
+    label: "OpenAI Standard",
+    tier: "standard",
+    planRequired: "free",
+    qualityMode: "standard",
+    manualApprovalRequired: false,
+    recommendedUse: "Logique produit, structure, Site Builder standard.",
+  },
+  {
+    model: "meta/llama-3.3-70b",
+    label: "Llama 70B",
+    tier: "standard",
+    planRequired: "free",
+    qualityMode: "standard",
+    manualApprovalRequired: false,
+    recommendedUse: "General AI, synthese et raisonnement bon rapport qualite/prix.",
+  },
+  {
+    model: "anthropic/claude-3.5-haiku",
+    label: "Claude Design",
+    tier: "quality",
+    planRequired: "starter",
+    qualityMode: "quality",
+    manualApprovalRequired: false,
+    recommendedUse: "Design, copywriting premium court, controles qualite.",
+  },
+  {
+    model: "mistral/pixtral-12b",
+    label: "Pixtral 12B",
+    tier: "quality",
+    planRequired: "starter",
+    qualityMode: "quality",
+    manualApprovalRequired: false,
+    recommendedUse: "Analyse visuelle et idees de mise en page.",
+  },
+  {
+    model: "mistral/codestral",
+    label: "Codestral",
+    tier: "quality",
+    planRequired: "starter",
+    qualityMode: "quality",
+    manualApprovalRequired: false,
+    recommendedUse: "Snippets, scripts jeu, corrections techniques courtes.",
+  },
+  {
+    model: "mistral/pixtral-large",
+    label: "Pixtral Large",
+    tier: "premium",
+    planRequired: "pro",
+    qualityMode: "premium",
+    manualApprovalRequired: false,
+    recommendedUse: "Design premium et analyse visuelle avancee.",
+  },
+  {
+    model: "openai/gpt-4o",
+    label: "OpenAI Premium",
+    tier: "premium",
+    planRequired: "pro",
+    qualityMode: "premium",
+    manualApprovalRequired: false,
+    recommendedUse: "Raisonnement premium rentable sur actions importantes.",
+  },
+  {
+    model: "anthropic/claude-opus-4.5",
+    label: "Claude Opus",
+    tier: "premium",
+    planRequired: "business",
+    qualityMode: "premium",
+    manualApprovalRequired: true,
+    recommendedUse: "Travail premium a forte valeur, seulement si marge confirmee.",
+  },
+  {
+    model: "openai/o1",
+    label: "OpenAI o1",
+    tier: "enterprise",
+    planRequired: "enterprise",
+    qualityMode: "premium",
+    manualApprovalRequired: true,
+    recommendedUse: "Raisonnement profond sous contrat custom.",
+  },
+  {
+    model: "openai/o3-deep-research",
+    label: "Deep Research",
+    tier: "enterprise",
+    planRequired: "enterprise",
+    qualityMode: "premium",
+    manualApprovalRequired: true,
+    recommendedUse: "Recherche avancee sous contrat custom.",
+  },
+  {
+    model: "openai/gpt-5-pro",
+    label: "GPT Pro",
+    tier: "enterprise",
+    planRequired: "enterprise",
+    qualityMode: "premium",
+    manualApprovalRequired: true,
+    recommendedUse: "Travail tres couteux sous validation humaine et contrat.",
   },
 ];
 
@@ -619,6 +827,66 @@ export const CREDIT_PACKS = [
 export const getPlanByKey = (planKey: PlanKey) =>
   BILLING_PLANS.find((plan) => plan.key === planKey) || BILLING_PLANS[0];
 
+export const getPlanCreditValueEur = (planKey: PlanKey) => {
+  const plan = getPlanByKey(planKey);
+  if (!plan.priceMonthlyEur || !plan.monthlyCredits) return null;
+  return Number((plan.priceMonthlyEur / plan.monthlyCredits).toFixed(4));
+};
+
+export const getPlanBudgetConfig = (planKey: PlanKey): PlanBudgetConfig => {
+  const plan = getPlanByKey(planKey);
+  const budget = PLAN_AI_BUDGETS[plan.key];
+
+  return {
+    planKey: plan.key,
+    monthlyRevenueEur: plan.priceMonthlyEur,
+    includedCredits: plan.monthlyCredits,
+    creditValueEur: getPlanCreditValueEur(plan.key),
+    ...budget,
+  };
+};
+
+const normalizeModelName = (model: string) => model.trim().toLowerCase();
+
+export const getModelAccessConfig = (model: string): AIModelAccessConfig => {
+  const normalizedModel = normalizeModelName(model);
+  const rule = AI_MODEL_ACCESS_RULES.find((item) => normalizeModelName(item.model) === normalizedModel);
+
+  if (rule) return rule;
+
+  return {
+    model,
+    label: "Modele non catalogue",
+    tier: "enterprise",
+    planRequired: "enterprise",
+    qualityMode: "premium",
+    manualApprovalRequired: true,
+    recommendedUse: "A valider manuellement avant usage pour proteger les couts.",
+  };
+};
+
+export const canPlanUseModel = (planKey: PlanKey, model: string) =>
+  isPlanAtLeast(planKey, getModelAccessConfig(model).planRequired);
+
+export const requiresPremiumModelConfirmation = (planKey: PlanKey, model: string) => {
+  const rule = getModelAccessConfig(model);
+  const planBudget = getPlanBudgetConfig(planKey);
+  const isCostlyModel = rule.tier === "premium" || rule.tier === "enterprise";
+
+  if (!isCostlyModel && !rule.manualApprovalRequired) return false;
+
+  return (
+    rule.manualApprovalRequired ||
+    isCostlyModel ||
+    planBudget.premiumModelPolicy !== "allowed_with_margin_guard"
+  );
+};
+
+export const estimateCreditRevenueEur = (planKey: PlanKey, credits: number) => {
+  const creditValue = getPlanCreditValueEur(planKey);
+  return creditValue === null ? null : Number((creditValue * credits).toFixed(2));
+};
+
 export const getCostRule = (actionType: BillingActionType) => {
   const rule = CREDIT_COST_RULES.find((item) => item.actionType === actionType);
 
@@ -679,6 +947,32 @@ export const calculateCreditCost = ({
     abuseRisk: rule.abuseRisk,
     estimatedInternalCostEur: rule.estimatedInternalCostEur,
     minimumMarginRatio: rule.minimumMarginRatio,
+  };
+};
+
+export const isPlanBudgetSafeForAction = ({
+  planKey,
+  actionType,
+  qualityMode,
+}: {
+  planKey: PlanKey;
+  actionType: BillingActionType;
+  qualityMode?: QualityMode;
+}) => {
+  const rule = getCostRule(actionType);
+  const budget = getPlanBudgetConfig(planKey);
+  const cost = calculateCreditCost({ actionType, qualityMode, planKey });
+  const estimatedRevenueEur = estimateCreditRevenueEur(planKey, cost.credits);
+  const maxInternalCost = budget.maxEstimatedInternalCostPerActionEur;
+
+  return {
+    planKey,
+    actionType,
+    credits: cost.credits,
+    estimatedRevenueEur,
+    estimatedInternalCostEur: rule.estimatedInternalCostEur,
+    withinSingleActionBudget: maxInternalCost === null || rule.estimatedInternalCostEur <= maxInternalCost,
+    requiresConfirmation: cost.credits >= budget.expensiveActionConfirmationCredits || cost.abuseRisk === "high",
   };
 };
 
