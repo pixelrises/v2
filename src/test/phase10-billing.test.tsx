@@ -150,6 +150,8 @@ describe("Phase 10 billing pages", () => {
     expect(screen.getAllByText("Plans Pixelrises").length).toBeGreaterThan(0);
     expect(screen.getByText("Pro")).toBeInTheDocument();
     expect(screen.getByText("240 credits")).toBeInTheDocument();
+    expect(screen.getAllByText("Recharge mensuelle automatique").length).toBeGreaterThan(0);
+    expect(screen.getByText("Offre la plus equilibree", { exact: false })).toBeInTheDocument();
 
     const forbidden = ["price_", "STRIPE_SECRET_KEY", "provider", "AI Gateway", "webhook secret"];
     for (const word of forbidden) {

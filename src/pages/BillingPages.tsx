@@ -24,8 +24,11 @@ import {
   type BillingActionType,
   type CreditPackConfig,
   type PlanKey,
+  QUALITY_MODES,
   estimateActionProfitability,
+  getPlanBudgetConfig,
   getPlanByKey,
+  getPlanCreditValueEur,
 } from "@/lib/billing";
 import { buildAuthRoute, getCurrentRelativeUrl } from "@/lib/auth-redirect";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
@@ -211,6 +214,45 @@ const formatCreditUnitPrice = (price: number, credits: number) =>
 const formatEur = (value: number | null) => (value === null ? "Sur mesure" : `${value.toFixed(2)} EUR`);
 const formatRatio = (value: number | null) => (value === null ? "n/a" : `x${value.toFixed(2)}`);
 const formatPercent = (value: number | null) => (value === null ? "n/a" : `${Math.round(value * 100)}%`);
+
+const planAudience: Record<PlanKey, string> = {
+  free: "Tester la valeur sans risque",
+  starter: "Lancer un premier projet propre",
+  pro: "Creer, iterer et publier regulierement",
+  business: "Produire plusieurs projets avec marge protegee",
+  enterprise: "Contrat sur mesure avec validation humaine",
+};
+
+const planOutcome: Record<PlanKey, string> = {
+  free: "Decouverte controlee",
+  starter: "Site ou agent principal",
+  pro: "Offre la plus equilibree",
+  business: "Volume premium encadre",
+  enterprise: "Credits, securite et support negocies",
+};
+
+const packTone: Record<string, { label: string; detail: string; className: string }> = {
+  credits_100: {
+    label: "Boost rapide",
+    detail: "Pour finir une creation sans changer de plan.",
+    className: "from-sky-300/14 via-white/[0.035] to-transparent",
+  },
+  credits_300: {
+    label: "Meilleur ratio",
+    detail: "Le pack le plus logique pour iterer plusieurs jours.",
+    className: "from-[#F5C542]/20 via-white/[0.045] to-transparent",
+  },
+  credits_750: {
+    label: "Production intense",
+    detail: "Pour une grosse session de creation ou plusieurs clients.",
+    className: "from-emerald-300/14 via-white/[0.035] to-transparent",
+  },
+  credits_1500: {
+    label: "Sur devis",
+    detail: "Credits et budget ajustes apres validation humaine.",
+    className: "from-violet-300/14 via-white/[0.035] to-transparent",
+  },
+};
 
 const statusLabel = (status: string) => {
   const map: Record<string, string> = {
@@ -465,54 +507,115 @@ export const PricingPage = () => {
       secondaryAction={{ label: "Facturation", href: "/billing", icon: CreditCard }}
     >
       <div className="grid gap-4 xl:grid-cols-5">
-        {BILLING_PLANS.map((plan) => (
-          <P9Panel
-            key={plan.key}
-            glow={plan.isRecommended}
-            className="flex min-h-[360px] flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <P9Badge tone={plan.isRecommended ? "safe" : plan.key === "enterprise" ? "beta" : "ready"}>
-                  {plan.isRecommended ? "Recommande" : plan.key === "enterprise" ? "Custom" : "Actif"}
-                </P9Badge>
-                {plan.monthlyCredits !== null && (
-                  <span className="text-xs font-bold text-primary">{plan.monthlyCredits} credits</span>
-                )}
-              </div>
-              <h2 className="mt-5 text-2xl font-black">{plan.name}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{plan.description}</p>
-              <p className="mt-5 text-3xl font-black">{formatPlanPrice(plan.priceMonthlyEur)}</p>
-              <div className="mt-5 space-y-2">
-                {plan.features.slice(0, 4).map((feature) => (
-                  <div key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    {feature}
-                  </div>
-                ))}
-              </div>
-            </div>
+        {BILLING_PLANS.map((plan) => {
+          const budget = getPlanBudgetConfig(plan.key);
+          const creditValue = getPlanCreditValueEur(plan.key);
+          const modeLabels = plan.qualityModes.map((mode) => QUALITY_MODES[mode].label).join(" / ");
 
-            {plan.key === "free" ? (
-              <Button asChild variant="outline" className="mt-6 rounded-2xl border-white/10">
-                <Link to="/builder/site">Essayer</Link>
-              </Button>
-            ) : plan.isCustom ? (
-              <Button asChild variant="outline" className="mt-6 rounded-2xl border-white/10">
-                <Link to="/support/new">Contacter Pixelrises</Link>
-              </Button>
-            ) : (
-              <Button
-                className="mt-6 rounded-2xl"
-                onClick={() => void startCheckout(plan.key)}
-                disabled={loadingPlan === plan.key}
-              >
-                {loadingPlan === plan.key ? "Ouverture..." : "Choisir ce plan"}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            )}
-          </P9Panel>
-        ))}
+          return (
+            <P9Panel
+              key={plan.key}
+              glow={plan.isRecommended}
+              className={`relative flex min-h-[430px] overflow-hidden p-0 ${
+                plan.isRecommended
+                  ? "border-[#F5C542]/35 bg-[#F5C542]/[0.045]"
+                  : "bg-white/[0.025]"
+              }`}
+            >
+              <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#F5C542]/12 to-transparent" />
+              <div className="relative flex w-full flex-col justify-between p-5">
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-2">
+                      <P9Badge tone={plan.isRecommended ? "safe" : plan.key === "enterprise" ? "beta" : "ready"}>
+                        {plan.isRecommended ? "Recommande" : plan.key === "enterprise" ? "Custom" : "Actif"}
+                      </P9Badge>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/38">
+                        {planAudience[plan.key]}
+                      </p>
+                    </div>
+                    {plan.monthlyCredits !== null ? (
+                      <span className="rounded-full border border-[#F5C542]/25 bg-[#F5C542]/10 px-3 py-1 text-xs font-bold text-[#F5C542]">
+                        {plan.monthlyCredits} credits
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-violet-300/20 bg-violet-300/10 px-3 py-1 text-xs font-bold text-violet-200">
+                        Devis
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 className="mt-5 text-2xl font-black text-white">{plan.name}</h2>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{plan.description}</p>
+                  <p className="mt-5 text-3xl font-black text-white">{formatPlanPrice(plan.priceMonthlyEur)}</p>
+
+                  <div className="mt-5 grid gap-2 rounded-2xl border border-white/10 bg-black/20 p-3 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-white/48">Credits mensuels</span>
+                      <strong className="text-white">
+                        {plan.monthlyCredits === null ? "Sur mesure" : `${plan.monthlyCredits} / mois`}
+                      </strong>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-white/48">Valeur credit</span>
+                      <strong className="text-white">
+                        {creditValue === null ? "Custom" : `${creditValue.toFixed(4)} EUR`}
+                      </strong>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-white/48">Budget IA garde-fou</span>
+                      <strong className="text-white">
+                        {budget.monthlyAiBudgetEur === null ? "Contrat" : `${budget.monthlyAiBudgetEur} EUR / mois`}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.055] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-200">
+                      Recharge mensuelle automatique
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-white/58">
+                      Paiement confirme : credits ajoutes. Facture mensuelle payee : recharge du plan, avec protection anti-doublon.
+                    </p>
+                  </div>
+
+                  <div className="mt-5 space-y-2">
+                    {plan.features.slice(0, 4).map((feature) => (
+                      <div key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <ShieldCheck className="h-4 w-4 text-primary" />
+                        {feature}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <p className="mb-3 text-xs leading-5 text-white/44">
+                    {planOutcome[plan.key]} · Modes : {modeLabels}
+                  </p>
+                  {plan.key === "free" ? (
+                    <Button asChild variant="outline" className="w-full rounded-2xl border-white/10">
+                      <Link to="/builder/site">Essayer</Link>
+                    </Button>
+                  ) : plan.isCustom ? (
+                    <Button asChild variant="outline" className="w-full rounded-2xl border-white/10">
+                      <Link to="/support/new">Contacter Pixelrises</Link>
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full rounded-2xl"
+                      onClick={() => void startCheckout(plan.key)}
+                      disabled={loadingPlan === plan.key}
+                    >
+                      {loadingPlan === plan.key ? "Ouverture..." : "Choisir ce plan"}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </P9Panel>
+          );
+        })}
       </div>
 
       <P9SafeNotice title="Regle credits">
@@ -609,7 +712,28 @@ export const BillingPage = () => {
         />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="rounded-[24px] border border-emerald-300/15 bg-emerald-300/[0.055] p-4">
+          <p className="text-sm font-bold text-emerald-200">Abonnement automatique</p>
+          <p className="mt-1 text-xs leading-5 text-white/56">
+            Checkout confirme : credits initiaux. Chaque facture mensuelle payee recharge le plan.
+          </p>
+        </div>
+        <div className="rounded-[24px] border border-[#F5C542]/20 bg-[#F5C542]/10 p-4">
+          <p className="text-sm font-bold text-[#F5C542]">Anti double-credit</p>
+          <p className="mt-1 text-xs leading-5 text-white/56">
+            Les webhooks utilisent un identifiant unique pour eviter les doublons de paiement ou de recharge.
+          </p>
+        </div>
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-4">
+          <p className="text-sm font-bold text-white">Secours admin</p>
+          <p className="mt-1 text-xs leading-5 text-white/56">
+            Si Stripe doit etre verifie, l'admin peut ajouter la recharge mensuelle manuellement une seule fois.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
         <P9Panel glow>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
@@ -629,62 +753,87 @@ export const BillingPage = () => {
         </P9Panel>
 
         <P9Panel>
-          <h3 className="text-lg font-bold">Packs de credits</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Credits ponctuels pour continuer a produire sans changer immediatement de plan. Les credits sont ajoutes apres paiement confirme.
-          </p>
-          <div className="mt-4 grid gap-3">
-            {CREDIT_PACKS.map((pack) => (
-              <div key={pack.key} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-                {pack.status === "quote" ? (
-                  <div className="mb-3 rounded-xl border border-[#F5C542]/20 bg-[#F5C542]/10 px-3 py-2 text-xs text-[#F5C542]">
-                    Offre entreprise : credits et budget ajustes avec validation humaine.
-                  </div>
-                ) : null}
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold">{pack.label}</span>
-                      <P9Badge tone={pack.status === "active" ? "ready" : "soon"}>
-                        {pack.status === "active" ? "Disponible" : "Sur devis"}
-                      </P9Badge>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="text-lg font-bold">Packs de credits</h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                Credits ponctuels pour produire plus, sans changer immediatement de plan. Les credits sont ajoutes apres paiement confirme.
+              </p>
+            </div>
+            <P9Badge tone="safe">Webhook securise</P9Badge>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {CREDIT_PACKS.map((pack) => {
+              const tone = packTone[pack.key] || packTone.credits_100;
+              const fixedPack = pack.priceEur !== null && pack.credits !== null;
+
+              return (
+                <div
+                  key={pack.key}
+                  className={`relative overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br ${tone.className} p-4`}
+                >
+                  <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[#F5C542]/10 blur-2xl" />
+                  <div className="relative">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <P9Badge tone={pack.status === "active" ? (pack.key === "credits_300" ? "safe" : "ready") : "beta"}>
+                          {tone.label}
+                        </P9Badge>
+                        <h4 className="mt-3 text-xl font-black text-white">{pack.label}</h4>
+                        <p className="mt-1 text-xs leading-5 text-white/52">{tone.detail}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-black text-white">
+                          {pack.priceEur === null ? "Sur devis" : formatOneTimePrice(pack.priceEur)}
+                        </p>
+                        <p className="mt-1 text-xs font-semibold text-[#F5C542]">
+                          {pack.credits === null ? "Volume custom" : `${pack.credits} credits`}
+                        </p>
+                      </div>
                     </div>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{pack.description}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black text-white">
-                      {pack.priceEur === null ? "Sur devis" : formatOneTimePrice(pack.priceEur)}
-                    </p>
-                    <p className="mt-1 text-xs text-primary">
-                      {pack.credits === null ? "Credits sur mesure" : `${pack.credits} credits`}
-                    </p>
-                    {pack.priceEur !== null && pack.credits !== null ? (
-                      <p className="mt-1 text-[11px] text-white/38">
-                        {formatCreditUnitPrice(pack.priceEur, pack.credits)}
-                      </p>
-                    ) : null}
+
+                    <p className="mt-4 min-h-[40px] text-sm leading-6 text-muted-foreground">{pack.description}</p>
+
+                    <div className="mt-4 grid gap-2 rounded-2xl border border-white/10 bg-black/20 p-3 text-xs">
+                      <div className="flex justify-between gap-3">
+                        <span className="text-white/46">Prix par credit</span>
+                        <strong className="text-white">
+                          {fixedPack ? formatCreditUnitPrice(pack.priceEur, pack.credits) : "Negocie"}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-white/46">Ajout credits</span>
+                        <strong className="text-white">{pack.status === "active" ? "Apres paiement" : "Apres devis"}</strong>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-white/46">Protection marge</span>
+                        <strong className="text-white">{pack.status === "active" ? "Active" : "Validation humaine"}</strong>
+                      </div>
+                    </div>
+
+                    {pack.status === "quote" && pack.quoteUrl ? (
+                      <Button asChild className="mt-4 w-full rounded-2xl" variant="outline">
+                        <a href={pack.quoteUrl} target="_blank" rel="noopener noreferrer">
+                          {pack.ctaLabel ?? "Demander un devis"}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button
+                        className="mt-4 w-full rounded-2xl"
+                        variant={pack.key === "credits_300" ? "default" : "outline"}
+                        disabled={loadingPack === pack.key}
+                        onClick={() => void startCreditPackCheckout(pack)}
+                      >
+                        {loadingPack === pack.key ? "Ouverture..." : "Acheter ce pack"}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
-                {pack.status === "quote" && pack.quoteUrl ? (
-                  <Button asChild className="mt-3 w-full rounded-2xl" variant="outline">
-                    <a href={pack.quoteUrl} target="_blank" rel="noopener noreferrer">
-                      {pack.ctaLabel ?? "Demander un devis"}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </a>
-                  </Button>
-                ) : (
-                  <Button
-                    className="mt-3 w-full rounded-2xl"
-                    variant="default"
-                    disabled={loadingPack === pack.key}
-                    onClick={() => void startCreditPackCheckout(pack)}
-                  >
-                    {loadingPack === pack.key ? "Ouverture..." : "Acheter ce pack"}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </P9Panel>
       </div>

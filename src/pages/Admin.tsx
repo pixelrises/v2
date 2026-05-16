@@ -1145,6 +1145,28 @@ const Admin = () => {
     return { paymentIssues, sitesToPublish, pendingDomains, hotLeads, recentStripeCredits };
   }, [creditTransactions, leads, orders, sites]);
 
+  const billingAutomationStats = useMemo(() => {
+    const currentMonthKey = new Date().toISOString().slice(0, 7);
+    const stripeInitialGrantCredits = creditTransactions
+      .filter((entry) => entry.source_type === "stripe_checkout_session" && entry.delta > 0)
+      .reduce((sum, entry) => sum + entry.delta, 0);
+    const stripeMonthlyRefillCredits = creditTransactions
+      .filter((entry) => entry.source_type === "stripe_invoice" && entry.delta > 0)
+      .reduce((sum, entry) => sum + entry.delta, 0);
+    const currentMonthManualRefills = creditTransactions.filter(
+      (entry) =>
+        entry.source_type.startsWith("admin_monthly_") &&
+        entry.source_id?.includes(`:${currentMonthKey}`),
+    ).length;
+
+    return {
+      currentMonthKey,
+      stripeInitialGrantCredits,
+      stripeMonthlyRefillCredits,
+      currentMonthManualRefills,
+    };
+  }, [creditTransactions]);
+
   const filteredUsers = users.filter((entry) =>
     `${entry.display_name || ""} ${entry.user_id}`.toLowerCase().includes(search.toLowerCase()),
   );
@@ -1671,9 +1693,62 @@ const Admin = () => {
                 </Button>
               </div>
 
+              <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.07] p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-xl bg-emerald-400/10 p-2 text-emerald-300">
+                      <CalendarClock className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-emerald-100">Automatisation Stripe</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Checkout reussi = credits initiaux. invoice.paid = recharge mensuelle automatique.
+                      </p>
+                      <p className="mt-2 text-xs font-semibold text-emerald-200">
+                        {billingAutomationStats.stripeInitialGrantCredits + billingAutomationStats.stripeMonthlyRefillCredits} credits ajoutes via Stripe
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-primary/20 bg-primary/[0.07] p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                      <Shield className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Protection anti-doublon</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Les recharges utilisent source_id/idempotence pour ne pas crediter deux fois la meme facture.
+                      </p>
+                      <p className="mt-2 text-xs font-semibold text-primary">
+                        {billingAutomationStats.stripeMonthlyRefillCredits} credits via factures mensuelles
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-background/45 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-xl bg-white/5 p-2 text-muted-foreground">
+                      <CheckCircle2 className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Secours admin idempotent</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Les boutons mensuels sont un plan B manuel, verrouille par utilisateur, plan et mois.
+                      </p>
+                      <p className="mt-2 text-xs font-semibold text-muted-foreground">
+                        Mois {billingAutomationStats.currentMonthKey} : {billingAutomationStats.currentMonthManualRefills} secours manuel(s)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-4 grid gap-3 md:grid-cols-3">
                 {MONTHLY_CREDIT_PRESETS.map((preset) => (
-                  <div key={preset.key} className="rounded-2xl border border-border bg-background/45 p-4">
+                  <div key={preset.key} className="rounded-2xl border border-border bg-gradient-to-br from-primary/[0.08] via-background/55 to-background/25 p-4">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-semibold">{preset.label}</p>
                       <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
@@ -1701,6 +1776,9 @@ const Admin = () => {
                             : `${Math.round(preset.targetGrossMarginRatio * 100)}%`}
                         </strong>
                       </div>
+                    </div>
+                    <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.055] px-3 py-2 text-[11px] leading-5 text-emerald-100">
+                      Auto : le webhook Stripe applique ces credits a chaque facture payee. Secours : bouton mensuel admin sans doublon.
                     </div>
                   </div>
                 ))}

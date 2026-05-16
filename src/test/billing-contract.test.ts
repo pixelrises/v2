@@ -71,6 +71,8 @@ describe("billing contract", () => {
     expect(generateSite).toContain("const IMPROVEMENT_CREDIT_COST = 4");
     expect(stripeWebhook).toContain('reason: "subscription_initial_grant"');
     expect(stripeWebhook).toContain('reason: "subscription_monthly_refill"');
+    expect(stripeWebhook).toContain('sourceType: "stripe_invoice"');
+    expect(stripeWebhook).toContain("invoice.id");
     expect(stripeWebhook).toContain('checkoutKind === "credit_pack"');
     expect(stripeWebhook).toContain('reason: "credit_pack_purchase"');
     expect(stripeWebhook).toContain('existingEvent && existingEvent.status !== "error"');
@@ -78,6 +80,9 @@ describe("billing contract", () => {
     expect(adminPage).toContain("BILLING_ADMIN_PLAN_KEYS");
     expect(adminPage).toContain("Prix des credits et recharges mensuelles");
     expect(adminPage).toContain("Stripe ajoute les credits automatiquement");
+    expect(adminPage).toContain("Automatisation Stripe");
+    expect(adminPage).toContain("Secours admin idempotent");
+    expect(adminPage).toContain("invoice.paid = recharge mensuelle automatique");
     expect(adminPage).not.toContain('{ key: "starter", label: "Starter", credits: 10 }');
     expect(adminPage).not.toContain('{ key: "pro", label: "Pro", credits: 25 }');
     expect(adminPage).not.toContain('{ key: "business", label: "Business", credits: 60 }');
