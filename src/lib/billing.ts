@@ -102,6 +102,24 @@ export type CreditCostResult = {
   minimumMarginRatio: number;
 };
 
+export type ActionProfitabilityEstimate = {
+  actionType: BillingActionType;
+  label: string;
+  planKey: PlanKey;
+  credits: number;
+  creditValueEur: number | null;
+  estimatedRevenueEur: number | null;
+  estimatedInternalCostEur: number;
+  grossProfitEur: number | null;
+  grossMarginRatio: number | null;
+  revenueToCostRatio: number | null;
+  targetGrossMarginRatio: number | null;
+  minimumMarginRatio: number;
+  meetsTargetMargin: boolean | null;
+  meetsMinimumRatio: boolean | null;
+  verdict: "safe" | "watch" | "blocked";
+};
+
 export type AIModelTier = "economy" | "standard" | "quality" | "premium" | "enterprise";
 
 export type AIModelAccessConfig = {
@@ -585,18 +603,18 @@ export const CREDIT_COST_RULES: CreditCostRule[] = [
     actionType: "site_generation",
     builderType: "site",
     label: "Generation de site",
-    baseCost: 2,
+    baseCost: 5,
     complexityLevel: "advanced",
     defaultQualityMode: "standard",
     multiAiRoles: 4,
     outputSize: "standard",
-    safetyMargin: 0,
+    safetyMargin: 2,
     planRequired: "free",
     maxUsagePerDay: 4,
     maxUsagePerMonth: 35,
     abuseRisk: "high",
-    estimatedInternalCostEur: 0.35,
-    minimumMarginRatio: 8,
+    estimatedInternalCostEur: 0.45,
+    minimumMarginRatio: 3.5,
   },
   {
     actionType: "site_section_improve",
@@ -607,13 +625,13 @@ export const CREDIT_COST_RULES: CreditCostRule[] = [
     defaultQualityMode: "standard",
     multiAiRoles: 2,
     outputSize: "standard",
-    safetyMargin: 0,
+    safetyMargin: 1,
     planRequired: "free",
     maxUsagePerDay: 12,
     maxUsagePerMonth: 120,
     abuseRisk: "medium",
-    estimatedInternalCostEur: 0.08,
-    minimumMarginRatio: 7,
+    estimatedInternalCostEur: 0.09,
+    minimumMarginRatio: 4,
   },
   {
     actionType: "site_seo_analysis",
@@ -629,8 +647,8 @@ export const CREDIT_COST_RULES: CreditCostRule[] = [
     maxUsagePerDay: 8,
     maxUsagePerMonth: 80,
     abuseRisk: "medium",
-    estimatedInternalCostEur: 0.1,
-    minimumMarginRatio: 7,
+    estimatedInternalCostEur: 0.14,
+    minimumMarginRatio: 4,
   },
   {
     actionType: "site_export_advanced",
@@ -647,7 +665,7 @@ export const CREDIT_COST_RULES: CreditCostRule[] = [
     maxUsagePerMonth: 50,
     abuseRisk: "medium",
     estimatedInternalCostEur: 0.06,
-    minimumMarginRatio: 10,
+    minimumMarginRatio: 5,
   },
   {
     actionType: "game_blueprint",
@@ -663,8 +681,8 @@ export const CREDIT_COST_RULES: CreditCostRule[] = [
     maxUsagePerDay: 4,
     maxUsagePerMonth: 35,
     abuseRisk: "high",
-    estimatedInternalCostEur: 0.28,
-    minimumMarginRatio: 8,
+    estimatedInternalCostEur: 0.35,
+    minimumMarginRatio: 4,
   },
   {
     actionType: "game_prototype",
@@ -680,8 +698,8 @@ export const CREDIT_COST_RULES: CreditCostRule[] = [
     maxUsagePerDay: 3,
     maxUsagePerMonth: 18,
     abuseRisk: "high",
-    estimatedInternalCostEur: 0.65,
-    minimumMarginRatio: 9,
+    estimatedInternalCostEur: 1.2,
+    minimumMarginRatio: 4,
   },
   {
     actionType: "game_package",
@@ -697,8 +715,8 @@ export const CREDIT_COST_RULES: CreditCostRule[] = [
     maxUsagePerDay: 3,
     maxUsagePerMonth: 16,
     abuseRisk: "high",
-    estimatedInternalCostEur: 0.75,
-    minimumMarginRatio: 9,
+    estimatedInternalCostEur: 1.4,
+    minimumMarginRatio: 4,
   },
   {
     actionType: "game_script_generation",
@@ -714,8 +732,8 @@ export const CREDIT_COST_RULES: CreditCostRule[] = [
     maxUsagePerDay: 5,
     maxUsagePerMonth: 45,
     abuseRisk: "high",
-    estimatedInternalCostEur: 0.3,
-    minimumMarginRatio: 8,
+    estimatedInternalCostEur: 0.45,
+    minimumMarginRatio: 4,
   },
   {
     actionType: "agent_generation",
@@ -731,8 +749,8 @@ export const CREDIT_COST_RULES: CreditCostRule[] = [
     maxUsagePerDay: 5,
     maxUsagePerMonth: 35,
     abuseRisk: "medium",
-    estimatedInternalCostEur: 0.18,
-    minimumMarginRatio: 8,
+    estimatedInternalCostEur: 0.25,
+    minimumMarginRatio: 4,
   },
   {
     actionType: "agent_improve",
@@ -906,6 +924,64 @@ export const estimateCreditRevenueEur = (planKey: PlanKey, credits: number) => {
   return creditValue === null ? null : Number((creditValue * credits).toFixed(2));
 };
 
+export const estimateActionProfitability = ({
+  planKey,
+  actionType,
+  qualityMode,
+}: {
+  planKey: PlanKey;
+  actionType: BillingActionType;
+  qualityMode?: QualityMode;
+}): ActionProfitabilityEstimate => {
+  const rule = getCostRule(actionType);
+  const planBudget = getPlanBudgetConfig(planKey);
+  const cost = calculateCreditCost({ actionType, qualityMode, planKey });
+  const creditValueEur = getPlanCreditValueEur(planKey);
+  const estimatedRevenueEur =
+    creditValueEur === null ? null : Number((creditValueEur * cost.credits).toFixed(2));
+  const estimatedInternalCostEur = rule.estimatedInternalCostEur;
+  const grossProfitEur =
+    estimatedRevenueEur === null ? null : Number((estimatedRevenueEur - estimatedInternalCostEur).toFixed(2));
+  const grossMarginRatio =
+    estimatedRevenueEur === null || estimatedRevenueEur <= 0
+      ? null
+      : Number(((estimatedRevenueEur - estimatedInternalCostEur) / estimatedRevenueEur).toFixed(3));
+  const revenueToCostRatio =
+    estimatedInternalCostEur <= 0 || estimatedRevenueEur === null
+      ? null
+      : Number((estimatedRevenueEur / estimatedInternalCostEur).toFixed(2));
+  const meetsTargetMargin =
+    planBudget.targetGrossMarginRatio === null || grossMarginRatio === null
+      ? null
+      : grossMarginRatio >= planBudget.targetGrossMarginRatio;
+  const meetsMinimumRatio =
+    revenueToCostRatio === null ? null : revenueToCostRatio >= rule.minimumMarginRatio;
+  const verdict =
+    !cost.allowedForPlan || meetsMinimumRatio === false
+      ? "blocked"
+      : meetsTargetMargin === false
+        ? "watch"
+        : "safe";
+
+  return {
+    actionType,
+    label: rule.label,
+    planKey,
+    credits: cost.credits,
+    creditValueEur,
+    estimatedRevenueEur,
+    estimatedInternalCostEur,
+    grossProfitEur,
+    grossMarginRatio,
+    revenueToCostRatio,
+    targetGrossMarginRatio: planBudget.targetGrossMarginRatio,
+    minimumMarginRatio: rule.minimumMarginRatio,
+    meetsTargetMargin,
+    meetsMinimumRatio,
+    verdict,
+  };
+};
+
 export const getCostRule = (actionType: BillingActionType) => {
   const rule = CREDIT_COST_RULES.find((item) => item.actionType === actionType);
 
@@ -990,6 +1066,7 @@ export const isPlanBudgetSafeForAction = ({
     credits: cost.credits,
     estimatedRevenueEur,
     estimatedInternalCostEur: rule.estimatedInternalCostEur,
+    profitability: estimateActionProfitability({ planKey, actionType, qualityMode }),
     withinSingleActionBudget: maxInternalCost === null || rule.estimatedInternalCostEur <= maxInternalCost,
     requiresConfirmation: cost.credits >= budget.expensiveActionConfirmationCredits || cost.abuseRisk === "high",
   };

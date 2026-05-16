@@ -6,6 +6,7 @@ import {
   buildUsagePreview,
   calculateCreditCost,
   canPlanUseModel,
+  estimateActionProfitability,
   getPlanBudgetConfig,
   getPlanCreditValueEur,
   isPlanBudgetSafeForAction,
@@ -32,6 +33,7 @@ describe("Phase 10 billing config", () => {
     const site = calculateCreditCost({ actionType: "site_generation", qualityMode: "standard" });
     const premiumGame = calculateCreditCost({ actionType: "game_prototype", qualityMode: "premium", planKey: "pro" });
 
+    expect(site.credits).toBe(13);
     expect(site.credits).toBeGreaterThan(quick.credits);
     expect(premiumGame.credits).toBeGreaterThan(site.credits);
     expect(premiumGame.allowedForPlan).toBe(true);
@@ -90,6 +92,31 @@ describe("Phase 10 billing config", () => {
     expect(business.dailyAiBudgetEur).toBeLessThanOrEqual(5);
     expect(siteSafety.withinSingleActionBudget).toBe(true);
     expect(siteSafety.requiresConfirmation).toBe(true);
+  });
+
+  it("keeps full generations profitable against conservative internal cost estimates", () => {
+    const sitePro = estimateActionProfitability({
+      planKey: "pro",
+      actionType: "site_generation",
+      qualityMode: "standard",
+    });
+    const siteBusiness = estimateActionProfitability({
+      planKey: "business",
+      actionType: "site_generation",
+      qualityMode: "standard",
+    });
+    const gameBusiness = estimateActionProfitability({
+      planKey: "business",
+      actionType: "game_prototype",
+      qualityMode: "quality",
+    });
+
+    expect(sitePro.verdict).toBe("safe");
+    expect(siteBusiness.verdict).toBe("safe");
+    expect(sitePro.grossMarginRatio).toBeGreaterThanOrEqual(0.78);
+    expect(siteBusiness.revenueToCostRatio).toBeGreaterThanOrEqual(3.5);
+    expect(gameBusiness.credits).toBeGreaterThanOrEqual(90);
+    expect(gameBusiness.verdict).toBe("safe");
   });
 
   it("gates expensive Gateway models by plan and human confirmation", () => {

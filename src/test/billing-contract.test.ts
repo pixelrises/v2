@@ -14,6 +14,8 @@ describe("billing contract", () => {
     const sharedBilling = readProjectFile("supabase/functions/_shared/billing.ts");
     const createCheckout = readProjectFile("supabase/functions/create-checkout/index.ts");
     const stripeWebhook = readProjectFile("supabase/functions/stripe-webhook/index.ts");
+    const generateSite = readProjectFile("supabase/functions/generate-site/index.ts");
+    const creditProfitabilityMigration = readProjectFile("supabase/migrations/20260516001000_align_credit_cost_profitability.sql");
     const adminPage = readProjectFile("src/pages/Admin.tsx");
 
     expect(BILLING_PLANS.find((plan) => plan.key === "starter")?.monthlyCredits).toBe(80);
@@ -53,6 +55,8 @@ describe("billing contract", () => {
 
     expect(createCheckout).toContain("resolveCheckoutSelection");
     expect(stripeWebhook).toContain("getPlanByPriceId");
+    expect(generateSite).toContain("const GENERATION_CREDIT_COST = 13");
+    expect(generateSite).toContain("const IMPROVEMENT_CREDIT_COST = 4");
     expect(stripeWebhook).toContain('reason: "subscription_initial_grant"');
     expect(stripeWebhook).toContain('reason: "subscription_monthly_refill"');
     expect(stripeWebhook).toContain('checkoutKind === "credit_pack"');
@@ -65,6 +69,9 @@ describe("billing contract", () => {
     expect(adminPage).not.toContain('{ key: "starter", label: "Starter", credits: 10 }');
     expect(adminPage).not.toContain('{ key: "pro", label: "Pro", credits: 25 }');
     expect(adminPage).not.toContain('{ key: "business", label: "Business", credits: 60 }');
+    expect(creditProfitabilityMigration).toContain("recommended_credit_cost");
+    expect(creditProfitabilityMigration).toContain("estimated_internal_cost_eur");
+    expect(creditProfitabilityMigration).toContain("('site_generation', 'site', 'standard', 5, 'advanced', 13");
 
     expect(pricingComponent).not.toContain("buy.stripe.com/7sYbJ3dvveF90jJf0ZaZi0q");
     expect(pricingComponent).not.toContain("buy.stripe.com/7sYdRbcrrcx1d6vdWVaZi0r");

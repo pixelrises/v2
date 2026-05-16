@@ -21,7 +21,9 @@ import {
   BILLING_PLANS,
   CREDIT_COST_RULES,
   CREDIT_PACKS,
+  type BillingActionType,
   type PlanKey,
+  estimateActionProfitability,
   getPlanByKey,
 } from "@/lib/billing";
 import { buildAuthRoute, getCurrentRelativeUrl } from "@/lib/auth-redirect";
@@ -205,6 +207,9 @@ const formatCreditUnitPrice = (price: number, credits: number) =>
     minimumFractionDigits: 3,
     maximumFractionDigits: 3,
   })} EUR / credit`;
+const formatEur = (value: number | null) => (value === null ? "Sur mesure" : `${value.toFixed(2)} EUR`);
+const formatRatio = (value: number | null) => (value === null ? "n/a" : `x${value.toFixed(2)}`);
+const formatPercent = (value: number | null) => (value === null ? "n/a" : `${Math.round(value * 100)}%`);
 
 const statusLabel = (status: string) => {
   const map: Record<string, string> = {
@@ -769,6 +774,44 @@ export const AdminBillingPage = () => {
 
     return { creditsCharged, creditsEstimated, failed, expensive };
   }, [usage]);
+  const profitabilityRows = useMemo(() => {
+    const focusActions: BillingActionType[] = [
+      "site_generation",
+      "site_section_improve",
+      "site_seo_analysis",
+      "game_blueprint",
+      "game_prototype",
+      "game_package",
+      "agent_generation",
+      "business_plan",
+    ];
+
+    return focusActions
+      .map((actionType) => {
+        const rule = CREDIT_COST_RULES.find((item) => item.actionType === actionType);
+        if (!rule) return null;
+
+        return {
+          rule,
+          starter: estimateActionProfitability({
+            planKey: "starter",
+            actionType,
+            qualityMode: rule.defaultQualityMode,
+          }),
+          pro: estimateActionProfitability({
+            planKey: "pro",
+            actionType,
+            qualityMode: rule.defaultQualityMode,
+          }),
+          business: estimateActionProfitability({
+            planKey: "business",
+            actionType,
+            qualityMode: rule.defaultQualityMode,
+          }),
+        };
+      })
+      .filter(Boolean);
+  }, []);
 
   return (
     <PixelrisesAppShell
@@ -833,17 +876,56 @@ export const AdminBillingPage = () => {
       </div>
 
       <P9Panel className="mt-4">
-        <h2 className="text-xl font-black">Recommandations rentabilite</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {CREDIT_COST_RULES.filter((rule) => rule.abuseRisk !== "low").slice(0, 3).map((rule) => (
-            <div key={rule.actionType} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-              <P9Badge tone={rule.abuseRisk === "high" ? "warning" : "beta"}>{rule.abuseRisk}</P9Badge>
-              <p className="mt-3 font-bold">{rule.label}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Surveiller quotas et basculer vers un plan superieur si l'usage depasse la marge cible.
-              </p>
-            </div>
-          ))}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-xl font-black">Bareme credits & marge</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Estimations admin redacted : credits factures, cout IA estime et marge par plan. Les couts reels restent a verifier dans AI Gateway.
+            </p>
+          </div>
+          <P9Badge tone="safe">Marge protegee</P9Badge>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
+          <div className="grid grid-cols-[1.3fr_0.7fr_0.8fr_0.8fr_0.8fr] gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+            <span>Action</span>
+            <span>Credits</span>
+            <span>Pro</span>
+            <span>Business</span>
+            <span>Statut</span>
+          </div>
+          {profitabilityRows.map((row) => {
+            if (!row) return null;
+            const tone = row.pro.verdict === "safe" && row.business.verdict === "safe" ? "ready" : "warning";
+
+            return (
+              <div
+                key={row.rule.actionType}
+                className="grid grid-cols-[1.3fr_0.7fr_0.8fr_0.8fr_0.8fr] gap-2 border-b border-white/10 px-4 py-3 text-sm last:border-b-0"
+              >
+                <div>
+                  <p className="font-semibold">{row.rule.label}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Cout IA estime {formatEur(row.pro.estimatedInternalCostEur)} · risque {row.rule.abuseRisk}
+                  </p>
+                </div>
+                <span className="font-bold text-primary">{row.pro.credits}</span>
+                <span>
+                  {formatEur(row.pro.estimatedRevenueEur)}
+                  <span className="block text-xs text-muted-foreground">
+                    {formatPercent(row.pro.grossMarginRatio)} / {formatRatio(row.pro.revenueToCostRatio)}
+                  </span>
+                </span>
+                <span>
+                  {formatEur(row.business.estimatedRevenueEur)}
+                  <span className="block text-xs text-muted-foreground">
+                    {formatPercent(row.business.grossMarginRatio)} / {formatRatio(row.business.revenueToCostRatio)}
+                  </span>
+                </span>
+                <P9Badge tone={tone}>{tone === "ready" ? "OK" : "A surveiller"}</P9Badge>
+              </div>
+            );
+          })}
         </div>
       </P9Panel>
     </PixelrisesAppShell>

@@ -431,8 +431,8 @@ type PromptBlueprint = {
   validationChecks: string[];
 };
 
-const GENERATION_CREDIT_COST = 5;
-const IMPROVEMENT_CREDIT_COST = 3;
+const GENERATION_CREDIT_COST = 13;
+const IMPROVEMENT_CREDIT_COST = 4;
 const BUSINESS_ANALYSIS_MODEL = "google/gemini-3-flash-preview";
 const BUSINESS_ANALYSIS_FALLBACK_MODELS = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
 const SITE_GENERATION_MODEL = "google/gemini-3-pro-preview";
