@@ -37,7 +37,7 @@ describe("billing contract", () => {
       ["credits_100", 100, 29, "active"],
       ["credits_300", 300, 79, "active"],
       ["credits_750", 750, 179, "active"],
-      ["credits_1500", 1500, 329, "active"],
+      ["credits_1500", null, null, "quote"],
     ]);
 
     for (const envName of [
@@ -47,11 +47,12 @@ describe("billing contract", () => {
       "STRIPE_PRICE_CREDITS_100",
       "STRIPE_PRICE_CREDITS_300",
       "STRIPE_PRICE_CREDITS_750",
-      "STRIPE_PRICE_CREDITS_1500",
     ]) {
       expect(billingConfig).toContain(envName);
       expect(sharedBilling).toContain(envName);
     }
+    expect(billingConfig).toContain("https://wa.me/33775256214");
+    expect(sharedBilling).not.toContain("STRIPE_PRICE_CREDITS_1500");
 
     expect(createCheckout).toContain("resolveCheckoutSelection");
     expect(stripeWebhook).toContain("getPlanByPriceId");

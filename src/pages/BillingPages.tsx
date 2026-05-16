@@ -615,33 +615,53 @@ export const BillingPage = () => {
           <div className="mt-4 grid gap-3">
             {CREDIT_PACKS.map((pack) => (
               <div key={pack.key} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                {pack.status === "quote" ? (
+                  <div className="mb-3 rounded-xl border border-[#F5C542]/20 bg-[#F5C542]/10 px-3 py-2 text-xs text-[#F5C542]">
+                    Offre entreprise : credits et budget ajustes avec validation humaine.
+                  </div>
+                ) : null}
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold">{pack.label}</span>
                       <P9Badge tone={pack.status === "active" ? "ready" : "soon"}>
-                        {pack.status === "active" ? "Disponible" : "Bientot"}
+                        {pack.status === "active" ? "Disponible" : "Sur devis"}
                       </P9Badge>
                     </div>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">{pack.description}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-black text-white">{formatOneTimePrice(pack.priceEur)}</p>
-                    <p className="mt-1 text-xs text-primary">{pack.credits} credits</p>
-                    <p className="mt-1 text-[11px] text-white/38">
-                      {formatCreditUnitPrice(pack.priceEur, pack.credits)}
+                    <p className="text-sm font-black text-white">
+                      {pack.priceEur === null ? "Sur devis" : formatOneTimePrice(pack.priceEur)}
                     </p>
+                    <p className="mt-1 text-xs text-primary">
+                      {pack.credits === null ? "Credits sur mesure" : `${pack.credits} credits`}
+                    </p>
+                    {pack.priceEur !== null && pack.credits !== null ? (
+                      <p className="mt-1 text-[11px] text-white/38">
+                        {formatCreditUnitPrice(pack.priceEur, pack.credits)}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
-                <Button
-                  className="mt-3 w-full rounded-2xl"
-                  variant={pack.status === "active" ? "default" : "outline"}
-                  disabled={pack.status !== "active" || loadingPack === pack.key}
-                  onClick={() => void startCreditPackCheckout(pack.key)}
-                >
-                  {loadingPack === pack.key ? "Ouverture..." : "Acheter ce pack"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                {pack.status === "quote" && pack.quoteUrl ? (
+                  <Button asChild className="mt-3 w-full rounded-2xl" variant="outline">
+                    <a href={pack.quoteUrl} target="_blank" rel="noopener noreferrer">
+                      {pack.ctaLabel ?? "Demander un devis"}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </a>
+                  </Button>
+                ) : (
+                  <Button
+                    className="mt-3 w-full rounded-2xl"
+                    variant="default"
+                    disabled={loadingPack === pack.key}
+                    onClick={() => void startCreditPackCheckout(pack.key)}
+                  >
+                    {loadingPack === pack.key ? "Ouverture..." : "Acheter ce pack"}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>

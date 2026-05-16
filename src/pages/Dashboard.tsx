@@ -76,8 +76,10 @@ type BillingOffer = {
   priceLabel: string;
   creditsLabel: string;
   description: string;
-  mode: "payment" | "subscription";
+  mode: "payment" | "subscription" | "quote";
   recommended?: boolean;
+  quoteUrl?: string;
+  ctaLabel?: string;
 };
 
 const DASHBOARD_REQUEST_TIMEOUT_MS = 2500;
@@ -96,12 +98,16 @@ const persistDashboardMode = (mode: DashboardMode) => {
 const creditPacks: BillingOffer[] = CREDIT_PACKS.map((pack) => ({
   key: pack.key,
   name: `Pack ${pack.label}`,
-  priceLabel: `${pack.priceEur} EUR`,
+  priceLabel: pack.priceEur === null ? "Sur devis" : `${pack.priceEur} EUR`,
   creditsLabel: `${pack.credits} crédits`,
   description: pack.description,
-  mode: "payment",
+  mode: pack.status === "quote" ? "quote" : "payment",
   recommended: pack.key === "credits_300",
-}));
+  quoteUrl: pack.quoteUrl,
+  ctaLabel: pack.ctaLabel,
+})).map((offer) =>
+  offer.mode === "quote" ? { ...offer, creditsLabel: "Credits sur mesure" } : offer,
+);
 
 const subscriptionOffers: BillingOffer[] = BILLING_PLANS.filter((plan) =>
   ["starter", "pro", "business"].includes(plan.key),
@@ -622,6 +628,14 @@ const Dashboard = () => {
 
   const startCheckout = useCallback(
     async (offer: BillingOffer) => {
+      if (offer.mode === "quote") {
+        if (offer.quoteUrl) {
+          trackV2Event("quote_start", { key: offer.key, mode: offer.mode });
+          window.open(offer.quoteUrl, "_blank", "noopener,noreferrer");
+        }
+        return;
+      }
+
       if (!isSupabaseConfigured) {
         toast({
           title: "Backend V2 non connecté",
@@ -1577,7 +1591,7 @@ const Dashboard = () => {
                     disabled={checkoutLoadingPriceId === offer.key}
                     onClick={() => void startCheckout(offer)}
                   >
-                    {checkoutLoadingPriceId === offer.key ? "Ouverture..." : "Choisir"}
+                    {checkoutLoadingPriceId === offer.key ? "Ouverture..." : offer.ctaLabel ?? "Choisir"}
                   </Button>
                 </article>
               ))}

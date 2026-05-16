@@ -18,6 +18,13 @@ export type CheckoutSelection = {
   metadata: Record<string, string>;
 };
 
+type CreditPack = {
+  key: string;
+  credits: number;
+  stripePriceEnv?: string;
+  isActive: boolean;
+};
+
 export const BILLING_PLANS: BillingPlan[] = [
   { key: "free", name: "Decouverte", monthlyCredits: 5, isActive: true },
   {
@@ -50,7 +57,7 @@ export const BILLING_PLANS: BillingPlan[] = [
   },
 ];
 
-export const CREDIT_PACKS = [
+export const CREDIT_PACKS: readonly CreditPack[] = [
   {
     key: "credits_100",
     credits: 100,
@@ -72,8 +79,7 @@ export const CREDIT_PACKS = [
   {
     key: "credits_1500",
     credits: 1500,
-    stripePriceEnv: "STRIPE_PRICE_CREDITS_1500",
-    isActive: true,
+    isActive: false,
   },
 ] as const;
 

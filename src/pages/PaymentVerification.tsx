@@ -44,6 +44,7 @@ const getPaymentProductLabel = (details: Record<string, unknown>) => {
 
   if (packKey) {
     const pack = CREDIT_PACKS.find((item) => item.key === packKey);
+    if (pack?.credits === null) return `Pack ${pack.label} - credits sur mesure`;
     return pack ? `Pack ${pack.label} - ${pack.credits} crédits` : "Pack crédits";
   }
 

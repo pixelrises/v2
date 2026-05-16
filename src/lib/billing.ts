@@ -145,6 +145,20 @@ export type PlanBudgetConfig = {
   premiumModelPolicy: "blocked" | "allowed_with_margin_guard" | "custom_contract";
 };
 
+export type CreditPackStatus = "active" | "quote";
+
+export type CreditPackConfig = {
+  key: string;
+  label: string;
+  credits: number | null;
+  priceEur: number | null;
+  stripePriceEnv?: string;
+  status: CreditPackStatus;
+  description: string;
+  quoteUrl?: string;
+  ctaLabel?: string;
+};
+
 const PLAN_ORDER: Record<PlanKey, number> = {
   free: 0,
   starter: 1,
@@ -822,7 +836,7 @@ export const CREDIT_COST_RULES: CreditCostRule[] = [
   },
 ];
 
-export const CREDIT_PACKS = [
+export const CREDIT_PACKS: readonly CreditPackConfig[] = [
   {
     key: "credits_100",
     label: "Boost",
@@ -852,12 +866,14 @@ export const CREDIT_PACKS = [
   },
   {
     key: "credits_1500",
-    label: "Studio",
-    credits: 1500,
-    priceEur: 329,
-    stripePriceEnv: "STRIPE_PRICE_CREDITS_1500",
-    status: "active",
-    description: "Gros volume ponctuel pour agences, createurs ou equipes.",
+    label: "Entreprise",
+    credits: null,
+    priceEur: null,
+    status: "quote",
+    description: "Volume sur mesure pour agences, equipes ou besoins intensifs. Credits et prix ajustes apres validation humaine.",
+    quoteUrl:
+      "https://wa.me/33775256214?text=Bonjour,%20je%20souhaite%20un%20devis%20Entreprise%20pour%20des%20credits%20Pixelrises%20V2.",
+    ctaLabel: "Demander un devis",
   },
 ] as const;
 
