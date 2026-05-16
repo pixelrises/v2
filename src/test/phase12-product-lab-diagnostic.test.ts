@@ -46,6 +46,20 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(workflow).toContain("steps.run_mode.outputs.dry_run != 'true'");
     expect(workflow).toContain("npm run product-lab:run-status:record");
     expect(readProjectFile("package.json")).toContain('"product-lab:diagnostic"');
+    expect(readProjectFile("package.json")).toContain('"product-lab:now"');
+  });
+
+  it("provides a local Product Lab now command that writes proposals and run status safely", () => {
+    const localRunner = readProjectFile("scripts/product-lab-now.mjs");
+
+    expect(localRunner).toContain("scripts/product-lab.mjs");
+    expect(localRunner).toContain("scripts/product-lab-supabase.mjs");
+    expect(localRunner).toContain("push-proposals");
+    expect(localRunner).toContain("record-run");
+    expect(localRunner).toContain('PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: "true"');
+    expect(localRunner).toContain("dry-run complete. No Supabase write was attempted.");
+    expect(localRunner).not.toContain("create-pull-request");
+    expect(localRunner).not.toContain("gh pr merge");
   });
 
   it("prepares Product Lab run observability tables with RLS and explicit grants", () => {

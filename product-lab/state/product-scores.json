@@ -1,5 +1,5 @@
 {
-  "date": "2026-05-15",
+  "date": "2026-05-16",
   "week": "2026-W20",
   "scores": {
     "Product Quality Score": {
@@ -66,7 +66,7 @@
       "nextAction": "Ajouter au backlog avec decision auto_safe ou human_validation."
     },
     "Integration Score": {
-      "note": 70,
+      "note": 73,
       "reason": "Base utile mais encore trop dependante de mocks ou d'etats incomplets.",
       "mainProblem": "Il faut augmenter la preuve produit sans complexifier l'UX debutant.",
       "bestImprovement": "Clarifier statuts mock/reel et connecteurs demandes.",
