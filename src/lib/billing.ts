@@ -153,6 +153,7 @@ export type CreditPackConfig = {
   credits: number | null;
   priceEur: number | null;
   stripePriceEnv?: string;
+  stripePaymentLink?: string;
   status: CreditPackStatus;
   description: string;
   quoteUrl?: string;
@@ -843,6 +844,7 @@ export const CREDIT_PACKS: readonly CreditPackConfig[] = [
     credits: 100,
     priceEur: 29,
     stripePriceEnv: "STRIPE_PRICE_CREDITS_100",
+    stripePaymentLink: "https://buy.stripe.com/00w7sN77740v7Mb8CBaZi0D",
     status: "active",
     description: "Prolonger vos generations et ameliorations sans changer d'abonnement.",
   },
@@ -852,6 +854,7 @@ export const CREDIT_PACKS: readonly CreditPackConfig[] = [
     credits: 300,
     priceEur: 79,
     stripePriceEnv: "STRIPE_PRICE_CREDITS_300",
+    stripePaymentLink: "https://buy.stripe.com/dRm14pdvv8gL8QfdWVaZi0E",
     status: "active",
     description: "Creer et ameliorer plusieurs contenus, sites ou agents avec plus de confort.",
   },
@@ -861,6 +864,7 @@ export const CREDIT_PACKS: readonly CreditPackConfig[] = [
     credits: 750,
     priceEur: 179,
     stripePriceEnv: "STRIPE_PRICE_CREDITS_750",
+    stripePaymentLink: "https://buy.stripe.com/28EdRb633bsX3vV3ihaZi0F",
     status: "active",
     description: "Volume avance pour produire intensivement sur une periode courte.",
   },

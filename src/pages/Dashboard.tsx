@@ -78,6 +78,7 @@ type BillingOffer = {
   description: string;
   mode: "payment" | "subscription" | "quote";
   recommended?: boolean;
+  paymentLink?: string;
   quoteUrl?: string;
   ctaLabel?: string;
 };
@@ -103,6 +104,7 @@ const creditPacks: BillingOffer[] = CREDIT_PACKS.map((pack) => ({
   description: pack.description,
   mode: pack.status === "quote" ? "quote" : "payment",
   recommended: pack.key === "credits_300",
+  paymentLink: pack.stripePaymentLink,
   quoteUrl: pack.quoteUrl,
   ctaLabel: pack.ctaLabel,
 })).map((offer) =>
@@ -637,6 +639,12 @@ const Dashboard = () => {
       }
 
       if (!isSupabaseConfigured) {
+        if (offer.mode === "payment" && offer.paymentLink) {
+          trackV2Event("checkout_direct_link_start", { key: offer.key, mode: offer.mode });
+          window.location.href = offer.paymentLink;
+          return;
+        }
+
         toast({
           title: "Backend V2 non connecté",
           description: "Le checkout est prêt côté UI. Ajoutez les variables V2 pour activer Stripe.",
@@ -659,6 +667,12 @@ const Dashboard = () => {
         window.location.href = checkoutUrl;
       } catch (error) {
         console.error("Checkout failed", error);
+        if (offer.mode === "payment" && offer.paymentLink) {
+          trackV2Event("checkout_direct_link_fallback", { key: offer.key, mode: offer.mode });
+          window.location.href = offer.paymentLink;
+          return;
+        }
+
         toast({
           title: "Paiement indisponible",
           description: "Impossible d'ouvrir Stripe pour le moment.",

@@ -89,6 +89,9 @@ describe("Phase 10 billing config", () => {
       0.263,
       0.239,
     ]);
+    expect(CREDIT_PACKS.find((pack) => pack.key === "credits_100")?.stripePaymentLink).toContain("00w7sN77740v7Mb8CBaZi0D");
+    expect(CREDIT_PACKS.find((pack) => pack.key === "credits_300")?.stripePaymentLink).toContain("dRm14pdvv8gL8QfdWVaZi0E");
+    expect(CREDIT_PACKS.find((pack) => pack.key === "credits_750")?.stripePaymentLink).toContain("28EdRb633bsX3vV3ihaZi0F");
     expect(enterprisePack?.status).toBe("quote");
     expect(enterprisePack?.priceEur).toBeNull();
     expect(enterprisePack?.quoteUrl).toContain("wa.me/33775256214");

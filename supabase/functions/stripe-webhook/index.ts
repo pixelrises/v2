@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getRequiredEnvMap } from "../_shared/env.ts";
 import {
   buildStripePayloadSummary,
+  getCreditPackByPriceId,
   getPlanByKey,
   getPlanByPriceId,
   redactErrorMessage,
@@ -213,6 +214,7 @@ Deno.serve(async (req) => {
       const plan =
         getPlanByKey(session.metadata?.plan_key) ||
         getPlanByPriceId(priceId);
+      const directCreditPack = getCreditPackByPriceId(priceId);
       const { userId, via } = await resolveUserId({
         metadataUserId: session.metadata?.user_id || session.client_reference_id,
         customerId,
@@ -224,9 +226,9 @@ Deno.serve(async (req) => {
         return json({ received: true, warning: "User not resolved" });
       }
 
-      if (checkoutKind === "credit_pack") {
-        const packKey = session.metadata?.pack_key || null;
-        const credits = Number(session.metadata?.credit_amount || 0);
+      if (checkoutKind === "credit_pack" || directCreditPack) {
+        const packKey = session.metadata?.pack_key || directCreditPack?.key || null;
+        const credits = Number(session.metadata?.credit_amount || directCreditPack?.credits || 0);
 
         if (!priceId || !packKey || !Number.isFinite(credits) || credits <= 0) {
           await recordEvent("skip", {

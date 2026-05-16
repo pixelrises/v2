@@ -22,6 +22,7 @@ import {
   CREDIT_COST_RULES,
   CREDIT_PACKS,
   type BillingActionType,
+  type CreditPackConfig,
   type PlanKey,
   estimateActionProfitability,
   getPlanByKey,
@@ -372,13 +373,31 @@ const useCheckout = () => {
     }
   };
 
-  const startCreditPackCheckout = async (packKey: string) => {
+  const openDirectCreditPackLink = (pack: CreditPackConfig) => {
+    if (!pack.stripePaymentLink) return false;
+
+    toast({
+      title: "Lien Stripe direct ouvert",
+      description: "Les credits sont ajoutes automatiquement si le webhook et les Price IDs sont configures.",
+    });
+    window.location.href = pack.stripePaymentLink;
+    return true;
+  };
+
+  const startCreditPackCheckout = async (pack: CreditPackConfig) => {
+    if (pack.status === "quote") {
+      if (pack.quoteUrl) window.open(pack.quoteUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+
     if (!isSupabaseConfigured) {
-      toast({
-        title: "Paiement indisponible",
-        description: "La configuration de paiement n'est pas encore active.",
-        variant: "destructive",
-      });
+      if (!openDirectCreditPackLink(pack)) {
+        toast({
+          title: "Paiement indisponible",
+          description: "La configuration de paiement n'est pas encore active.",
+          variant: "destructive",
+        });
+      }
       return;
     }
 
@@ -391,11 +410,11 @@ const useCheckout = () => {
       return;
     }
 
-    setLoadingKey(`pack:${packKey}`);
+    setLoadingKey(`pack:${pack.key}`);
 
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { packKey, mode: "payment" },
+        body: { packKey: pack.key, mode: "payment" },
       });
 
       if (error) throw error;
@@ -407,11 +426,13 @@ const useCheckout = () => {
 
       throw new Error("checkout_url_missing");
     } catch {
-      toast({
-        title: "Paiement indisponible",
-        description: "Impossible d'ouvrir le paiement pour ce pack. Verifiez les Price IDs Stripe.",
-        variant: "destructive",
-      });
+      if (!openDirectCreditPackLink(pack)) {
+        toast({
+          title: "Paiement indisponible",
+          description: "Impossible d'ouvrir le paiement pour ce pack. Verifiez les Price IDs Stripe.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoadingKey(null);
     }
@@ -656,7 +677,7 @@ export const BillingPage = () => {
                     className="mt-3 w-full rounded-2xl"
                     variant="default"
                     disabled={loadingPack === pack.key}
-                    onClick={() => void startCreditPackCheckout(pack.key)}
+                    onClick={() => void startCreditPackCheckout(pack)}
                   >
                     {loadingPack === pack.key ? "Ouverture..." : "Acheter ce pack"}
                     <ArrowRight className="ml-2 h-4 w-4" />

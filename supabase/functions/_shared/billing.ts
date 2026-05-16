@@ -94,6 +94,15 @@ export const getPlanByPriceId = (priceId: string | null | undefined) => {
   );
 };
 
+export const getCreditPackByPriceId = (priceId: string | null | undefined) => {
+  if (!priceId) return null;
+
+  return (
+    CREDIT_PACKS.find((pack) => pack.isActive && pack.stripePriceEnv && Deno.env.get(pack.stripePriceEnv) === priceId) ||
+    null
+  );
+};
+
 const getRequiredPrice = (envName: string | undefined) => {
   if (!envName) return null;
   const value = Deno.env.get(envName);

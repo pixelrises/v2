@@ -39,6 +39,15 @@ describe("billing contract", () => {
       ["credits_750", 750, 179, "active"],
       ["credits_1500", null, null, "quote"],
     ]);
+    expect(CREDIT_PACKS.find((pack) => pack.key === "credits_100")?.stripePaymentLink).toBe(
+      "https://buy.stripe.com/00w7sN77740v7Mb8CBaZi0D",
+    );
+    expect(CREDIT_PACKS.find((pack) => pack.key === "credits_300")?.stripePaymentLink).toBe(
+      "https://buy.stripe.com/dRm14pdvv8gL8QfdWVaZi0E",
+    );
+    expect(CREDIT_PACKS.find((pack) => pack.key === "credits_750")?.stripePaymentLink).toBe(
+      "https://buy.stripe.com/28EdRb633bsX3vV3ihaZi0F",
+    );
 
     for (const envName of [
       "STRIPE_PRICE_STARTER",
@@ -55,6 +64,8 @@ describe("billing contract", () => {
     expect(sharedBilling).not.toContain("STRIPE_PRICE_CREDITS_1500");
 
     expect(createCheckout).toContain("resolveCheckoutSelection");
+    expect(sharedBilling).toContain("getCreditPackByPriceId");
+    expect(stripeWebhook).toContain("getCreditPackByPriceId");
     expect(stripeWebhook).toContain("getPlanByPriceId");
     expect(generateSite).toContain("const GENERATION_CREDIT_COST = 13");
     expect(generateSite).toContain("const IMPROVEMENT_CREDIT_COST = 4");
