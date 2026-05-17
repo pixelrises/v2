@@ -152,7 +152,7 @@ jobs:
       - name: Run Product Lab
         if: steps.guard.outputs.run == 'true'
         env:
-          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY || secrets.API_GATEWAY_VERCEL }}
           PRODUCT_LAB_MAX_PATCHES: "2"
           PRODUCT_LAB_APPLY_SAFE_FIXES: "true"
           PRODUCT_LAB_MODE: ${{ steps.run_mode.outputs.mode }}
