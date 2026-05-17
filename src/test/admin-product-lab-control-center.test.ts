@@ -40,6 +40,9 @@ describe("Admin Product Lab control center", () => {
     expect(adminSource).toContain("Pilotage");
     expect(adminSource).toContain("Etat du cockpit");
     expect(adminSource).toContain("Run & schedule");
+    expect(adminSource).toContain("Analyse IA Gateway");
+    expect(adminSource).toContain("Credits AI Gateway a verifier");
+    expect(adminSource).toContain("Acces AI Gateway a verifier");
     expect(adminSource).toContain("Garde-fous");
   });
 

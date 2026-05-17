@@ -1214,16 +1214,49 @@ const Admin = () => {
   const productLabGeneratedAt = formatProductLabGeneratedAt(productLabQueue);
   const productLabFreshness = getProductLabFreshness(productLabQueue);
   const productLabAiReview = productLabQueue?.summary.aiReview;
-  const productLabAiReviewLabel =
+  const productLabAiReviewLabel = (() => {
+    switch (productLabAiReview?.status) {
+      case "generated":
+        return `${productLabAiReview.generated ?? 0} proposition(s) IA`;
+      case "credits_required":
+        return "Credits AI Gateway a verifier";
+      case "auth_required":
+        return "Acces AI Gateway a verifier";
+      case "rate_limited":
+        return "Limite AI Gateway atteinte";
+      case "model_unavailable":
+        return "Modele AI Gateway a verifier";
+      case "failed":
+        return "Analyse IA echouee";
+      case "skipped_missing_gateway":
+        return "IA non configuree";
+      case "disabled":
+        return "IA desactivee";
+      default:
+        return "Analyse locale";
+    }
+  })();
+  const productLabAiReviewTone =
     productLabAiReview?.status === "generated"
-      ? `${productLabAiReview.generated ?? 0} proposition(s) IA`
-      : productLabAiReview?.status === "failed"
-        ? "Analyse IA echouee"
-        : productLabAiReview?.status === "skipped_missing_gateway"
-          ? "IA non configuree"
-          : productLabAiReview?.status === "disabled"
-            ? "IA desactivee"
-            : "Analyse locale";
+      ? "border-green-400/25 bg-green-400/[0.08] text-green-100"
+      : productLabAiReview?.status === "credits_required" ||
+          productLabAiReview?.status === "auth_required" ||
+          productLabAiReview?.status === "rate_limited" ||
+          productLabAiReview?.status === "model_unavailable" ||
+          productLabAiReview?.status === "failed" ||
+          productLabAiReview?.status === "skipped_missing_gateway"
+        ? "border-amber-400/25 bg-amber-400/[0.08] text-amber-100"
+        : "border-white/10 bg-white/[0.04] text-muted-foreground";
+  const productLabAiReviewDetail =
+    productLabAiReview?.error ||
+    (productLabAiReview?.status === "generated"
+      ? "Analyse IA Gateway enrichie disponible pour ce run."
+      : "Le Product Lab garde les propositions locales securisees si l'IA enrichie n'est pas disponible.");
+  const productLabAiReviewAction =
+    productLabAiReview?.action ||
+    (productLabAiReview?.status === "generated"
+      ? "Surveille la qualite des propositions puis valide uniquement les patchs utiles."
+      : "Verifier credits, acces et modele AI Gateway si tu veux enrichir les prochains runs.");
   const productLabDisplayedCount = productLabReviewItems.length;
   const productLabExpectedCount = productLabQueue?.summary.total ?? productLabDisplayedCount;
   const unsyncedProductLabDecisions = useMemo(
@@ -2331,6 +2364,12 @@ const Admin = () => {
                           Ouvrir le run GitHub
                         </a>
                       ) : null}
+                    </div>
+                    <div className={`rounded-2xl border p-4 ${productLabAiReviewTone}`}>
+                      <p className="text-sm font-semibold">Analyse IA Gateway</p>
+                      <p className="mt-2 text-xs leading-5">{productLabAiReviewLabel}</p>
+                      <p className="mt-2 text-xs leading-5 opacity-85">{productLabAiReviewDetail}</p>
+                      <p className="mt-2 text-xs leading-5 opacity-85">{productLabAiReviewAction}</p>
                     </div>
                   </div>
                 </div>

@@ -48,6 +48,7 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "8"');
     expect(workflow).toContain("mode:");
     expect(workflow).toContain("Resolve Product Lab mode");
+    expect(workflow).toContain("Diagnose Product Lab AI Gateway review configuration");
     expect(workflow).toContain("steps.run_mode.outputs.dry_run != 'true'");
     expect(workflow).toContain("npm run product-lab:run-status:record");
     expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_URL");
@@ -55,6 +56,7 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(readProjectFile("package.json")).toContain('"product-lab:diagnostic"');
     expect(readProjectFile("package.json")).toContain('"product-lab:now"');
     expect(readProjectFile("package.json")).toContain('"product-lab:ai-review"');
+    expect(readProjectFile("package.json")).toContain('"product-lab:ai-review:diagnose"');
   });
 
   it("provides a local Product Lab now command that writes proposals and run status safely", () => {
@@ -84,6 +86,19 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(supabaseSync).toContain("already open");
     expect(supabaseSync).toContain('["scheduled", "manual", "local", "workflow_dispatch"]');
     expect(supabaseSync).toContain("const source = normalizeRunSourceForDb(requestedSource)");
+  });
+
+  it("diagnoses AI Gateway without spending credits or exposing secrets", () => {
+    const aiReview = readProjectFile("scripts/product-lab-ai-review.mjs");
+
+    expect(aiReview).toContain("Product Lab AI Gateway diagnostics");
+    expect(aiReview).toContain("This diagnostic does not spend AI credits");
+    expect(aiReview).toContain("auth_required");
+    expect(aiReview).toContain("credits_required");
+    expect(aiReview).toContain("cacheControl");
+    expect(aiReview).toContain("feature:product-lab");
+    expect(aiReview).not.toContain("sk_live_");
+    expect(aiReview).not.toContain("vck_");
   });
 
   it("prepares Product Lab run observability tables with RLS and explicit grants", () => {

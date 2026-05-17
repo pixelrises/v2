@@ -65,11 +65,22 @@ export interface ProductLabReviewQueue {
       note: number;
     };
     aiReview?: {
-      status?: "generated" | "empty" | "failed" | "disabled" | "skipped_missing_gateway";
+      status?:
+        | "generated"
+        | "empty"
+        | "failed"
+        | "disabled"
+        | "skipped_missing_gateway"
+        | "auth_required"
+        | "credits_required"
+        | "rate_limited"
+        | "model_unavailable";
       model?: string;
+      authSource?: string;
       generated?: number;
       generatedAt?: string;
       error?: string;
+      action?: string;
       usage?: {
         inputTokens?: number;
         outputTokens?: number;
