@@ -544,6 +544,8 @@ export const createValidatableAgentAction = ({
       prompt,
       agentRole: agent.role,
       validationRequired: requiresConfirmation,
+      executionAllowed: false,
+      executionStatus: "not_requested",
     },
     dataState: agent.dataState ?? "mock",
     createdAt: new Date().toISOString(),
@@ -598,7 +600,9 @@ export const simulateAgentTest = (agent: CustomAgentProject, prompt: string): Ag
     safetyNotes: [
       "Aucune action externe n'est executee automatiquement.",
       "Les secrets, paiements, credits, publication et connexions outil restent bloques sans validation.",
-      proposedAction.requiresConfirmation ? "Validation humaine requise avant execution." : "Conseil uniquement, aucune execution.",
+      proposedAction.requiresConfirmation
+        ? "Validation humaine requise avant une execution separee. L'approbation seule n'envoie rien."
+        : "Conseil uniquement, aucune execution.",
     ],
     dataState: agent.dataState ?? "mock",
     createdAt: new Date().toISOString(),
@@ -606,15 +610,38 @@ export const simulateAgentTest = (agent: CustomAgentProject, prompt: string): Ag
 };
 
 export const canExecuteAgentAction = (action: ValidatableAgentAction) =>
-  action.status === "approved" && action.riskLevel !== "high" && action.requiresConfirmation;
+  action.status === "approved" &&
+  action.riskLevel !== "high" &&
+  action.requiresConfirmation &&
+  action.proposedPayload.executionStatus === "execution_confirmed" &&
+  action.proposedPayload.executionAllowed === true;
 
-export const approveAgentAction = (action: ValidatableAgentAction): ValidatableAgentAction => ({
-  ...action,
-  status: action.riskLevel === "high" ? "blocked" : "approved",
-  approvedAt: action.riskLevel === "high" ? undefined : new Date().toISOString(),
-});
+export const approveAgentAction = (action: ValidatableAgentAction): ValidatableAgentAction => {
+  const blocked = action.riskLevel === "high";
+
+  return {
+    ...action,
+    status: blocked ? "blocked" : "approved",
+    approvedAt: blocked ? undefined : new Date().toISOString(),
+    proposedPayload: {
+      ...action.proposedPayload,
+      approvedOnly: !blocked,
+      executionAllowed: false,
+      executionStatus: blocked ? "blocked_by_guardrail" : "not_executed",
+    },
+    result: blocked
+      ? "Action bloquee par garde-fou. Rien n'a ete execute."
+      : "Validation enregistree. Aucune action externe n'a ete executee.",
+  };
+};
 
 export const rejectAgentAction = (action: ValidatableAgentAction): ValidatableAgentAction => ({
   ...action,
   status: "rejected",
+  proposedPayload: {
+    ...action.proposedPayload,
+    executionAllowed: false,
+    executionStatus: "rejected",
+  },
+  result: "Proposition refusee. Rien n'a ete applique.",
 });

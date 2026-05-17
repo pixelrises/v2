@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   approveAgentAction,
+  canExecuteAgentAction,
   createValidatableAgentAction,
   forbiddenAgentCapabilities,
   getAgentBlueprint,
@@ -51,6 +52,25 @@ describe("Phase 6 agents IA", () => {
     expect(action.riskLevel).toBe("high");
     expect(action.status).toBe("blocked");
     expect(approveAgentAction(action).status).toBe("blocked");
+  });
+
+  it("keeps approved agent proposals non-executable until a separate execution confirmation exists", () => {
+    const agent = createDefaultAgentProject();
+    const action = createValidatableAgentAction({
+      agent,
+      prompt: "Prépare une réponse support à valider",
+      actionType: "draft_message",
+      title: "Brouillon support",
+      description: "Préparer un brouillon sans l'envoyer.",
+      targetModule: "Support",
+    });
+    const approved = approveAgentAction(action);
+
+    expect(approved.status).toBe("approved");
+    expect(approved.result).toContain("Aucune action externe");
+    expect(approved.proposedPayload.executionStatus).toBe("not_executed");
+    expect(approved.proposedPayload.executionAllowed).toBe(false);
+    expect(canExecuteAgentAction(approved)).toBe(false);
   });
 
   it("simulates a test chat with a proposed action and safety notes", () => {

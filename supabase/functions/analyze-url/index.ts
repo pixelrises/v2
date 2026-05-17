@@ -10,6 +10,15 @@ const corsHeaders = {
 const RATE_LIMIT = 5;
 const RATE_WINDOW_HOURS = 1;
 
+const redactLogValue = (value: unknown) => {
+  const message = value instanceof Error ? value.message : String(value ?? "unknown_error");
+
+  return message
+    .replace(/\b(sk|pk|whsec|ghp|github_pat|sb_secret|vck)_[0-9A-Za-z_-]{8,}\b/g, "[redacted]")
+    .replace(/Bearer\s+[0-9A-Za-z._-]+/gi, "Bearer [redacted]")
+    .replace(/key=[^&\s]+/gi, "key=[redacted]");
+};
+
 const DIAGNOSIS_JSON_SCHEMA = `{
   "score_global": 1,
   "situation": "2 phrases maximum décrivant la situation actuelle et son impact business",
@@ -297,7 +306,7 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
 
     return jsonResponse({ diagnosis });
   } catch (error) {
-    console.error("analyze-url error:", error);
+    console.error("analyze-url error:", redactLogValue(error));
 
     if (error instanceof Error && error.message === "RATE_LIMIT") {
       return jsonResponse({ error: "Service temporairement surchargé. Réessayez dans quelques instants." }, 429);

@@ -14,6 +14,15 @@ const json = (payload: Record<string, unknown>, status = 200) =>
     headers: corsHeaders,
   });
 
+const redactLogValue = (value: unknown) => {
+  const message = value instanceof Error ? value.message : String(value ?? "unknown_error");
+
+  return message
+    .replace(/\b(sk|pk|whsec|ghp|github_pat|sb_secret|vck)_[0-9A-Za-z_-]{8,}\b/g, "[redacted]")
+    .replace(/Bearer\s+[0-9A-Za-z._-]+/gi, "Bearer [redacted]")
+    .replace(/jwt|token|secret|service_role/gi, "[redacted]");
+};
+
 type Payload = {
   amount?: number;
   userId?: string;
@@ -95,7 +104,7 @@ Deno.serve(async (request) => {
       added: amount,
     });
   } catch (error) {
-    console.error("grant-dashboard-credits error:", error instanceof Error ? error.message : "unknown_error");
+    console.error("grant-dashboard-credits error:", redactLogValue(error));
     return json(
       {
         success: false,

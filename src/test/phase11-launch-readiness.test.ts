@@ -119,6 +119,16 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(`${webhook}\n${createCheckout}\n${portal}`).not.toContain("error instanceof Error ? error.message");
   });
 
+  it("keeps Edge Function diagnostics redacted before logging", () => {
+    const analyzeUrl = readProjectFile("supabase/functions/analyze-url/index.ts");
+    const grantCredits = readProjectFile("supabase/functions/grant-dashboard-credits/index.ts");
+
+    expect(analyzeUrl).toContain("redactLogValue(error)");
+    expect(grantCredits).toContain("redactLogValue(error)");
+    expect(`${analyzeUrl}\n${grantCredits}`).not.toContain('console.error("analyze-url error:", error)');
+    expect(`${analyzeUrl}\n${grantCredits}`).not.toContain("error instanceof Error ? error.message");
+  });
+
   it("keeps Product Lab auto-merge blocked without admin approval and safe checks", () => {
     const governance = readProjectFile("scripts/product-lab-governance.mjs");
 

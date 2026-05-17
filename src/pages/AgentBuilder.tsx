@@ -212,10 +212,40 @@ const persistAgentProject = async (nextAgent: CustomAgentProject) => {
 
 const actionStatusCopy: Record<string, string> = {
   proposed: "Proposée",
-  approved: "Validée",
+  approved: "Approuvée, non exécutée",
   rejected: "Refusée",
   blocked: "Bloquée",
   draft: "Brouillon",
+  executed: "Exécutée",
+  failed: "Échec",
+  cancelled: "Annulée",
+  requires_external_connection: "Connexion requise",
+};
+
+const decisionLockedStatuses: ValidatableAgentAction["status"][] = [
+  "approved",
+  "rejected",
+  "blocked",
+  "executed",
+  "failed",
+  "cancelled",
+  "requires_external_connection",
+];
+
+const isAgentActionDecisionLocked = (status: ValidatableAgentAction["status"]) => decisionLockedStatuses.includes(status);
+
+const getAgentActionStatusLabel = (action: ValidatableAgentAction) => {
+  if (action.status === "approved" && action.actionType === "draft_message") return "Brouillon approuvé, non envoyé";
+  return actionStatusCopy[action.status] ?? action.status;
+};
+
+const getAgentActionDecisionMessage = (action: ValidatableAgentAction) => {
+  if (action.status === "approved") {
+    return "Validation enregistrée. Rien n'a été envoyé, publié, modifié ou exécuté automatiquement.";
+  }
+  if (action.status === "rejected") return "Proposition refusée. Rien n'a été appliqué.";
+  if (action.status === "blocked") return "Action bloquée par sécurité. Transforme-la en brouillon ou checklist validable.";
+  return "";
 };
 
 const AgentBuilder = () => {
@@ -595,7 +625,7 @@ const AgentBuilder = () => {
                     Risque {testResult.proposedAction.riskLevel}
                   </Badge>
                   <Badge className="border-white/[0.10] bg-white/[0.05] text-white/70 hover:bg-white/[0.05]">
-                      {actionStatusCopy[testResult.proposedAction.status] ?? testResult.proposedAction.status}
+                    {getAgentActionStatusLabel(testResult.proposedAction)}
                   </Badge>
                 </div>
                 <p className="mt-4 text-sm leading-6 text-white/70">{testResult.response}</p>
@@ -606,24 +636,34 @@ const AgentBuilder = () => {
                     Validation : {testResult.proposedAction.requiresConfirmation ? "obligatoire" : "non requise"}
                     {isAdvanced ? ` · Module : ${testResult.proposedAction.targetModule}` : ""}
                   </p>
+                  <p className="mt-2 text-xs leading-5 text-[#F5C542]">
+                    Validation = accord sur la proposition. L'envoi ou l'exécution demande une action séparée.
+                  </p>
                 </div>
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <Button
-                    type="button"
-                    onClick={() => updateAction(testResult.proposedAction, approveAgentAction(testResult.proposedAction))}
-                    className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]"
-                  >
-                    Valider la proposition
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => updateAction(testResult.proposedAction, rejectAgentAction(testResult.proposedAction))}
-                    className="rounded-2xl border-white/[0.10] bg-transparent text-white/82"
-                  >
-                    Refuser
-                  </Button>
-                </div>
+                {getAgentActionDecisionMessage(testResult.proposedAction) ? (
+                  <p className="mt-4 rounded-2xl border border-[#F5C542]/20 bg-[#F5C542]/[0.055] p-3 text-sm leading-6 text-[#F5C542]">
+                    {getAgentActionDecisionMessage(testResult.proposedAction)}
+                  </p>
+                ) : null}
+                {!isAgentActionDecisionLocked(testResult.proposedAction.status) ? (
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    <Button
+                      type="button"
+                      onClick={() => updateAction(testResult.proposedAction, approveAgentAction(testResult.proposedAction))}
+                      className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]"
+                    >
+                      Approuver sans exécuter
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => updateAction(testResult.proposedAction, rejectAgentAction(testResult.proposedAction))}
+                      className="rounded-2xl border-white/[0.10] bg-transparent text-white/82"
+                    >
+                      Refuser
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
