@@ -71,12 +71,6 @@ const productLabScopeOptions: Array<{
     description: "Plateforme SaaS, builders, Multi-IA, données et moteur IA serveur.",
     workflowUrl: "https://github.com/pixelrises/v2/actions/workflows/product-lab-nightly.yml",
   },
-  {
-    id: "v1",
-    label: "Pixelrises V1",
-    description: "Generateur V1 separe, suivi depuis le meme admin sans melanger les tables.",
-    workflowUrl: "https://github.com/pixelrises/lancement-v1/actions/workflows/generator-nightly-audit.yml",
-  },
 ];
 
 const productLabQueueSourceMeta: Record<
@@ -396,7 +390,7 @@ const MONTHLY_CREDIT_PRESETS: MonthlyCreditPreset[] = BILLING_ADMIN_PLAN_KEYS.ma
 const productLabNightlyCycle = [
   {
     step: "00h Europe/Paris",
-    detail: "Les workflows V1 et V2 se lancent separement depuis leurs repos GitHub.",
+    detail: "Le workflow V2 se lance depuis le repo GitHub pixelrises/v2.",
   },
   {
     step: "Audit complet",
@@ -417,7 +411,7 @@ const productLabNightlyCycle = [
 ];
 
 const productLabDataProtectionRules = [
-  "V1 et V2 gardent des tables Product Lab separees dans Supabase.",
+  "La V2 utilise ses tables Product Lab dediees dans Supabase.",
   "Les decisions admin passent par RLS et role admin; le service role reste cote GitHub Actions uniquement.",
   "Aucune cle API, aucun token et aucun secret ne doit etre affiche, loggue ou stocke dans l'admin.",
   "Les changements auth, paiement, policies Supabase, moteur IA, production ou suppression majeure restent bloques.",
@@ -449,11 +443,6 @@ const resolveWithTimeout = async <T,>(promise: Promise<T>, timeoutMs = ADMIN_REQ
 };
 
 const getAdminCacheKey = (userId: string) => `${ADMIN_CACHE_PREFIX}${userId}`;
-
-const readCachedAdminFlag = (userId: string) => {
-  if (typeof window === "undefined") return false;
-  return window.sessionStorage.getItem(getAdminCacheKey(userId)) === "1";
-};
 
 const writeCachedAdminFlag = (userId: string, value: boolean) => {
   if (typeof window === "undefined") return;
@@ -757,7 +746,6 @@ const Admin = () => {
         return;
       }
 
-      const cachedAdmin = readCachedAdminFlag(user.id);
       const fetchAdminRole = () =>
         supabase
           .from("user_roles")
@@ -783,10 +771,11 @@ const Admin = () => {
         (roleResult.status === "fulfilled" && Boolean(roleResult.value?.data)) ||
         (bootstrapResult.status === "fulfilled" && Boolean(bootstrapResult.value));
 
-      if (!hasAdminRole && !cachedAdmin) {
+      if (!hasAdminRole) {
+        writeCachedAdminFlag(user.id, false);
         toast({
           title: "Accès réservé",
-          description: "Cette zone est réservée au compte administrateur.",
+          description: "Ton rôle admin n'est pas confirmé côté Supabase. Connecte-toi avec un compte admin.",
           variant: "destructive",
         });
         navigate("/dashboard", { replace: true });
@@ -2101,8 +2090,8 @@ const Admin = () => {
                         tone: "text-primary",
                       },
                       {
-                        label: "V1/V2 live",
-                        value: `${productLabGlobalStats.liveScopes}/2`,
+                        label: "V2 live",
+                        value: `${productLabGlobalStats.liveScopes}/1`,
                         detail: productLabGlobalStats.allLive ? "Sources synchronisees" : "Point a verifier",
                         tone: productLabGlobalStats.allLive ? "text-green-200" : "text-amber-200",
                       },
@@ -2252,6 +2241,69 @@ const Admin = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-5 rounded-[28px] border border-primary/20 bg-primary/[0.05] p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                      Dernieres propositions recues
+                    </p>
+                    <h3 className="mt-2 text-lg font-semibold text-foreground">
+                      Ce que le dernier run a envoye dans l'admin
+                    </h3>
+                  </div>
+                  <span className="w-fit rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs text-muted-foreground">
+                    {productLabDisplayedCount}/{productLabExpectedCount} affichee(s)
+                  </span>
+                </div>
+
+                {productLabReviewItems.length > 0 ? (
+                  <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                    {productLabReviewItems.slice(0, 4).map((item) => {
+                      const statusLabel =
+                        item.localDecision.status === "approved"
+                          ? "Validee"
+                          : item.localDecision.status === "rejected"
+                            ? item.localDecision.rejectionMode === "alternative"
+                              ? "Alternative demandee"
+                              : "Refusee"
+                            : item.localDecision.status === "needs_review"
+                              ? "A revoir"
+                              : "A trancher";
+                      const statusClass =
+                        item.localDecision.status === "approved"
+                          ? "border-green-400/25 bg-green-400/[0.08] text-green-100"
+                          : item.localDecision.status === "rejected"
+                            ? "border-red-400/25 bg-red-400/[0.08] text-red-100"
+                            : item.localDecision.status === "needs_review"
+                              ? "border-blue-400/25 bg-blue-400/[0.08] text-blue-100"
+                              : "border-amber-400/25 bg-amber-400/[0.08] text-amber-100";
+
+                      return (
+                        <div key={item.id} className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-primary">
+                              {item.module}
+                            </span>
+                            <span className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] ${statusClass}`}>
+                              {statusLabel}
+                            </span>
+                          </div>
+                          <p className="mt-3 text-sm font-semibold text-foreground">{item.title}</p>
+                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                            {item.simpleSummary || item.description}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/[0.08] p-4 text-sm leading-6 text-amber-100">
+                    Aucune proposition lisible cote admin pour ce compte. Si GitHub indique des propositions sauvegardees,
+                    verifie que le compte connecte a le role admin dans Supabase et clique Recharger.
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 rounded-[28px] border border-green-400/20 bg-green-400/[0.05] p-5">

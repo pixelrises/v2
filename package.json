@@ -26,6 +26,7 @@
     "product-lab:decisions:mark-processed": "node scripts/product-lab-supabase.mjs mark-processed",
     "product-lab:pr-status:record": "node scripts/product-lab-supabase.mjs record-pr-status",
     "product-lab:run-status:record": "node scripts/product-lab-supabase.mjs record-run",
+    "product-lab:smoke-credits": "node scripts/product-lab-smoke-credits.mjs",
     "product-lab:auto-merge:evaluate": "node scripts/product-lab-governance.mjs evaluate-auto-merge",
     "product-lab:redaction:check": "node scripts/product-lab-governance.mjs check-redaction",
     "product-lab:proposals:push": "node scripts/product-lab-supabase.mjs push-proposals",

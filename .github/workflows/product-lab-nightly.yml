@@ -212,6 +212,16 @@ jobs:
             echo "::warning title=V2 smoke QA configuration missing::$joined"
           fi
 
+      - name: Ensure V2 smoke QA credits
+        id: smoke_credits
+        if: steps.guard.outputs.run == 'true' && steps.smoke_preflight.outputs.ready == 'true'
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PIXELRISES_SMOKE_EMAIL: ${{ secrets.PIXELRISES_SMOKE_EMAIL }}
+          PRODUCT_LAB_SMOKE_MIN_CREDITS: ${{ vars.PRODUCT_LAB_SMOKE_MIN_CREDITS || '60' }}
+          PRODUCT_LAB_SMOKE_CREDITS_PER_CASE: "5"
+        run: npm run product-lab:smoke-credits
+
       - name: Run V2 generator smoke QA
         id: generator_smoke
         if: steps.guard.outputs.run == 'true' && steps.smoke_preflight.outputs.ready == 'true'
@@ -221,6 +231,7 @@ jobs:
           PIXELRISES_SMOKE_EMAIL: ${{ secrets.PIXELRISES_SMOKE_EMAIL }}
           PIXELRISES_SMOKE_PASSWORD: ${{ secrets.PIXELRISES_SMOKE_PASSWORD }}
           PIXELRISES_SMOKE_ONLY: ${{ vars.PIXELRISES_SMOKE_ONLY }}
+          PRODUCT_LAB_SMOKE_MAX_CASES: ${{ vars.PRODUCT_LAB_SMOKE_MAX_CASES || '3' }}
         run: npm run smoke:generator
 
       - name: Check Product Lab admin sync configuration

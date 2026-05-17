@@ -5,11 +5,14 @@ import { describe, expect, it } from "vitest";
 const adminSource = readFileSync(join(process.cwd(), "src/pages/Admin.tsx"), "utf8");
 
 describe("Admin Product Lab control center", () => {
-  it("keeps the V1/V2 Product Lab cockpit focused on Product Lab operations", () => {
+  it("keeps the V2 Product Lab cockpit focused on Product Lab operations", () => {
     expect(adminSource).toContain("Centre d'amelioration continue");
     expect(adminSource).toContain("Pas de metriques hors sujet ici.");
+    expect(adminSource).toContain("Dernieres propositions recues");
     expect(adminSource).toContain("File active -");
-    expect(adminSource).toContain("V1/V2 live");
+    expect(adminSource).toContain("V2 live");
+    expect(adminSource).not.toContain("Pixelrises V1");
+    expect(adminSource).not.toContain("Workflow Pixelrises V1");
     expect(adminSource).not.toContain("Stripe et revenus recents");
     expect(adminSource).not.toContain("Solde total utilisateurs");
     expect(adminSource).not.toContain("Sites generes, publications");
