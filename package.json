@@ -21,6 +21,7 @@
     "product-lab:daily": "node scripts/product-lab.mjs daily",
     "product-lab:weekly": "node scripts/product-lab.mjs weekly",
     "product-lab:research": "node scripts/product-lab-research.mjs",
+    "product-lab:supabase:diagnose": "node scripts/product-lab-supabase.mjs diagnose",
     "product-lab:decisions:pull": "node scripts/product-lab-supabase.mjs pull-decisions",
     "product-lab:decisions:mark-processed": "node scripts/product-lab-supabase.mjs mark-processed",
     "product-lab:pr-status:record": "node scripts/product-lab-supabase.mjs record-pr-status",

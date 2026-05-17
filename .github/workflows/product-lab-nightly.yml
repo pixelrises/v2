@@ -142,6 +142,13 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run product-lab:decisions:pull
 
+      - name: Diagnose Product Lab Supabase access
+        id: supabase_diagnostics
+        if: steps.guard.outputs.run == 'true'
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run product-lab:supabase:diagnose
+
       - name: Verify trusted Product Lab research sources
         if: steps.guard.outputs.run == 'true'
         continue-on-error: true

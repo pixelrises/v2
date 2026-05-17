@@ -15,12 +15,12 @@ loadEnv({ path: path.join(root, ".env.local"), override: false, quiet: true });
 loadEnv({ path: path.join(root, ".env"), override: false, quiet: true });
 
 const getSupabaseConfig = () => {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.PIXELRISES_SUPABASE_SERVICE_ROLE_KEY;
+  const rawUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const rawServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.PIXELRISES_SUPABASE_SERVICE_ROLE_KEY;
 
   return {
-    url: url?.replace(/\/$/, ""),
-    serviceRoleKey,
+    url: rawUrl?.trim().replace(/\/+$/, ""),
+    serviceRoleKey: rawServiceRoleKey?.trim(),
   };
 };
 
@@ -52,11 +52,20 @@ const getJwtPayload = (token) => {
 const getServiceRoleDiagnostics = () => {
   const { url, serviceRoleKey } = getSupabaseConfig();
   const payload = getJwtPayload(serviceRoleKey);
+  const key = String(serviceRoleKey || "");
+  const keyType = key.startsWith("sb_secret_")
+    ? "supabase_secret_key"
+    : key.split(".").length === 3
+      ? "legacy_service_role_jwt"
+      : key
+        ? "unknown"
+        : "missing";
   return {
     hasUrl: Boolean(url),
     projectRef: getSupabaseProjectRef(),
     hasServiceRoleKey: Boolean(serviceRoleKey),
-    keyLooksLikeJwt: String(serviceRoleKey || "").split(".").length === 3,
+    keyType,
+    keyLooksLikeJwt: key.split(".").length === 3,
     role: typeof payload.role === "string" ? payload.role : "",
     issuer: typeof payload.iss === "string" ? redactProductLabText(payload.iss) : "",
     refMatchesIssuer:
@@ -94,7 +103,7 @@ const restFetch = async (resource, options = {}) => {
     const diagnostics = getServiceRoleDiagnostics();
     throw new Error(
       `Supabase REST ${response.status} for ${getSupabaseProjectRef()}: ${redactProductLabText(body.slice(0, 500))}. ` +
-        `Diagnostics: role=${diagnostics.role || "unknown"}, jwt=${diagnostics.keyLooksLikeJwt ? "yes" : "no"}, ` +
+        `Diagnostics: key_type=${diagnostics.keyType}, role=${diagnostics.role || "unknown"}, ` +
         `issuer_matches_url=${diagnostics.refMatchesIssuer ? "yes" : "no"}.`,
     );
   }
@@ -140,7 +149,7 @@ const pushProposals = async () => {
   console.log(
     `Product Lab Supabase target: ${diagnostics.projectRef}, service_role_present=${diagnostics.hasServiceRoleKey ? "yes" : "no"}, role=${
       diagnostics.role || "unknown"
-    }, issuer_matches_url=${diagnostics.refMatchesIssuer ? "yes" : "no"}.`,
+    }, key_type=${diagnostics.keyType}, issuer_matches_url=${diagnostics.refMatchesIssuer ? "yes" : "no"}.`,
   );
 
   const config = getScopeConfig();
@@ -386,7 +395,7 @@ const recordRunStatus = async () => {
   console.log(
     `Product Lab run status target: ${diagnostics.projectRef}, service_role_present=${diagnostics.hasServiceRoleKey ? "yes" : "no"}, role=${
       diagnostics.role || "unknown"
-    }, issuer_matches_url=${diagnostics.refMatchesIssuer ? "yes" : "no"}.`,
+    }, key_type=${diagnostics.keyType}, issuer_matches_url=${diagnostics.refMatchesIssuer ? "yes" : "no"}.`,
   );
 
   const config = getScopeConfig();
@@ -468,18 +477,51 @@ const recordRunStatus = async () => {
   console.log(`Product Lab run status sync complete for ${config.label}: ${runId}.`);
 };
 
-if (action === "push-proposals") {
-  await pushProposals();
-} else if (action === "pull-decisions") {
-  await pullDecisions();
-} else if (action === "mark-processed") {
-  await markProcessedDecisions();
-} else if (action === "record-pr-status") {
-  await recordPrStatus();
-} else if (action === "record-run") {
-  await recordRunStatus();
-} else {
+const diagnoseSupabase = async () => {
+  const diagnostics = getServiceRoleDiagnostics();
   console.log(
-    "Usage: node scripts/product-lab-supabase.mjs <pull-decisions|push-proposals|mark-processed|record-pr-status|record-run>",
+    `Product Lab Supabase diagnostics: target=${diagnostics.projectRef}, url_present=${
+      diagnostics.hasUrl ? "yes" : "no"
+    }, service_role_present=${diagnostics.hasServiceRoleKey ? "yes" : "no"}, key_type=${
+      diagnostics.keyType
+    }, role=${diagnostics.role || "unknown"}, issuer_matches_url=${
+      diagnostics.refMatchesIssuer ? "yes" : "no"
+    }.`,
   );
-}
+
+  if (!isConfigured()) {
+    throw new Error("Product Lab Supabase diagnostics failed: missing VITE_SUPABASE_URL/SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.");
+  }
+
+  const config = getScopeConfig();
+  await restFetch(`${config.reviewTable}?select=id&limit=1`, { method: "GET" });
+  await restFetch(`${config.runsTable}?select=id&limit=1`, { method: "GET" });
+  console.log(`Product Lab Supabase diagnostics passed for ${config.label}.`);
+};
+
+const run = async () => {
+  if (action === "push-proposals") {
+    await pushProposals();
+  } else if (action === "pull-decisions") {
+    await pullDecisions();
+  } else if (action === "mark-processed") {
+    await markProcessedDecisions();
+  } else if (action === "record-pr-status") {
+    await recordPrStatus();
+  } else if (action === "record-run") {
+    await recordRunStatus();
+  } else if (action === "diagnose") {
+    await diagnoseSupabase();
+  } else {
+    console.log(
+      "Usage: node scripts/product-lab-supabase.mjs <diagnose|pull-decisions|push-proposals|mark-processed|record-pr-status|record-run>",
+    );
+  }
+};
+
+run().catch((error) => {
+  const message = redactProductLabText(error instanceof Error ? error.message : String(error));
+  console.error(`::error title=Product Lab Supabase sync failed::${message}`);
+  console.error(message);
+  process.exitCode = 1;
+});

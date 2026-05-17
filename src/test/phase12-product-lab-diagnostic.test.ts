@@ -70,6 +70,8 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(localRunner).not.toContain("gh pr merge");
     expect(supabaseSync).toContain("normalizeRunSourceForDb");
     expect(supabaseSync).toContain("process.env.NEXT_PUBLIC_SUPABASE_URL");
+    expect(supabaseSync).toContain("rawUrl?.trim()");
+    expect(supabaseSync).toContain("rawServiceRoleKey?.trim()");
     expect(supabaseSync).toContain("getServiceRoleDiagnostics");
     expect(supabaseSync).toContain("issuer_matches_url");
     expect(supabaseSync).toContain('["scheduled", "manual", "local", "workflow_dispatch"]');
