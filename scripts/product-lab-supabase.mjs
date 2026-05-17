@@ -144,12 +144,199 @@ const getReviewFingerprint = (value) => {
   const title = normalizeReviewText(reviewItem?.originalTitle || getBaseReviewTitle(value?.title || reviewItem?.title));
   return module && title ? `${module}:${title}` : "";
 };
+const slugify = (value) => normalizeReviewText(value).replace(/\s+/g, "-") || "item";
 const normalizeRunSourceForDb = (value) =>
   ["scheduled", "manual", "local", "workflow_dispatch"].includes(value) ? value : "local";
 const getScopeConfig = () => PRODUCT_LAB_SCOPES.v2;
 const getReviewQueuePath = () => {
   if (process.env.PRODUCT_LAB_REVIEW_QUEUE_PATH) return process.env.PRODUCT_LAB_REVIEW_QUEUE_PATH;
   return "public/product-lab-review.json";
+};
+
+const buildRescueReviewQueue = (config) => {
+  const generatedAt = new Date().toISOString();
+  const date = generatedAt.slice(0, 10);
+  const runInstance = process.env.GITHUB_RUN_ID || process.env.PRODUCT_LAB_RUN_ID || slugify(generatedAt);
+  const runId = `${date}-product-lab-rescue-${runInstance}`;
+  const reportPath = `reports/product-lab/daily/daily-${date}.md`;
+  const coreOutcome = process.env.PRODUCT_LAB_CORE_OUTCOME || "unknown";
+  const sourceRun = {
+    date,
+    week: "rescue",
+    theme: "Product Lab V2 Rescue",
+    reportPath,
+    runId,
+  };
+
+  const proposals = [
+    {
+      module: "Product Lab",
+      domain: "systeme",
+      title: "Restaurer la generation de file Product Lab avant sync Supabase",
+      description:
+        "Le run GitHub n'a pas produit la file Product Lab avant la synchronisation Supabase. Diagnostiquer l'etape Product Lab principale, garantir l'ecriture de public/product-lab-review.json et bloquer les PR tant que ce signal n'est pas vert.",
+      beforeState: "La synchro admin peut echouer avec no review queue found, donc aucune nouvelle proposition n'apparait.",
+      afterState: "Chaque run cree une file exploitable ou une proposition de diagnostic claire dans l'admin.",
+      concernedFiles: ["scripts/product-lab.mjs", "scripts/product-lab-core.mjs", ".github/workflows/product-lab-nightly.yml"],
+      priority: "Critique",
+      impact: "Eleve",
+      risk: "Faible",
+      difficulty: "Moyenne",
+      inspiration: "Vercel / Linear",
+    },
+    {
+      module: "GitHub Actions",
+      domain: "systeme",
+      title: "Afficher l'etape exacte qui bloque le nightly V2",
+      description:
+        "Ajouter un resume de run plus lisible quand Product Lab echoue: outcome de l'etape principale, smoke QA, AI Gateway, sync Supabase, lint, test et build.",
+      beforeState: "Le fondateur voit un echec global sans comprendre immediatement quelle etape a casse.",
+      afterState: "Le rapport GitHub et l'admin indiquent le bloqueur exact sans exposer de secrets.",
+      concernedFiles: [".github/workflows/product-lab-nightly.yml", "scripts/product-lab-supabase.mjs"],
+      priority: "Important",
+      impact: "Eleve",
+      risk: "Faible",
+      difficulty: "Faible",
+      inspiration: "GitHub Actions / Vercel",
+    },
+    {
+      module: "Multi-IA / Systeme",
+      domain: "ia",
+      title: "Valider credits et acces AI Gateway pour analyse enrichie",
+      description:
+        "Confirmer que le projet Vercel v2 possede les credits, le secret et le modele Product Lab IA necessaires pour enrichir les propositions au lieu de rester en analyse locale.",
+      beforeState: "L'analyse IA Gateway peut etre presente mais non prouvee si credits, acces ou modele bloquent.",
+      afterState: "L'admin affiche generated, auth_required, credits_required ou model_unavailable selon le vrai etat.",
+      concernedFiles: ["scripts/product-lab-ai-review.mjs", ".github/workflows/product-lab-nightly.yml", "src/pages/Admin.tsx"],
+      priority: "Important",
+      impact: "Eleve",
+      risk: "Faible",
+      difficulty: "Moyenne",
+      inspiration: "Vercel AI Gateway",
+    },
+    {
+      module: "Site Builder",
+      domain: "generateur",
+      title: "Stabiliser le smoke QA generateur avant creation PR",
+      description:
+        "Transformer les echecs de smoke generateur en signaux exploitables et empecher toute PR Product Lab tant que les tests metier critiques ne sont pas verts.",
+      beforeState: "Une QA generateur rouge peut bloquer les PR sans donner assez de priorite produit.",
+      afterState: "Les echecs smoke deviennent des propositions classees par impact et ne creent aucune PR prematuree.",
+      concernedFiles: ["scripts/smoke-generate-site.mjs", "scripts/product-lab-core.mjs", ".github/workflows/product-lab-nightly.yml"],
+      priority: "Critique",
+      impact: "Eleve",
+      risk: "Faible",
+      difficulty: "Moyenne",
+      inspiration: "Lovable / Vercel",
+    },
+    {
+      module: "Admin",
+      domain: "systeme",
+      title: "Verifier affichage live du backlog Supabase dans l'admin",
+      description:
+        "Confirmer apres redeploy que les propositions ouvertes Supabase s'accumulent dans l'admin V2, sans doublons et sans rester limitees au dernier run.",
+      beforeState: "Le workflow peut sauver des propositions mais l'admin live doit encore prouver l'affichage complet.",
+      afterState: "Le compteur admin correspond aux lignes open de product_lab_review_items.",
+      concernedFiles: ["src/pages/Admin.tsx", "src/modules/product-lab/product-lab-review.ts"],
+      priority: "Important",
+      impact: "Eleve",
+      risk: "Faible",
+      difficulty: "Faible",
+      inspiration: "Linear / Shopify Admin",
+    },
+    {
+      module: "Product Lab",
+      domain: "marketing",
+      title: "Prioriser les propositions selon impact business et vision fondateur",
+      description:
+        "Garder les propositions Product Lab orientees conversion, valeur client, rentabilite et proximite avec Lovable, v0, Linear et Vercel, sans refonte globale inutile.",
+      beforeState: "Un run de secours ou local peut produire des cartes trop techniques si le contexte produit n'est pas visible.",
+      afterState: "Chaque carte indique pourquoi elle rapproche Pixelrises de la vision finale.",
+      concernedFiles: ["scripts/product-lab-core.mjs", "docs/product-lab-benchmark-targets.md"],
+      priority: "Amelioration",
+      impact: "Moyen",
+      risk: "Faible",
+      difficulty: "Faible",
+      inspiration: "Lovable / v0 / Linear",
+    },
+    {
+      module: "SEO",
+      domain: "seo",
+      title: "Auditer les pages publiques V2 apres chaque deploy",
+      description:
+        "Ajouter au Product Lab un controle SEO simple sur landing, pricing et pages legales: title, meta, H1, liens critiques et absence de contenu technique visible.",
+      beforeState: "Les runs Product Lab se concentrent surtout sur generateur et CI.",
+      afterState: "Le SEO public devient un signal quotidien utile avant lancement.",
+      concernedFiles: ["src/pages/Index.tsx", "src/pages/Pricing.tsx", "src/components/SEOHead.tsx"],
+      priority: "Amelioration",
+      impact: "Moyen",
+      risk: "Faible",
+      difficulty: "Faible",
+      inspiration: "Framer / Shopify",
+    },
+    {
+      module: "Code Health",
+      domain: "systeme",
+      title: "Valider auto-merge controle sur une PR non sensible",
+      description:
+        "Tester prMode puis autoMergeControlled uniquement avec une correction simple non sensible, apres validation admin, checks verts et aucun fichier protege touche.",
+      beforeState: "La politique auto-merge est codee mais pas encore prouvee sur une vraie PR V2 non sensible.",
+      afterState: "Le Product Lab sait creer une PR simple et bloquer ou demander auto-merge selon les garde-fous.",
+      concernedFiles: [".github/workflows/product-lab-nightly.yml", "scripts/product-lab-governance.mjs"],
+      priority: "Important",
+      impact: "Eleve",
+      risk: "Moyen",
+      difficulty: "Moyenne",
+      inspiration: "Linear / GitHub",
+    },
+  ];
+
+  const items = proposals.map((proposal, index) => ({
+    id: `${runId}-${index + 1}-${slugify(proposal.module)}-${slugify(proposal.title)}`,
+    title: proposal.title,
+    originalTitle: proposal.title,
+    module: proposal.module,
+    domain: proposal.domain,
+    simpleSummary: `${proposal.module}: ${proposal.description}`,
+    priority: proposal.priority,
+    impact: proposal.impact,
+    risk: proposal.risk,
+    difficulty: proposal.difficulty,
+    status: "Diagnostic Product Lab",
+    inspiration: proposal.inspiration,
+    decision: "human_validation",
+    description: proposal.description,
+    scoreImpact: proposal.impact === "Eleve" ? 30 : 18,
+    sourceReport: reportPath,
+    automationPolicy:
+      "Validation humaine requise. Cette proposition de secours ne doit pas appliquer de changement automatiquement.",
+    concernedFiles: proposal.concernedFiles,
+    beforeState: proposal.beforeState,
+    afterState: proposal.afterState,
+    dataState: "real",
+  }));
+
+  return {
+    generatedAt,
+    sourceRun,
+    summary: {
+      total: items.length,
+      actionableTotal: items.length,
+      rejectedVagueProposals: 0,
+      maxAutoSafePatches: 0,
+      sensitiveChangesRequireApproval: true,
+      dailySummary: `File de secours Product Lab V2: ${items.length} proposition(s) creee(s) parce que le run principal n'a pas produit de file. Outcome principal: ${coreOutcome}.`,
+      aiReview: {
+        status: "failed",
+        model: "Pixelrises AI Gateway",
+        generated: 0,
+        generatedAt,
+        error: "Analyse IA non appliquee sur cette file de secours.",
+        action: "Corriger le run Product Lab principal puis relancer proposalOnly.",
+      },
+    },
+    items,
+  };
 };
 
 const readOpenReviewRows = async (config) =>
@@ -212,10 +399,13 @@ const pushProposals = async () => {
   );
 
   const config = getScopeConfig();
-  const queue = readJson(getReviewQueuePath(), null);
+  let queue = readJson(getReviewQueuePath(), null);
   if (!queue?.items?.length) {
-    skipOrFail("Product Lab Supabase proposal sync failed: no review queue found.");
-    return;
+    queue = buildRescueReviewQueue(config);
+    writeJson(getReviewQueuePath(), queue);
+    console.log(
+      `Product Lab Supabase proposal sync rescued: no review queue found, generated ${queue.items.length} safe diagnostic item(s) for ${config.label}.`,
+    );
   }
 
   const processedRows = await restFetch(

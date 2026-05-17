@@ -173,7 +173,9 @@ jobs:
         run: npm run product-lab:research
 
       - name: Run Product Lab
+        id: product_lab_core
         if: steps.guard.outputs.run == 'true'
+        continue-on-error: true
         env:
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY || secrets.API_GATEWAY_VERCEL }}
           PRODUCT_LAB_MAX_PATCHES: "2"
@@ -311,6 +313,7 @@ jobs:
         continue-on-error: true
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PRODUCT_LAB_CORE_OUTCOME: ${{ steps.product_lab_core.outcome }}
           PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: "true"
         run: npm run product-lab:proposals:push
 
@@ -328,7 +331,8 @@ jobs:
           PRODUCT_LAB_FORCE_GENERATE: ${{ steps.run_mode.outputs.force_generate }}
           PRODUCT_LAB_RUN_SOURCE: ${{ steps.run_mode.outputs.source }}
           PRODUCT_LAB_RUN_STARTED_AT: ${{ steps.run_mode.outputs.started_at }}
-          PRODUCT_LAB_RUN_STATUS: completed
+          PRODUCT_LAB_RUN_STATUS: ${{ steps.product_lab_core.outcome == 'success' && 'completed' || 'failed' }}
+          PRODUCT_LAB_ERRORS_COUNT: ${{ steps.product_lab_core.outcome == 'success' && '0' || '1' }}
         run: npm run product-lab:run-status:record
 
       - name: Lint
@@ -364,6 +368,7 @@ jobs:
           smoke_budget="${{ steps.smoke_preflight.outputs.budget }}"
           smoke_ready="${{ steps.smoke_preflight.outputs.ready }}"
           smoke_outcome="${{ steps.generator_smoke.outcome }}"
+          product_lab_outcome="${{ steps.product_lab_core.outcome }}"
 
           smoke_passed=false
           if [ "$smoke_enabled" != "1" ] || [ "$smoke_budget" = "0" ]; then
@@ -383,7 +388,7 @@ jobs:
 
           echo "proposal_sync_passed=$proposal_sync_passed" >> "$GITHUB_OUTPUT"
 
-          if [ "$proposal_sync_passed" = "true" ] && [ "$smoke_passed" = "true" ] && [ "${{ steps.lint.outcome }}" = "success" ] && [ "${{ steps.test.outcome }}" = "success" ] && [ "${{ steps.build.outcome }}" = "success" ] && [ "${{ steps.redaction.outcome }}" = "success" ]; then
+          if [ "$proposal_sync_passed" = "true" ] && [ "$product_lab_outcome" = "success" ] && [ "$smoke_passed" = "true" ] && [ "${{ steps.lint.outcome }}" = "success" ] && [ "${{ steps.test.outcome }}" = "success" ] && [ "${{ steps.build.outcome }}" = "success" ] && [ "${{ steps.redaction.outcome }}" = "success" ]; then
             echo "checks_passed=true" >> "$GITHUB_OUTPUT"
           else
             echo "checks_passed=false" >> "$GITHUB_OUTPUT"
@@ -456,6 +461,7 @@ jobs:
           ## Tests lances
           - mode: ${{ steps.run_mode.outputs.mode }}
           - dry-run: ${{ steps.run_mode.outputs.dry_run }}
+          - Product Lab core: ${{ steps.product_lab_core.outcome }}
           - generator smoke QA: ${{ steps.generator_smoke.outcome }}
           - smoke QA preflight: ready=${{ steps.smoke_preflight.outputs.ready }}, missing=${{ steps.smoke_preflight.outputs.missing }}
           - Supabase proposals sync: ${{ steps.proposals_push.outcome }}

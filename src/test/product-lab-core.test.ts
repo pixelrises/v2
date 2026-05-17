@@ -621,6 +621,8 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("Run V2 generator smoke QA");
     expect(workflow).toContain("Check V2 generator smoke QA configuration");
     expect(workflow).toContain("npm run smoke:generator");
+    expect(workflow).toContain("id: product_lab_core");
+    expect(workflow).toContain("continue-on-error: true");
     expect(workflow).toContain("Generate AI Product Lab proposals");
     expect(workflow).toContain("npm run product-lab:ai-review");
     expect(workflow).toContain("vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '10'");
@@ -636,6 +638,7 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_URL");
     expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
     expect(workflow).toContain("steps.proposals_push.outcome");
+    expect(workflow).toContain("PRODUCT_LAB_CORE_OUTCOME");
     expect(workflow).toContain("Check Product Lab report redaction");
     expect(workflow).toContain("npm run product-lab:redaction:check");
     expect(workflow).toContain("Evaluate controlled Product Lab auto-merge");

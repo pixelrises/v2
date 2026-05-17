@@ -48,8 +48,11 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "8"');
     expect(workflow).toContain("mode:");
     expect(workflow).toContain("Resolve Product Lab mode");
+    expect(workflow).toContain("id: product_lab_core");
+    expect(workflow).toContain("continue-on-error: true");
     expect(workflow).toContain("Diagnose Product Lab AI Gateway review configuration");
     expect(workflow).toContain("steps.run_mode.outputs.dry_run != 'true'");
+    expect(workflow).toContain("PRODUCT_LAB_CORE_OUTCOME");
     expect(workflow).toContain("npm run product-lab:run-status:record");
     expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_URL");
     expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
@@ -82,6 +85,8 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(supabaseSync).toContain("issuer_matches_url");
     expect(supabaseSync).toContain("archiveProcessedReviewItems");
     expect(supabaseSync).toContain("open-review-items.json");
+    expect(supabaseSync).toContain("buildRescueReviewQueue");
+    expect(supabaseSync).toContain("Product Lab Supabase proposal sync rescued");
     expect(supabaseSync).toContain("Existing open backlog kept");
     expect(supabaseSync).toContain("already open");
     expect(supabaseSync).toContain('["scheduled", "manual", "local", "workflow_dispatch"]');
