@@ -42,4 +42,11 @@ describe("Admin Product Lab control center", () => {
     expect(adminSource).toContain("Run & schedule");
     expect(adminSource).toContain("Garde-fous");
   });
+
+  it("loads Product Lab only after the Supabase admin role is confirmed", () => {
+    expect(adminSource).toContain("adminReady");
+    expect(adminSource).toContain("setAdminReady(true)");
+    expect(adminSource).toContain("if (!adminReady) return;");
+    expect(adminSource).toMatch(/setAdminReady\(true\);[\s\S]{0,220}loadProductLabStateForScope\(productLabScope\)/);
+  });
 });

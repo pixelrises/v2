@@ -487,6 +487,7 @@ const Admin = () => {
   const [tab, setTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [adminReady, setAdminReady] = useState(false);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [sites, setSites] = useState<SiteRow[]>([]);
   const [leads, setLeads] = useState<LeadRow[]>([]);
@@ -757,7 +758,12 @@ const Admin = () => {
       const fastRole = await resolveWithTimeout(fetchAdminRole(), 2500);
       if (fastRole?.data) {
         writeCachedAdminFlag(user.id, true);
-        await loadAdminData();
+        setAdminReady(true);
+        await Promise.all([
+          loadAdminData(),
+          loadProductLabStateForScope(productLabScope),
+          loadProductLabScopeDashboard(),
+        ]);
         setLoading(false);
         return;
       }
@@ -773,6 +779,7 @@ const Admin = () => {
 
       if (!hasAdminRole) {
         writeCachedAdminFlag(user.id, false);
+        setAdminReady(false);
         toast({
           title: "Accès réservé",
           description: "Ton rôle admin n'est pas confirmé côté Supabase. Connecte-toi avec un compte admin.",
@@ -784,14 +791,21 @@ const Admin = () => {
       }
 
       writeCachedAdminFlag(user.id, true);
-      await loadAdminData();
+      setAdminReady(true);
+      await Promise.all([
+        loadAdminData(),
+        loadProductLabStateForScope(productLabScope),
+        loadProductLabScopeDashboard(),
+      ]);
       setLoading(false);
     };
 
     void init();
-  }, [loadAdminData, navigate]);
+  }, [loadAdminData, loadProductLabScopeDashboard, loadProductLabStateForScope, navigate, productLabScope]);
 
   useEffect(() => {
+    if (!adminReady) return;
+
     activeProductLabScopeRef.current = productLabScope;
     setProductLabQueue(null);
     setProductLabRunStatus(null);
@@ -800,7 +814,7 @@ const Admin = () => {
     setProductLabPersistenceError(null);
     void loadProductLabStateForScope(productLabScope);
     void loadProductLabScopeDashboard();
-  }, [loadProductLabStateForScope, loadProductLabScopeDashboard, productLabScope]);
+  }, [adminReady, loadProductLabStateForScope, loadProductLabScopeDashboard, productLabScope]);
 
   useEffect(() => {
     setProductLabNotes({});
