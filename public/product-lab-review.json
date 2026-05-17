@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-05-17T04:41:54.291Z",
+  "generatedAt": "2026-05-17T04:55:53.729Z",
   "sourceRun": {
     "date": "2026-05-17",
     "week": "2026-W20",
     "theme": "Audit Global / Refactor / Tests / Roadmap",
     "reportPath": "reports/product-lab/daily/daily-2026-05-17.md",
-    "runId": "2026-05-17-audit-roadmap-2026-05-17t04-41-54-137z"
+    "runId": "2026-05-17-audit-roadmap-2026-05-17t04-55-53-573z"
   },
   "summary": {
     "total": 2,
@@ -27,18 +27,19 @@
     },
     "aiReview": {
       "status": "failed",
-      "model": "openai/gpt-5.4",
+      "model": "Pixelrises AI Gateway",
       "generated": 0,
-      "generatedAt": "2026-05-17T04:41:55.256Z",
-      "error": "Free credits temporarily have restricted access due to abuse. We are working on a resolution. Paid credits continue to have unrestricted access. Purchase credits at https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dtop-up"
+      "generatedAt": "2026-05-17T04:56:53.399Z",
+      "error": "Analyse IA indisponible pour ce run: credits ou acces AI Gateway a verifier."
     }
   },
   "items": [
     {
-      "id": "2026-05-17-audit-roadmap-2026-05-17t04-41-54-137z-product-vision-aligner-chaque-patch-sur-la-vision-idee-vers-projet-concret-roadmap-semaine",
+      "id": "2026-05-17-audit-roadmap-2026-05-17t04-55-53-573z-product-vision-aligner-chaque-patch-sur-la-vision-idee-vers-projet-concret-roadmap-semaine",
       "title": "Aligner chaque patch sur la vision idee vers projet concret - roadmap semaine",
       "originalTitle": "Aligner chaque patch sur la vision idee vers projet concret",
       "module": "Product Vision",
+      "domain": "marketing",
       "simpleSummary": "Product Vision: Verifier que chaque amelioration renforce la promesse Pixelrises: creer, ameliorer, publier, connecter ou analyser. Focus du run: classer les prochains chantiers par impact, risque et validation humaine. Impact eleve, risque faible.",
       "priority": "Important",
       "impact": "Eleve",
@@ -83,10 +84,11 @@
       "dataState": "real"
     },
     {
-      "id": "2026-05-17-audit-roadmap-2026-05-17t04-41-54-137z-product-research-ancrer-les-propositions-dans-des-sources-verifiees-ci-sans-surprise",
+      "id": "2026-05-17-audit-roadmap-2026-05-17t04-55-53-573z-product-research-ancrer-les-propositions-dans-des-sources-verifiees-ci-sans-surprise",
       "title": "Ancrer les propositions dans des sources verifiees - CI sans surprise",
       "originalTitle": "Ancrer les propositions dans des sources verifiees",
       "module": "Product Research",
+      "domain": "systeme",
       "simpleSummary": "Product Research: Utiliser les sources fiables allowlistees pour guider les experts Product Lab (4/4 source(s) verifiee(s)). Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent. Impact eleve, risque faible.",
       "priority": "Important",
       "impact": "Eleve",

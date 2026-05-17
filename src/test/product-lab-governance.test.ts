@@ -11,13 +11,12 @@ import {
 } from "../../scripts/product-lab-governance.mjs";
 
 describe("Product Lab governance", () => {
-  it("keeps V1 and V2 Product Lab tables separated", () => {
-    expect(PRODUCT_LAB_SCOPES.v1.reviewTable).toBe("product_lab_v1_review_items");
-    expect(PRODUCT_LAB_SCOPES.v1.decisionsTable).toBe("product_lab_v1_decisions");
-    expect(PRODUCT_LAB_SCOPES.v1.prStatusTable).toBe("product_lab_v1_pr_status");
+  it("keeps Product Lab governance focused on V2 tables only", () => {
+    expect(Object.keys(PRODUCT_LAB_SCOPES)).toEqual(["v2"]);
     expect(PRODUCT_LAB_SCOPES.v2.reviewTable).toBe("product_lab_review_items");
     expect(PRODUCT_LAB_SCOPES.v2.decisionsTable).toBe("product_lab_decisions");
     expect(PRODUCT_LAB_SCOPES.v2.prStatusTable).toBe("product_lab_pr_status");
+    expect(JSON.stringify(PRODUCT_LAB_SCOPES)).not.toContain("product_lab_v1");
   });
 
   it("rejects vague Product Lab proposals before they reach the admin queue", () => {

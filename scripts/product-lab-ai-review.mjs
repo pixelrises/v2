@@ -43,6 +43,23 @@ const getGatewayKeyPresent = () =>
       process.env.VERCEL_OIDC_TOKEN,
   );
 
+const publicAiReviewModelLabel = "Pixelrises AI Gateway";
+
+const getSafeAiReviewError = (error) => {
+  const rawMessage = redactSecrets(error instanceof Error ? error.message : String(error ?? ""));
+  const normalized = normalize(rawMessage);
+  if (normalized.includes("credit") || normalized.includes("payment") || normalized.includes("top up")) {
+    return "Analyse IA indisponible pour ce run: credits ou acces AI Gateway a verifier.";
+  }
+  if (normalized.includes("auth") || normalized.includes("unauthorized") || normalized.includes("401")) {
+    return "Analyse IA indisponible pour ce run: authentification AI Gateway a verifier.";
+  }
+  if (normalized.includes("rate") || normalized.includes("quota") || normalized.includes("limit")) {
+    return "Analyse IA indisponible pour ce run: limite AI Gateway atteinte.";
+  }
+  return "Analyse IA indisponible pour ce run. Le Product Lab conserve les propositions locales securisees.";
+};
+
 const extractJsonArray = (text) => {
   const cleaned = String(text ?? "")
     .replace(/^```(?:json)?/i, "")
@@ -197,7 +214,7 @@ const main = async () => {
       queuePath,
       annotateQueue(queue, {
         status: aiReviewEnabled ? "skipped_missing_gateway" : "disabled",
-        model,
+        model: publicAiReviewModelLabel,
         generated: 0,
         generatedAt: new Date().toISOString(),
       }),
@@ -233,7 +250,7 @@ const main = async () => {
         queuePath,
         annotateQueue(queue, {
           status: "empty",
-          model,
+          model: publicAiReviewModelLabel,
           generated: 0,
           generatedAt: new Date().toISOString(),
         }),
@@ -262,7 +279,7 @@ const main = async () => {
       },
       {
         status: "generated",
-        model,
+        model: publicAiReviewModelLabel,
         generated: aiItems.length,
         generatedAt: new Date().toISOString(),
         usage: result.usage
@@ -276,14 +293,14 @@ const main = async () => {
     );
 
     writeJson(queuePath, updatedQueue);
-    console.log(`Product Lab AI review complete: ${aiItems.length} AI proposal(s) generated with ${model}.`);
+    console.log(`Product Lab AI review complete: ${aiItems.length} AI proposal(s) generated.`);
   } catch (error) {
-    const message = redactSecrets(error instanceof Error ? error.message : String(error));
+    const message = getSafeAiReviewError(error);
     writeJson(
       queuePath,
       annotateQueue(queue, {
         status: "failed",
-        model,
+        model: publicAiReviewModelLabel,
         generated: 0,
         generatedAt: new Date().toISOString(),
         error: message,

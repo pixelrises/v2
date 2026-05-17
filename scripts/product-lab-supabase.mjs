@@ -132,12 +132,10 @@ const toInteger = (value, fallback = 0) => {
 };
 const normalizeRunSourceForDb = (value) =>
   ["scheduled", "manual", "local", "workflow_dispatch"].includes(value) ? value : "local";
-const getScopeConfig = () => PRODUCT_LAB_SCOPES[process.env.PRODUCT_LAB_SCOPE || "v2"] ?? PRODUCT_LAB_SCOPES.v2;
+const getScopeConfig = () => PRODUCT_LAB_SCOPES.v2;
 const getReviewQueuePath = () => {
   if (process.env.PRODUCT_LAB_REVIEW_QUEUE_PATH) return process.env.PRODUCT_LAB_REVIEW_QUEUE_PATH;
-  return (process.env.PRODUCT_LAB_SCOPE || "v2") === "v1"
-    ? "public/product-lab-v1-review.json"
-    : "public/product-lab-review.json";
+  return "public/product-lab-review.json";
 };
 
 const pushProposals = async () => {
@@ -241,9 +239,7 @@ const pullDecisions = async () => {
 
   const config = getScopeConfig();
   const selectedColumns =
-    config === PRODUCT_LAB_SCOPES.v1
-      ? "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,review_item,source_run,pr_url,pr_number,pr_ready_at"
-      : "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,review_item,source_run,application_status,processed_at,processed_run";
+    "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,review_item,source_run,application_status,processed_at,processed_run";
 
   const rows = await restFetch(
     [config.decisionsTable, `?select=${selectedColumns}`, "&order=decided_at.desc", "&limit=500"].join(""),
@@ -527,7 +523,7 @@ const recordRunStatus = async () => {
     body: JSON.stringify([
       {
         run_id: runId,
-        version: config.label.includes("V1") ? "v1" : "v2",
+        version: "v2",
         source,
         mode,
         status: process.env.PRODUCT_LAB_RUN_STATUS || "completed",
@@ -559,7 +555,7 @@ const recordRunStatus = async () => {
     body: JSON.stringify([
       {
         run_id: runId,
-        version: config.label.includes("V1") ? "v1" : "v2",
+        version: "v2",
         report_path: reportSummary.reportPath || "",
         summary: reportSummary,
         created_at: completedAt,

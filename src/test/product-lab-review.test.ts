@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   exportProductLabDecisions,
-  fallbackProductLabV1ReviewQueue,
   fallbackProductLabReviewQueue,
   getProductLabQueueRunKey,
   getUnsyncedProductLabDecisions,
@@ -258,42 +257,16 @@ describe("Product Lab admin review", () => {
     expect(exported).toContain("plus simple et plus premium");
   });
 
-  it("keeps V1 and V2 admin decisions isolated", () => {
-    const v2Item = fallbackProductLabReviewQueue.items[0];
-    const v1Item = fallbackProductLabV1ReviewQueue.items[0];
-    const v2Decisions = writeProductLabDecision(
-      {} as ProductLabDecisionMap,
-      v2Item.id,
-      "approved",
-      "OK V2.",
-      { automationAction: "authorize_next_run" },
-      "v2",
-    );
-    const v1Decisions = writeProductLabDecision(
-      {} as ProductLabDecisionMap,
-      v1Item.id,
-      "needs_review",
-      "A revoir V1.",
-      { automationAction: "hold" },
-      "v1",
-    );
-
-    expect(v2Decisions[v2Item.id].status).toBe("approved");
-    expect(v2Decisions[v1Item.id]).toBeUndefined();
-    expect(v1Decisions[v1Item.id].status).toBe("needs_review");
-    expect(v1Decisions[v2Item.id]).toBeUndefined();
-    expect(fallbackProductLabV1ReviewQueue.sourceRun.theme).toContain("V1");
-  });
-
-  it("uses separate Product Lab tables for V1 and V2 in the shared admin", () => {
-    const v1 = getProductLabScopeConfig("v1");
+  it("uses only the V2 Product Lab tables in the admin", () => {
     const v2 = getProductLabScopeConfig("v2");
 
-    expect(v1.reviewTable).toBe("product_lab_v1_review_items");
-    expect(v1.decisionsTable).toBe("product_lab_v1_decisions");
     expect(v2.reviewTable).toBe("product_lab_review_items");
     expect(v2.decisionsTable).toBe("product_lab_decisions");
-    expect(v1.storageKey).not.toBe(v2.storageKey);
+    expect(v2.runsTable).toBe("product_lab_runs");
+    expect(v2.reportsTable).toBe("product_lab_reports");
+    expect(v2.storageKey).toBe("pixelrises-v2-product-lab-decisions");
+    expect(productLabReviewSource).not.toContain("fallbackProductLabV1ReviewQueue");
+    expect(productLabReviewSource).not.toContain("product_lab_v1_review_items");
   });
 
   it("keeps Supabase as the Product Lab source of truth before JSON fallback", () => {
@@ -302,17 +275,6 @@ describe("Product Lab admin review", () => {
     expect(productLabReviewSource.indexOf("if (remoteQueue)")).toBeLessThan(
       productLabReviewSource.indexOf("if (publicQueue)"),
     );
-  });
-
-  it("turns Supabase schema cache errors into a V1 migration hint", () => {
-    const error = {
-      code: "PGRST205",
-      message: "Could not find the table 'public.product_lab_v1_decisions' in the schema cache",
-      details: "Could not find the table 'public.product_lab_v1_decisions' in the schema cache",
-    };
-
-    expect(isProductLabMissingTableError(error)).toBe(true);
-    expect(getProductLabMissingTableMessage("v1")).toContain("20260509194500_repair_product_lab_all_admin_tables_cache.sql");
   });
 
   it("turns Supabase schema cache errors into a V2 migration hint", () => {
@@ -329,11 +291,11 @@ describe("Product Lab admin review", () => {
   it("turns Supabase RLS errors into an admin-role repair hint", () => {
     const error = {
       code: "42501",
-      message: 'new row violates row-level security policy for table "product_lab_v1_decisions"',
+      message: 'new row violates row-level security policy for table "product_lab_decisions"',
     };
 
     expect(isProductLabRlsError(error)).toBe(true);
-    expect(getProductLabRlsMessage("v1")).toContain("public.user_roles");
-    expect(getProductLabRlsMessage("v1")).toContain("20260509200000_repair_product_lab_rls_policies.sql");
+    expect(getProductLabRlsMessage("v2")).toContain("public.user_roles");
+    expect(getProductLabRlsMessage("v2")).toContain("20260509200000_repair_product_lab_rls_policies.sql");
   });
 });

@@ -5,7 +5,7 @@ export type ProductLabRejectionMode = "ignore" | "alternative" | null;
 export type ProductLabAutomationAction = "hold" | "authorize_next_run" | "ignore" | "request_alternative";
 export type ProductLabFindingDecision = "auto_safe" | "human_validation";
 export type ProductLabApplicationStatus = "pending" | "pr_ready" | "skipped" | "validation_failed";
-export type ProductLabScope = "v2" | "v1";
+export type ProductLabScope = "v2";
 export type ProductLabQueueSource = "supabase" | "public" | "fallback";
 export type ProductLabProposalDomain = "marketing" | "systeme" | "seo" | "generateur" | "ia";
 export type ProductLabPrStatus = "not_created" | "creating" | "created" | "checks_running" | "checks_ok" | "checks_failed";
@@ -173,10 +173,8 @@ export const isProductLabMissingTableError = (error: unknown) => {
   );
 };
 
-export const getProductLabMissingTableMessage = (scope: ProductLabScope) =>
-  scope === "v1"
-    ? "Tables Product Lab V1 absentes ou cache Supabase non recharge. Applique la migration unique supabase/migrations/20260509194500_repair_product_lab_all_admin_tables_cache.sql en entier, puis relance l'admin."
-    : "Tables Product Lab V2 absentes ou cache Supabase non recharge. Applique la migration unique supabase/migrations/20260509194500_repair_product_lab_all_admin_tables_cache.sql en entier, puis relance l'admin.";
+export const getProductLabMissingTableMessage = (_scope: ProductLabScope) =>
+  "Tables Product Lab V2 absentes ou cache Supabase non recharge. Applique la migration unique supabase/migrations/20260509194500_repair_product_lab_all_admin_tables_cache.sql en entier, puis relance l'admin.";
 
 export const isProductLabRlsError = (error: unknown) => {
   if (!error || typeof error !== "object") return false;
@@ -351,58 +349,6 @@ export const fallbackProductLabReviewQueue: ProductLabReviewQueue = {
   ],
 };
 
-export const fallbackProductLabV1ReviewQueue: ProductLabReviewQueue = {
-  generatedAt: new Date(0).toISOString(),
-  sourceRun: {
-    date: "v1-pending",
-    week: "v1-pending",
-    theme: "Product Lab V1",
-    reportPath: "reports/product-lab-v1/daily/",
-  },
-  summary: {
-    total: 1,
-    maxAutoSafePatches: 2,
-    sensitiveChangesRequireApproval: true,
-    dailySummary:
-      "Le Product Lab V1 est pilote depuis cet admin avec des tables separees. Si cette carte reste visible, verifier le workflow V1, la migration Supabase ou le cache schema.",
-    averageScore: 0,
-    lowestScore: {
-      name: "Product Lab V1",
-      note: 0,
-    },
-  },
-  items: [
-    {
-      id: "v1-product-lab-setup",
-      title: "Brancher le Product Lab V1",
-      module: "Product Lab V1",
-      domain: "systeme",
-      simpleSummary:
-        "Connecter la V1 a ses tables separees pour auditer le generateur V1 et remonter les decisions dans cet admin.",
-      priority: "Critique",
-      impact: "Eleve",
-      risk: "Faible",
-      difficulty: "Moyenne",
-      status: "A brancher",
-      inspiration: "Linear / Vercel",
-      decision: "human_validation",
-      description:
-        "La V1 doit continuer a utiliser product_lab_v1_review_items et product_lab_v1_decisions, sans melanger les donnees V2.",
-      scoreImpact: 30,
-      sourceReport: "reports/product-lab-v1/daily/",
-      automationPolicy:
-        "Validation humaine requise. Cette carte est un placeholder admin tant que le workflow V1 ne publie pas encore ses propositions.",
-      concernedFiles: [
-        "C:/Users/rkf/Documents/New project/pixelrises-export/.github/workflows",
-        "product_lab_v1_review_items",
-        "product_lab_v1_decisions",
-      ],
-      beforeState: "Le centre commun peut basculer en fallback si les tables ou le cache Supabase V1 ne repondent pas.",
-      afterState: "Les propositions V1 restent visibles et decidables depuis ce meme admin, avec stockage V1 separe.",
-    },
-  ],
-};
-
 export const productLabScopeConfigs: Record<ProductLabScope, ProductLabScopeConfig> = {
   v2: {
     scope: "v2",
@@ -415,20 +361,9 @@ export const productLabScopeConfigs: Record<ProductLabScope, ProductLabScopeConf
     publicQueuePath: "/product-lab-review.json",
     fallbackQueue: fallbackProductLabReviewQueue,
   },
-  v1: {
-    scope: "v1",
-    label: "Pixelrises V1",
-    reviewTable: "product_lab_v1_review_items",
-    decisionsTable: "product_lab_v1_decisions",
-    runsTable: "product_lab_v1_runs",
-    reportsTable: "product_lab_v1_reports",
-    storageKey: "pixelrises-v1-product-lab-decisions",
-    publicQueuePath: "/product-lab-v1-review.json",
-    fallbackQueue: fallbackProductLabV1ReviewQueue,
-  },
 };
 
-export const getProductLabScopeConfig = (scope: ProductLabScope = "v2") => productLabScopeConfigs[scope];
+export const getProductLabScopeConfig = (_scope: ProductLabScope = "v2") => productLabScopeConfigs.v2;
 
 const canUseBrowserStorage = () => typeof window !== "undefined" && Boolean(window.localStorage);
 
@@ -513,9 +448,7 @@ export const readProductLabDecisionsFromSupabase = async (scope: ProductLabScope
     const { data, error } = await dynamicSupabase
       .from(config.decisionsTable)
       .select(
-        config.scope === "v1"
-          ? "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,source_run,pr_url,pr_number,pr_ready_at"
-          : "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,source_run,application_status,processed_at,processed_run",
+        "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,source_run,application_status,processed_at,processed_run",
       )
       .order("decided_at", { ascending: false })
       .limit(500);
@@ -536,39 +469,33 @@ export const readProductLabDecisionsFromSupabase = async (scope: ProductLabScope
       const record = row as Record<string, unknown>;
       const itemId = typeof record.item_id === "string" ? record.item_id : "";
       if (!itemId) return accumulator;
-      const isV1PrReady = config.scope === "v1" && record.status === "pr_ready";
       const processedRun = isObject(record.processed_run) ? record.processed_run : {};
       const prUrl =
         typeof processedRun.prUrl === "string"
           ? processedRun.prUrl
-          : typeof record.pr_url === "string"
-            ? record.pr_url
-            : "";
+          : "";
       const prNumber =
         typeof processedRun.prNumber === "number"
           ? processedRun.prNumber
-          : typeof record.pr_number === "number"
-            ? record.pr_number
-            : null;
-      const prReadyAt = typeof record.pr_ready_at === "string" ? record.pr_ready_at : "";
+          : null;
       const sourceRun = isObject(record.source_run)
         ? (record.source_run as ProductLabReviewQueue["sourceRun"])
         : undefined;
 
       accumulator[itemId] = {
         itemId,
-        status: isV1PrReady ? "approved" : normalizeDecisionStatus(record.status),
+        status: normalizeDecisionStatus(record.status),
         note: typeof record.admin_note === "string" ? record.admin_note : "",
         correctionRequest:
           typeof record.correction_request === "string" ? record.correction_request : "",
         rejectionMode: normalizeRejectionMode(record.rejection_mode),
         automationAction: normalizeAutomationAction(record.automation_action),
         decidedAt: typeof record.decided_at === "string" ? record.decided_at : "",
-        applicationStatus: isV1PrReady ? "pr_ready" : normalizeApplicationStatus(record.application_status),
+        applicationStatus: normalizeApplicationStatus(record.application_status),
         processedAt:
           typeof record.processed_at === "string"
             ? record.processed_at
-            : prReadyAt,
+            : "",
         processedRun: processedRun,
         branch: typeof processedRun.branch === "string" ? processedRun.branch : "",
         prUrl,
@@ -622,7 +549,7 @@ export const persistProductLabDecisionToSupabase = async (
     const userId = sessionData.session?.user.id;
     if (!userId) return { persisted: false, error: "Session admin absente." };
 
-    const basePayload = {
+    const payload = {
       item_id: decision.itemId,
       source_run: queue.sourceRun,
       review_item: item,
@@ -633,16 +560,10 @@ export const persistProductLabDecisionToSupabase = async (
       automation_action: decision.automationAction,
       decided_by: userId,
       decided_at: decision.decidedAt || new Date().toISOString(),
+      application_status: "pending",
+      processed_at: null,
+      processed_run: {},
     };
-    const payload =
-      config.scope === "v1"
-        ? basePayload
-        : {
-            ...basePayload,
-            application_status: "pending",
-            processed_at: null,
-            processed_run: {},
-          };
 
     const { error } = await dynamicSupabase.from(config.decisionsTable).upsert(payload, { onConflict: "item_id" });
 

@@ -11,14 +11,6 @@ export const PRODUCT_LAB_SCOPES = {
     runsTable: "product_lab_runs",
     reportsTable: "product_lab_reports",
   },
-  v1: {
-    label: "Pixelrises V1",
-    reviewTable: "product_lab_v1_review_items",
-    decisionsTable: "product_lab_v1_decisions",
-    prStatusTable: "product_lab_v1_pr_status",
-    runsTable: "product_lab_v1_runs",
-    reportsTable: "product_lab_v1_reports",
-  },
 };
 
 export const SENSITIVE_FILE_RULES = [

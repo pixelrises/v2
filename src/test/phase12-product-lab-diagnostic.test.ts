@@ -90,7 +90,6 @@ describe("Phase 12 Product Lab diagnostics", () => {
 
     expect(migration).toContain("create table if not exists public.product_lab_runs");
     expect(migration).toContain("create table if not exists public.product_lab_reports");
-    expect(migration).toContain("create table if not exists public.product_lab_v1_runs");
     expect(migration).toContain("alter table public.product_lab_runs enable row level security");
     expect(migration).toContain("revoke all on table");
     expect(migration).toContain("from anon");
