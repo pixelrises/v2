@@ -648,6 +648,9 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("tmp/generator-smoke-last.json");
     expect(workflow).toContain("Report blocked Product Lab PR");
     expect(workflow).toContain("(s.approvedFindings||[]).length > 0 && (s.appliedImprovements||[]).length > 0");
+    expect(fs.readFileSync(path.join(process.cwd(), "scripts/product-lab-core.mjs"), "utf8")).toContain(
+      "aucune nouvelle proposition unique",
+    );
   });
 
   it("keeps all V2 GitHub Actions on the Node 24 action generation", () => {

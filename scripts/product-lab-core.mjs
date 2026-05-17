@@ -1779,7 +1779,10 @@ export const buildProductLabReviewQueue = (result) => {
       rejectedVagueProposals: rawItems.length - actionableItems.length,
       maxAutoSafePatches: result.maxPatches,
       sensitiveChangesRequireApproval: true,
-      dailySummary: `Theme ${result.theme.label}: ${finalItems.length} proposition(s) actionnable(s) a valider, modifier ou refuser avant application. Objectif utile: ${min}-${max} propositions max par run.`,
+      dailySummary:
+        finalItems.length > 0
+          ? `Theme ${result.theme.label}: ${finalItems.length} proposition(s) actionnable(s) a valider, modifier ou refuser avant application. Objectif utile: ${min}-${max} propositions max par run.`
+          : `Theme ${result.theme.label}: aucune nouvelle proposition unique. Le backlog ouvert couvre deja les signaux de ce run; traite ou archive les cartes existantes pour debloquer de nouveaux chantiers.`,
       averageScore,
       lowestScore,
       research: {

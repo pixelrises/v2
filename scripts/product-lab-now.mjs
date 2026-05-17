@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const args = process.argv.slice(2);
@@ -16,6 +17,7 @@ const mode = dryRun
 const source = sourceIndex >= 0 ? args[sourceIndex + 1] : process.env.PRODUCT_LAB_RUN_SOURCE || "local";
 const startedAt = new Date().toISOString();
 const shouldApplyFixes = mode === "prMode" || mode === "autoMergeControlled";
+const reviewQueuePath = process.env.PRODUCT_LAB_REVIEW_QUEUE_PATH || "public/product-lab-review.json";
 
 const run = (label, commandArgs, extraEnv = {}) => {
   console.log(`\nProduct Lab now - ${label}`);
@@ -30,6 +32,19 @@ const run = (label, commandArgs, extraEnv = {}) => {
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
   }
+};
+
+const assertReviewQueue = (label) => {
+  if (!fs.existsSync(reviewQueuePath)) {
+    throw new Error(`Product Lab now failed after ${label}: ${reviewQueuePath} was not created.`);
+  }
+
+  const queue = JSON.parse(fs.readFileSync(reviewQueuePath, "utf8"));
+  if (!Array.isArray(queue.items)) {
+    throw new Error(`Product Lab now failed after ${label}: ${reviewQueuePath} has no valid review item array.`);
+  }
+
+  console.log(`Product Lab now - queue OK after ${label}: ${queue.items.length} new unique item(s).`);
 };
 
 run("pull admin decisions and open backlog", ["scripts/product-lab-supabase.mjs", "pull-decisions"], {
@@ -54,6 +69,8 @@ run("generate proposals", [
   PRODUCT_LAB_RUN_STARTED_AT: startedAt,
 });
 
+assertReviewQueue("generate proposals");
+
 if (dryRun) {
   console.log("\nProduct Lab now - dry-run complete. No Supabase write was attempted.");
   process.exit(0);
@@ -63,6 +80,8 @@ run("AI review", ["scripts/product-lab-ai-review.mjs"], {
   PRODUCT_LAB_MODE: mode,
   PRODUCT_LAB_MAX_REVIEW_ITEMS: maxProposals,
 });
+
+assertReviewQueue("AI review");
 
 run("push proposals to Supabase", ["scripts/product-lab-supabase.mjs", "push-proposals"], {
   PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: "true",

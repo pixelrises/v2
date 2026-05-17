@@ -400,12 +400,19 @@ const pushProposals = async () => {
 
   const config = getScopeConfig();
   let queue = readJson(getReviewQueuePath(), null);
-  if (!queue?.items?.length) {
+  if (!queue || !Array.isArray(queue.items)) {
     queue = buildRescueReviewQueue(config);
     writeJson(getReviewQueuePath(), queue);
     console.log(
       `Product Lab Supabase proposal sync rescued: no review queue found, generated ${queue.items.length} safe diagnostic item(s) for ${config.label}.`,
     );
+  }
+
+  if (!queue.items.length) {
+    console.log(
+      `Product Lab Supabase proposal sync complete: 0 new item(s) for ${config.label}. The open backlog already covers this run's signals.`,
+    );
+    return;
   }
 
   const processedRows = await restFetch(

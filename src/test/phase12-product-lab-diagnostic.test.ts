@@ -70,6 +70,7 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(localRunner).toContain("scripts/product-lab-supabase.mjs");
     expect(localRunner).toContain("push-proposals");
     expect(localRunner).toContain("scripts/product-lab-ai-review.mjs");
+    expect(localRunner).toContain("assertReviewQueue");
     expect(localRunner).toContain("record-run");
     expect(localRunner).toContain("shouldApplyFixes");
     expect(localRunner).toContain('mode === "prMode" || mode === "autoMergeControlled"');
@@ -87,6 +88,7 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(supabaseSync).toContain("open-review-items.json");
     expect(supabaseSync).toContain("buildRescueReviewQueue");
     expect(supabaseSync).toContain("Product Lab Supabase proposal sync rescued");
+    expect(supabaseSync).toContain("The open backlog already covers this run's signals");
     expect(supabaseSync).toContain("Existing open backlog kept");
     expect(supabaseSync).toContain("already open");
     expect(supabaseSync).toContain('["scheduled", "manual", "local", "workflow_dispatch"]');
