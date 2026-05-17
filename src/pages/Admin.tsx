@@ -393,41 +393,18 @@ const MONTHLY_CREDIT_PRESETS: MonthlyCreditPreset[] = BILLING_ADMIN_PLAN_KEYS.ma
   };
 });
 
-const adminBusinessControlPillars = [
-  {
-    label: "Credits",
-    detail: "Ajustements admin, credits Stripe et solde utilisateur sans exposer de donnees sensibles.",
-  },
-  {
-    label: "Abonnements / CA",
-    detail: "Suivi Stripe, revenus recents, anomalies paiement et croissance commerciale.",
-  },
-  {
-    label: "Sites",
-    detail: "Sites generes, publications, domaines, proprietaires et statut de mise en ligne.",
-  },
-  {
-    label: "Leads",
-    detail: "Prospects, statut commercial, recommandations et priorites de relance.",
-  },
-  {
-    label: "Product Lab",
-    detail: "Ameliorations V1/V2, validation humaine, PR GitHub et boucle d'amelioration continue.",
-  },
-];
-
 const productLabNightlyCycle = [
   {
     step: "00h Europe/Paris",
     detail: "Les workflows V1 et V2 se lancent separement depuis leurs repos GitHub.",
   },
   {
-    step: "20 tests / version",
-    detail: "Le Product Lab mesure generateur, UX, bugs, securite, responsive, IA et qualite produit.",
+    step: "Audit complet",
+    detail: "Le Product Lab teste generateur, UX, bugs, securite, responsive, IA et qualite produit.",
   },
   {
-    step: "5 a 8 propositions",
-    detail: "Les resultats sont convertis en ameliorations concretes, pas en une seule idee vague.",
+    step: "2 a 4 priorites",
+    detail: "Les signaux sont filtres pour garder peu de propositions, mais vraiment actionnables.",
   },
   {
     step: "Validation admin",
@@ -436,25 +413,6 @@ const productLabNightlyCycle = [
   {
     step: "PR controlee",
     detail: "Le run suivant applique uniquement les validations, puis ouvre une PR si lint/tests/build sont verts.",
-  },
-];
-
-const productLabBenchmarkPrinciples = [
-  {
-    source: "Lovable / Base44",
-    detail: "Idee -> plan -> build -> preview -> improvement, avec complexite progressive.",
-  },
-  {
-    source: "v0 / Vercel / 21st.dev",
-    detail: "Composants propres, previews rapides, registries reutilisables et logique production-ready.",
-  },
-  {
-    source: "Mobbin / Linear / Shopify Admin",
-    detail: "Parcours lisibles, decisions actionnables, dashboard business et gestion operationnelle claire.",
-  },
-  {
-    source: "Delos / Bloom / Framer",
-    detail: "Workspace polyvalent, creation assistee, rendu premium et orientation lancement concret.",
   },
 ];
 
@@ -2100,227 +2058,147 @@ const Admin = () => {
 
         {tab === "product-lab" && (
           <div className="space-y-6">
-            <div className="premium-shell-muted p-5 sm:p-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-                    Validation humaine
-                  </p>
-                  <h2 className="mt-2 text-2xl font-bold">Product Lab Review Center</h2>
-                  <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
-                    Les changements sensibles proposes par l'automatisation arrivent ici avec resume, risque,
-                    fichiers concernes et avant/apres. Une validation autorise le Product Lab a agir au prochain run.
-                  </p>
-                  <p className="mt-2 max-w-3xl text-xs leading-6 text-muted-foreground">
-                    Les tests quotidiens valident la qualite du code. Les cartes ci-dessous sont les vraies
-                    ameliorations actionnables a valider, corriger ou refuser.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs ${
-                        productLabPersistence === "supabase"
-                          ? "border-green-400/20 bg-green-400/10 text-green-200"
-                          : productLabPersistence === "loading"
-                            ? "border-amber-400/20 bg-amber-400/10 text-amber-200"
-                            : "border-blue-400/20 bg-blue-400/10 text-blue-200"
-                      }`}
-                    >
-                      {productLabPersistence === "supabase"
-                        ? unsyncedProductLabDecisionCount
-                          ? `${unsyncedProductLabDecisionCount} decision(s) locales a synchroniser`
-                          : "Sync Supabase active"
-                        : productLabPersistence === "loading"
-                          ? "Sync en verification"
-                          : "Non synchronise GitHub"}
+            <div className="relative overflow-hidden rounded-[32px] border border-primary/20 bg-[radial-gradient(circle_at_top_left,rgba(245,197,24,0.20),transparent_34%),linear-gradient(135deg,rgba(14,14,10,0.96),rgba(5,5,5,0.94))] p-5 shadow-[0_28px_90px_-55px_rgba(245,197,24,0.75)] sm:p-6">
+              <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-28 left-10 h-52 w-52 rounded-full bg-green-400/10 blur-3xl" />
+
+              <div className="relative grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+                <div className="flex min-h-[270px] flex-col justify-between">
+                  <div>
+                    <span className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                      <Zap className="h-3.5 w-3.5" />
+                      Product Lab
                     </span>
-                    <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary">
-                      Mode conseille: auto-safe + validation humaine
-                    </span>
-                    <span className={`rounded-full border px-3 py-1 text-xs ${productLabQueueSourceInfo.tone}`}>
-                      File: {productLabQueueSourceInfo.label}
-                    </span>
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs ${
-                        productLabGlobalStats.allLive
-                          ? "border-green-400/20 bg-green-400/10 text-green-200"
-                          : "border-amber-400/20 bg-amber-400/10 text-amber-200"
-                      }`}
-                    >
-                      V1/V2: {productLabGlobalStats.liveScopes}/2 live
-                    </span>
+                    <h2 className="mt-5 max-w-3xl text-3xl font-black leading-tight text-foreground sm:text-4xl">
+                      Centre d'amelioration continue
+                    </h2>
+                    <p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
+                      Product Lab teste Pixelrises, filtre les vrais signaux et te donne uniquement les decisions utiles:
+                      valider, demander une alternative, refuser ou synchroniser. Pas de metriques hors sujet ici.
+                    </p>
+                  </div>
+
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {[
+                      {
+                        label: "A trancher",
+                        value: productLabReviewStats.pending,
+                        detail: "Decisions en attente",
+                        tone: "text-amber-200",
+                      },
+                      {
+                        label: "Run",
+                        value: productLabRunStatus?.status ?? "non prouve",
+                        detail: productLabRunStatus?.mode ?? productLabRunStatusLabel,
+                        tone: "text-green-200",
+                      },
+                      {
+                        label: "Propositions",
+                        value:
+                          productLabRunStatus?.proposalsSaved ??
+                          (productLabQueueSource === "supabase" ? productLabDisplayedCount : 0),
+                        detail: `${productLabRunStatus?.proposalsGenerated ?? productLabDisplayedCount} generee(s)`,
+                        tone: "text-primary",
+                      },
+                      {
+                        label: "V1/V2 live",
+                        value: `${productLabGlobalStats.liveScopes}/2`,
+                        detail: productLabGlobalStats.allLive ? "Sources synchronisees" : "Point a verifier",
+                        tone: productLabGlobalStats.allLive ? "text-green-200" : "text-amber-200",
+                      },
+                    ].map((entry) => (
+                      <div key={entry.label} className="rounded-[24px] border border-white/10 bg-black/30 p-4 backdrop-blur">
+                        <p className={`text-3xl font-black ${entry.tone}`}>{entry.value}</p>
+                        <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                          {entry.label}
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-muted-foreground">{entry.detail}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
-                  <Button asChild variant="outline" className="w-full sm:w-auto">
-                    <a href={selectedProductLabWorkflowUrl} target="_blank" rel="noreferrer">
-                      <ExternalLink className="h-4 w-4" />
-                      Lancer un test GitHub
-                    </a>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-auto"
-                    onClick={() => void loadProductLabQueue()}
-                  >
-                    <FileText className="h-4 w-4" />
-                    Recharger
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full border-green-400/25 bg-green-400/[0.08] text-green-100 hover:bg-green-400/[0.14] sm:w-auto"
-                    disabled={!unsyncedProductLabDecisionCount || productLabDecisionSaving === "__sync__"}
-                    onClick={() => void syncLocalProductLabDecisions()}
-                  >
-                    {productLabDecisionSaving === "__sync__" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="h-4 w-4" />
-                    )}
-                    Synchroniser
-                  </Button>
-                  <Button className="w-full sm:w-auto" onClick={() => void copyProductLabDecisions()}>
-                    <ClipboardCheck className="h-4 w-4" />
-                    Exporter decisions
-                  </Button>
-                </div>
-              </div>
 
-              <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-muted-foreground">
-                <strong className="text-foreground">Centre commun, donnees separees.</strong> Tu pilotes V1 et V2 ici,
-                mais chaque Product Lab garde ses tables, son workflow GitHub et son dossier projet. L'admin ne copie
-                pas de code entre les deux versions.
-              </div>
-
-              <div className="mt-5 grid gap-3 lg:grid-cols-5">
-                {[
-                  {
-                    label: "CA 30j",
-                    value: `${stats.totalRevenue30d.toFixed(0)} EUR`,
-                    detail: "Stripe et revenus recents",
-                    accent: "text-primary",
-                  },
-                  {
-                    label: "Credits",
-                    value: stats.totalCreditsAvailable,
-                    detail: "Solde total utilisateurs",
-                    accent: "text-blue-200",
-                  },
-                  {
-                    label: "Sites",
-                    value: sites.length,
-                    detail: `${stats.publishedSites} publie(s)`,
-                    accent: "text-green-200",
-                  },
-                  {
-                    label: "Leads",
-                    value: leads.length,
-                    detail: `${stats.newLeads} nouveau(x)`,
-                    accent: "text-purple-200",
-                  },
-                  {
-                    label: "Product Lab",
-                    value: productLabGlobalStats.pending,
-                    detail: `${productLabGlobalStats.total} proposition(s) V1/V2`,
-                    accent: "text-amber-200",
-                  },
-                ].map((entry) => (
-                  <div key={entry.label} className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className={`text-2xl font-bold ${entry.accent}`}>{entry.value}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.16em] text-muted-foreground">{entry.label}</p>
-                    <p className="mt-2 text-xs leading-5 text-muted-foreground">{entry.detail}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-5 grid gap-3 lg:grid-cols-5">
-                {adminBusinessControlPillars.map((pillar) => (
-                  <div key={pillar.label} className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-sm font-semibold text-foreground">{pillar.label}</p>
-                    <p className="mt-2 text-xs leading-5 text-muted-foreground">{pillar.detail}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/[0.06] p-4 text-sm leading-6 text-muted-foreground">
-                <strong className="text-foreground">Fonctionnement valide.</strong> Chaque soir a 00h Europe/Paris,
-                V1 et V2 lancent leur workflow separe, executent jusqu'a 20 tests generateur, transforment les
-                resultats en 5 a 8 propositions utiles maximum, puis les envoient ici. Tu peux valider, modifier,
-                demander une alternative ou refuser. Le prochain run applique uniquement les validations admin et
-                ouvre une PR GitHub si smoke QA, lint, tests et build sont verts. Auto-merge autorise seulement si
-                checks OK, risque non eleve et aucun fichier sensible n'est touche; sinon validation GitHub manuelle.
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {productLabScopeOptions.map((option) => (
-                    <a
-                      key={option.id}
-                      href={option.workflowUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs text-foreground transition hover:border-primary/40 hover:text-primary"
-                    >
-                      Workflow {option.label}
-                    </a>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-3 lg:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-primary">
-                    <CalendarClock className="h-4 w-4" />
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em]">Schedule</p>
-                  </div>
-                  <p className="mt-3 text-sm font-semibold text-foreground">{productLabScheduleStatus.configured}</p>
-                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                    Cron configure : {productLabScheduleStatus.crons}. Pour aujourd'hui : {productLabScheduleStatus.utc}.
-                  </p>
-                  <p className="mt-2 text-xs leading-5 text-muted-foreground">{productLabScheduleStatus.note}</p>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Dernier run</p>
-                  <p className="mt-3 text-sm font-semibold text-foreground">{productLabRunStatusLabel}</p>
-                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                    Debut : {formatProductLabTimestamp(productLabRunStatus?.startedAt)}. Fin :{" "}
-                    {formatProductLabTimestamp(productLabRunStatus?.completedAt)}.
-                  </p>
-                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                    Mode : {productLabRunStatus?.mode ?? "non prouve"} - statut : {productLabRunStatus?.status ?? "non prouve"}.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Propositions</p>
-                  <p className="mt-3 text-sm font-semibold text-foreground">
-                    {productLabRunStatus?.proposalsGenerated ?? productLabDisplayedCount} generee(s),{" "}
-                    {productLabRunStatus?.proposalsSaved ?? (productLabQueueSource === "supabase" ? productLabDisplayedCount : 0)} sauvegardee(s)
-                  </p>
-                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                    Source : {productLabQueueSourceInfo.label}. Si ce nombre reste a zero apres minuit, verifier secrets GitHub Actions et sync Supabase.
-                  </p>
-                  {productLabRunStatus?.workflowRunUrl ? (
-                    <a
-                      href={productLabRunStatus.workflowRunUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-3 inline-flex text-xs font-semibold text-primary hover:underline"
-                    >
-                      Ouvrir le run GitHub
-                    </a>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="rounded-[28px] border border-white/10 bg-black/35 p-4 backdrop-blur sm:p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                        Cycle automatique
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Pilotage</p>
+                      <h3 className="mt-2 text-lg font-semibold text-foreground">Etat du cockpit</h3>
+                    </div>
+                    <span className={`rounded-full border px-3 py-1 text-xs ${productLabQueueSourceInfo.tone}`}>
+                      {productLabQueueSourceInfo.label}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                      <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Synchronisation</p>
+                      <p className="mt-2 text-sm font-semibold text-foreground">
+                        {productLabPersistence === "supabase"
+                          ? unsyncedProductLabDecisionCount
+                            ? `${unsyncedProductLabDecisionCount} decision(s) locales a envoyer`
+                            : "Supabase live actif"
+                          : productLabPersistence === "loading"
+                            ? "Verification en cours"
+                            : "Secours local a synchroniser"}
                       </p>
-                      <h3 className="mt-2 text-lg font-semibold">De l'audit a la PR, sans confusion</h3>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                      <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Dernier run</p>
+                      <p className="mt-2 text-sm font-semibold text-foreground">{productLabRunStatusLabel}</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {formatProductLabTimestamp(productLabRunStatus?.startedAt)}
+                        {" -> "}
+                        {formatProductLabTimestamp(productLabRunStatus?.completedAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-2">
+                    <Button asChild variant="outline" className="justify-center border-primary/25 bg-primary/10">
+                      <a href={selectedProductLabWorkflowUrl} target="_blank" rel="noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                        Lancer un test GitHub
+                      </a>
+                    </Button>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Button variant="outline" onClick={() => void loadProductLabQueue()}>
+                        <FileText className="h-4 w-4" />
+                        Recharger
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-green-400/25 bg-green-400/[0.08] text-green-100 hover:bg-green-400/[0.14]"
+                        disabled={!unsyncedProductLabDecisionCount || productLabDecisionSaving === "__sync__"}
+                        onClick={() => void syncLocalProductLabDecisions()}
+                      >
+                        {productLabDecisionSaving === "__sync__" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4" />
+                        )}
+                        Synchroniser
+                      </Button>
+                    </div>
+                    <Button className="justify-center" onClick={() => void copyProductLabDecisions()}>
+                      <ClipboardCheck className="h-4 w-4" />
+                      Exporter decisions
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+                <div className="overflow-hidden rounded-[28px] border border-primary/20 bg-[radial-gradient(circle_at_top_left,rgba(245,197,66,0.16),transparent_36%),rgba(0,0,0,0.24)] p-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Boucle Product Lab</p>
+                      <h3 className="mt-2 text-xl font-semibold text-foreground">Audit nocturne, validation humaine, PR controlee.</h3>
+                      <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+                        Chaque nuit, Product Lab teste Pixelrises, transforme les signaux en propositions concretes, puis attend ta decision. Rien n'est applique sans validation admin.
+                      </p>
                     </div>
                     <span
-                      className={`rounded-full border px-3 py-1 text-xs ${
+                      className={`w-fit rounded-full border px-3 py-1 text-xs ${
                         productLabGlobalStats.warnings
                           ? "border-amber-400/25 bg-amber-400/[0.08] text-amber-100"
                           : "border-green-400/25 bg-green-400/[0.08] text-green-100"
@@ -2329,10 +2207,11 @@ const Admin = () => {
                       {productLabGlobalStats.warnings ? `${productLabGlobalStats.warnings} point(s) a surveiller` : "Synchronisation saine"}
                     </span>
                   </div>
-                  <div className="mt-4 grid gap-3 md:grid-cols-5">
+
+                  <div className="mt-5 grid gap-2 sm:grid-cols-5">
                     {productLabNightlyCycle.map((entry, index) => (
-                      <div key={entry.step} className="rounded-2xl border border-white/10 bg-card/70 p-3">
-                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-xs font-bold text-primary">
+                      <div key={entry.step} className="rounded-2xl border border-white/10 bg-black/25 p-3">
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-black">
                           {index + 1}
                         </span>
                         <p className="mt-3 text-sm font-semibold text-foreground">{entry.step}</p>
@@ -2342,40 +2221,64 @@ const Admin = () => {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-green-400/20 bg-green-400/[0.05] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-green-200">
-                    Protection des donnees
-                  </p>
-                  <h3 className="mt-2 text-lg font-semibold">Garde-fous obligatoires</h3>
-                  <div className="mt-4 space-y-2">
-                    {productLabDataProtectionRules.map((rule) => (
-                      <div key={rule} className="flex gap-2 rounded-xl border border-white/10 bg-black/20 p-3 text-xs leading-5 text-muted-foreground">
-                        <Shield className="mt-0.5 h-4 w-4 shrink-0 text-green-200" />
-                        <span>{rule}</span>
-                      </div>
-                    ))}
+                <div className="rounded-[28px] border border-white/10 bg-black/25 p-5">
+                  <div className="flex items-center gap-2 text-primary">
+                    <CalendarClock className="h-4 w-4" />
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em]">Run & schedule</p>
+                  </div>
+                  <div className="mt-4 grid gap-3">
+                    <div className="rounded-2xl border border-white/10 bg-card/70 p-4">
+                      <p className="text-sm font-semibold text-foreground">{productLabScheduleStatus.configured}</p>
+                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                        Cron : {productLabScheduleStatus.crons}. Aujourd'hui : {productLabScheduleStatus.utc}.
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-card/70 p-4">
+                      <p className="text-sm font-semibold text-foreground">{productLabRunStatusLabel}</p>
+                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                        Debut : {formatProductLabTimestamp(productLabRunStatus?.startedAt)}. Fin :{" "}
+                        {formatProductLabTimestamp(productLabRunStatus?.completedAt)}.
+                      </p>
+                      {productLabRunStatus?.workflowRunUrl ? (
+                        <a
+                          href={productLabRunStatus.workflowRunUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-3 inline-flex text-xs font-semibold text-primary hover:underline"
+                        >
+                          Ouvrir le run GitHub
+                        </a>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="mt-5 rounded-[28px] border border-green-400/20 bg-green-400/[0.05] p-5">
                 <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                      Benchmark & recherche produit
-                    </p>
-                    <h3 className="mt-2 text-lg font-semibold">Inspirations adaptees a la vision Pixelrises</h3>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-green-200">Garde-fous</p>
+                    <h3 className="mt-2 text-lg font-semibold">Ce que Product Lab n'a pas le droit de faire seul</h3>
                   </div>
-                  <p className="max-w-2xl text-xs leading-5 text-muted-foreground">
-                    Le Product Lab ne copie pas les plateformes. Il transforme leurs meilleures logiques en version
-                    Pixelrises: premium, noir/or, business-first, conversion-first et orientee projet digital concret.
-                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {productLabScopeOptions.map((option) => (
+                      <a
+                        key={option.id}
+                        href={option.workflowUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs text-foreground transition hover:border-primary/40 hover:text-primary"
+                      >
+                        Workflow {option.label}
+                      </a>
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  {productLabBenchmarkPrinciples.map((principle) => (
-                    <div key={principle.source} className="rounded-2xl border border-white/10 bg-card/70 p-4">
-                      <p className="text-sm font-semibold text-foreground">{principle.source}</p>
-                      <p className="mt-2 text-xs leading-5 text-muted-foreground">{principle.detail}</p>
+                <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
+                  {productLabDataProtectionRules.map((rule) => (
+                    <div key={rule} className="flex gap-2 rounded-2xl border border-white/10 bg-black/20 p-3 text-xs leading-5 text-muted-foreground">
+                      <Shield className="mt-0.5 h-4 w-4 shrink-0 text-green-200" />
+                      <span>{rule}</span>
                     </div>
                   ))}
                 </div>
@@ -2484,51 +2387,37 @@ const Admin = () => {
                 </div>
               )}
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                {[
-                  { label: "A trancher", value: productLabReviewStats.pending, accent: "text-amber-300" },
-                  { label: "Validees", value: productLabReviewStats.approved, accent: "text-green-300" },
-                  { label: "Refusees", value: productLabReviewStats.rejected, accent: "text-red-300" },
-                  { label: "A revoir", value: productLabReviewStats.needsReview, accent: "text-blue-300" },
-                  { label: "Total", value: productLabReviewStats.total, accent: "text-primary" },
-                ].map((entry) => (
-                  <div key={entry.label} className="signal-list-card">
-                    <p className={`text-2xl font-bold ${entry.accent}`}>{entry.value}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.16em] text-muted-foreground">{entry.label}</p>
+              <div className="mt-5 rounded-[28px] border border-white/10 bg-black/25 p-5">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                      File active - {productLabScopeConfig.label}
+                    </p>
+                    <h3 className="mt-2 text-lg font-semibold text-foreground">
+                      {productLabQueue?.summary.dailySummary || "Aucune proposition live chargee pour le moment."}
+                    </h3>
+                    <p className="mt-2 max-w-3xl text-xs leading-6 text-muted-foreground">
+                      Source : {productLabQueueSourceInfo.label}. Generation : {productLabGeneratedAt}. Fraicheur :{" "}
+                      {productLabFreshness}. Affichage : {productLabDisplayedCount}/{productLabExpectedCount}.
+                    </p>
                   </div>
-                ))}
-              </div>
 
-              <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-muted-foreground">
-                <p>
-                  Source automation {productLabScopeConfig.label} : {productLabQueue?.sourceRun.theme || "Product Lab"} - rapport{" "}
-                  {productLabQueue?.sourceRun.reportPath || "non charge"}.
-                </p>
-                <p className="mt-1">
-                  Etat file : {productLabQueueSourceInfo.label} - {productLabQueueSourceInfo.description}
-                </p>
-                <p className="mt-1">
-                  Statut automation : {productLabSelectedStatusLabel}. Source prioritaire attendue : Supabase, car c'est
-                  ce que GitHub Actions lit pour appliquer les validations.
-                </p>
-                <p className="mt-1">
-                  Derniere generation : {productLabGeneratedAt}. Fraicheur : {productLabFreshness}. Propositions affichees :{" "}
-                  {productLabDisplayedCount}/{productLabExpectedCount}.
-                </p>
-                <p className="mt-1">
-                  Resume du jour : {productLabQueue?.summary.dailySummary || "Actions sensibles a valider avant application."}
-                </p>
-                <p className="mt-1">
-                  Score moyen : {productLabQueue?.summary.averageScore ?? "-"} / 100. Score a surveiller :{" "}
-                  {productLabQueue?.summary.lowestScore
-                    ? `${productLabQueue.summary.lowestScore.name} (${productLabQueue.summary.lowestScore.note}/100)`
-                    : "-"}
-                  .
-                </p>
-                <p className="mt-1">
-                  Regle : une validation ici prepare la decision. Les changements auth, paiement, Supabase sensible,
-                  moteur IA, production ou suppression majeure restent bloques sans action humaine explicite.
-                </p>
+                  <div className="grid min-w-full gap-2 sm:grid-cols-4 xl:min-w-[440px]">
+                    {[
+                      { label: "Validees", value: productLabReviewStats.approved, tone: "text-green-300" },
+                      { label: "A revoir", value: productLabReviewStats.needsReview, tone: "text-blue-300" },
+                      { label: "Refusees", value: productLabReviewStats.rejected, tone: "text-red-300" },
+                      { label: "Total", value: productLabReviewStats.total, tone: "text-primary" },
+                    ].map((entry) => (
+                      <div key={entry.label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-center">
+                        <p className={`text-xl font-bold ${entry.tone}`}>{entry.value}</p>
+                        <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                          {entry.label}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {productLabDisplayedCount !== productLabExpectedCount && (
