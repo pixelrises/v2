@@ -58,7 +58,7 @@ jobs:
   product-lab:
     name: Daily Product Lab
     runs-on: ubuntu-latest
-    environment: Production
+    environment: v2
     timeout-minutes: 45
 
     steps:

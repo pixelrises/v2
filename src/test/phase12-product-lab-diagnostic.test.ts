@@ -39,6 +39,7 @@ describe("Phase 12 Product Lab diagnostics", () => {
     const workflow = readProjectFile(".github/workflows/product-lab-nightly.yml");
 
     expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("environment: v2");
     expect(workflow).toContain("dryRun:");
     expect(workflow).toContain("forceGenerate:");
     expect(workflow).toContain("maxProposals:");

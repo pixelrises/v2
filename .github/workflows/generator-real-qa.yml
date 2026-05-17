@@ -21,6 +21,7 @@ jobs:
   generator-real-qa:
     name: V2 generator real smoke
     runs-on: ubuntu-latest
+    environment: v2
     timeout-minutes: 35
 
     steps:
