@@ -660,7 +660,8 @@ export const readProductLabReviewQueueFromSupabase = async (scope: ProductLabSco
 
     const { data, error } = await dynamicSupabase
       .from(config.reviewTable)
-      .select("item_id,source_run,queue_summary,review_item,generated_at")
+      .select("item_id,source_run,queue_summary,review_item,status,generated_at")
+      .eq("status", "open")
       .order("generated_at", { ascending: false })
       .limit(100);
 

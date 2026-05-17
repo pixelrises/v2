@@ -74,6 +74,8 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(supabaseSync).toContain("rawServiceRoleKey?.trim()");
     expect(supabaseSync).toContain("getServiceRoleDiagnostics");
     expect(supabaseSync).toContain("issuer_matches_url");
+    expect(supabaseSync).toContain("archiveProcessedReviewItems");
+    expect(supabaseSync).toContain("all generated proposals were already processed");
     expect(supabaseSync).toContain('["scheduled", "manual", "local", "workflow_dispatch"]');
     expect(supabaseSync).toContain("const source = normalizeRunSourceForDb(requestedSource)");
   });

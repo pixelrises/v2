@@ -257,6 +257,7 @@ describe("Product Lab admin review", () => {
 
   it("keeps Supabase as the Product Lab source of truth before JSON fallback", () => {
     expect(productLabReviewSource).toContain("Supabase is the source GitHub Actions reads for admin approvals.");
+    expect(productLabReviewSource).toContain('.eq("status", "open")');
     expect(productLabReviewSource.indexOf("if (remoteQueue)")).toBeLessThan(
       productLabReviewSource.indexOf("if (publicQueue)"),
     );

@@ -624,6 +624,44 @@ export const findApprovedAdminDecision = (adminDecisions, finding, theme) => {
 const isApprovedAdminDecision = (decision) =>
   decision?.status === "approved" && decision?.automationAction === "authorize_next_run";
 
+const isProcessedAdminDecision = (decision) =>
+  decision?.applicationStatus === "pr_ready" ||
+  Boolean(decision?.processedAt) ||
+  Boolean(decision?.processedRun?.prUrl) ||
+  decision?.processedRun?.autoMergeStatus === "merged";
+
+const getDecisionOriginalTitle = (decision) =>
+  decision?.originalTitle ||
+  decision?.reviewItem?.originalTitle ||
+  decision?.reviewItem?.title ||
+  decision?.title ||
+  "";
+
+const getProductLabTitleVariants = (title) => {
+  const normalizedTitle = normalize(title);
+  if (!normalizedTitle) return [];
+
+  const beforeFocusSuffix = String(title ?? "").split(" - ")[0];
+  const normalizedBaseTitle = normalize(beforeFocusSuffix);
+  return [...new Set([normalizedTitle, normalizedBaseTitle].filter(Boolean))];
+};
+
+const getProcessedDecisionKeys = (adminDecisions) => {
+  const itemIds = new Set();
+  const titleKeys = new Set();
+
+  for (const decision of Object.values(adminDecisions ?? {})) {
+    if (!isProcessedAdminDecision(decision)) continue;
+    if (decision?.itemId) itemIds.add(decision.itemId);
+    const module = normalize(decision?.module || decision?.reviewItem?.module);
+    for (const title of getProductLabTitleVariants(getDecisionOriginalTitle(decision))) {
+      if (module && title) titleKeys.add(`${module}:${title}`);
+    }
+  }
+
+  return { itemIds, titleKeys };
+};
+
 const buildApprovedFindingFromDecision = (decision) => {
   const reviewItem = decision?.reviewItem && typeof decision.reviewItem === "object" ? decision.reviewItem : {};
   const title = decision?.title || reviewItem.title || decision?.itemId || "Amelioration validee";
@@ -1481,12 +1519,16 @@ const compareReviewFindings = (theme) => (left, right) => {
   );
 };
 
-export const selectProductLabReviewFindings = (findings, theme) => {
+export const selectProductLabReviewFindings = (findings, theme, adminDecisions = {}) => {
   const { max } = getProductLabReviewLimits();
+  const processed = getProcessedDecisionKeys(adminDecisions);
   const uniqueFindings = [];
   const seen = new Set();
 
   for (const finding of findings) {
+    const itemId = getProductLabReviewItemId(finding, theme);
+    const titleKeys = getProductLabTitleVariants(finding.title).map((title) => `${normalize(finding.module)}:${title}`);
+    if (processed.itemIds.has(itemId) || titleKeys.some((titleKey) => processed.titleKeys.has(titleKey))) continue;
     const key = `${finding.module}:${finding.title}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -1521,7 +1563,7 @@ export const selectProductLabReviewFindings = (findings, theme) => {
 
 export const buildProductLabReviewQueue = (result) => {
   const reportPath = path.join("reports", "product-lab", "daily", `daily-${result.date}.md`).replace(/\\/g, "/");
-  const reviewItems = selectProductLabReviewFindings(result.findings, result.theme).map((finding, index) =>
+  const reviewItems = selectProductLabReviewFindings(result.findings, result.theme, result.adminDecisions).map((finding, index) =>
     applyDailyReviewFocus(finding, result, index),
   );
   const queueTheme = { ...result.theme, date: result.date, runDate: result.date };
@@ -1537,6 +1579,7 @@ export const buildProductLabReviewQueue = (result) => {
   const rawItems = reviewItems.map((finding) => ({
     id: getProductLabReviewItemId(finding, queueTheme),
     title: finding.title,
+    originalTitle: finding.originalTitle || finding.title,
     module: finding.module,
     simpleSummary: buildReviewSimpleSummary(finding),
     priority: finding.priority,

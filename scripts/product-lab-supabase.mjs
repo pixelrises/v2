@@ -159,19 +159,41 @@ const pushProposals = async () => {
     return;
   }
 
-  const rows = queue.items.map((item) => ({
-    item_id: item.id,
-    source_run: queue.sourceRun ?? {},
-    queue_summary: queue.summary ?? {},
-    review_item: item,
-    decision_kind: item.decision === "auto_safe" ? "auto_safe" : "human_validation",
-    title: item.title,
-    module: item.module,
-    priority: item.priority,
-    risk: item.risk,
-    status: "open",
-    generated_at: queue.generatedAt ?? new Date().toISOString(),
-  }));
+  const processedRows = await restFetch(
+    [
+      config.decisionsTable,
+      "?select=item_id,application_status,processed_at,processed_run,automation_action",
+      "&or=(application_status.eq.pr_ready,processed_at.not.is.null)",
+      "&limit=500",
+    ].join(""),
+    { method: "GET" },
+  ).catch(() => []);
+  const processedItemIds = new Set(
+    (Array.isArray(processedRows) ? processedRows : [])
+      .map((row) => (typeof row?.item_id === "string" ? row.item_id : ""))
+      .filter(Boolean),
+  );
+
+  const rows = queue.items
+    .filter((item) => !processedItemIds.has(item.id))
+    .map((item) => ({
+      item_id: item.id,
+      source_run: queue.sourceRun ?? {},
+      queue_summary: queue.summary ?? {},
+      review_item: item,
+      decision_kind: item.decision === "auto_safe" ? "auto_safe" : "human_validation",
+      title: item.title,
+      module: item.module,
+      priority: item.priority,
+      risk: item.risk,
+      status: "open",
+      generated_at: queue.generatedAt ?? new Date().toISOString(),
+    }));
+
+  if (!rows.length) {
+    skipOrFail("Product Lab Supabase proposal sync skipped: all generated proposals were already processed.");
+    return;
+  }
 
   await restFetch(`${config.reviewTable}?on_conflict=item_id`, {
     method: "POST",
@@ -181,7 +203,11 @@ const pushProposals = async () => {
     body: JSON.stringify(rows),
   });
 
-  console.log(`Product Lab Supabase proposal sync complete: ${rows.length} item(s) for ${config.label}.`);
+  console.log(
+    `Product Lab Supabase proposal sync complete: ${rows.length} item(s) for ${config.label}. ${
+      queue.items.length - rows.length
+    } already processed item(s) skipped.`,
+  );
 };
 
 const pullDecisions = async () => {
@@ -202,14 +228,7 @@ const pullDecisions = async () => {
       : "item_id,status,admin_note,correction_request,rejection_mode,automation_action,decided_at,review_item,source_run,application_status,processed_at,processed_run";
 
   const rows = await restFetch(
-    [
-      config.decisionsTable,
-      `?select=${selectedColumns}`,
-      "&status=eq.approved",
-      "&automation_action=eq.authorize_next_run",
-      "&order=decided_at.desc",
-      "&limit=500",
-    ].join(""),
+    [config.decisionsTable, `?select=${selectedColumns}`, "&order=decided_at.desc", "&limit=500"].join(""),
     { method: "GET" },
   );
 
@@ -235,6 +254,12 @@ const pullDecisions = async () => {
           decisionKind: typeof reviewItem.decision === "string" ? reviewItem.decision : "",
           scoreImpact: Number.isFinite(Number(reviewItem.scoreImpact)) ? Number(reviewItem.scoreImpact) : 0,
           reviewItem,
+          originalTitle:
+            typeof reviewItem.originalTitle === "string"
+              ? reviewItem.originalTitle
+              : typeof reviewItem.title === "string"
+                ? reviewItem.title
+                : "",
           sourceTheme: typeof sourceRun.theme === "string" ? sourceRun.theme : "",
           sourceRun,
           status: row.status,
@@ -242,6 +267,9 @@ const pullDecisions = async () => {
           correctionRequest: row.correction_request ?? "",
           rejectionMode: row.rejection_mode ?? null,
           automationAction: row.automation_action,
+          applicationStatus: row.application_status ?? "",
+          processedAt: row.processed_at ?? "",
+          processedRun: isObject(row.processed_run) ? row.processed_run : {},
           decidedAt: row.decided_at,
         };
       })
@@ -318,6 +346,16 @@ const markProcessedDecisions = async () => {
         processed_run: processedRun,
       }),
     });
+
+    await restFetch(`${getScopeConfig().reviewTable}?item_id=eq.${encodeURIComponent(finding.itemId)}`, {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        status: "archived",
+      }),
+    });
   }
 
   console.log(`Product Lab Supabase decision processing sync complete: ${approvedFindings.length} item(s).`);
@@ -384,6 +422,43 @@ const recordPrStatus = async () => {
       ),
     );
   }
+};
+
+const archiveProcessedReviewItems = async () => {
+  if (!isConfigured()) {
+    console.log("Product Lab processed proposal archive skipped: missing service role configuration.");
+    return;
+  }
+
+  const config = getScopeConfig();
+  const rows = await restFetch(
+    [
+      config.decisionsTable,
+      "?select=item_id,application_status,processed_at,processed_run",
+      "&or=(application_status.eq.pr_ready,processed_at.not.is.null)",
+      "&limit=500",
+    ].join(""),
+    { method: "GET" },
+  );
+  const itemIds = [
+    ...new Set(
+      (Array.isArray(rows) ? rows : [])
+        .map((row) => (typeof row?.item_id === "string" ? row.item_id : ""))
+        .filter(Boolean),
+    ),
+  ];
+
+  for (const itemId of itemIds) {
+    await restFetch(`${config.reviewTable}?item_id=eq.${encodeURIComponent(itemId)}`, {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({ status: "archived" }),
+    });
+  }
+
+  console.log(`Product Lab processed proposal archive complete: ${itemIds.length} item(s) archived for ${config.label}.`);
 };
 
 const recordRunStatus = async () => {
@@ -508,13 +583,15 @@ const run = async () => {
     await markProcessedDecisions();
   } else if (action === "record-pr-status") {
     await recordPrStatus();
+  } else if (action === "archive-processed") {
+    await archiveProcessedReviewItems();
   } else if (action === "record-run") {
     await recordRunStatus();
   } else if (action === "diagnose") {
     await diagnoseSupabase();
   } else {
     console.log(
-      "Usage: node scripts/product-lab-supabase.mjs <diagnose|pull-decisions|push-proposals|mark-processed|record-pr-status|record-run>",
+      "Usage: node scripts/product-lab-supabase.mjs <diagnose|pull-decisions|push-proposals|mark-processed|record-pr-status|archive-processed|record-run>",
     );
   }
 };

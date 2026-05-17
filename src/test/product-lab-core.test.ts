@@ -262,6 +262,70 @@ describe("Pixelrises Product Lab core", () => {
     expect(new Set(selected.map((finding) => finding.module)).size).toBe(2);
   });
 
+  it("does not keep already processed Product Lab proposals in the active queue", () => {
+    const findings = [
+      {
+        title: "Bloquer toute PR si lint tests ou build echouent",
+        module: "Code Health",
+        impact: "Eleve",
+        risk: "Faible",
+        difficulty: "Faible",
+        priority: "Important",
+        status: "En continu",
+        inspiration: "Vercel / Linear",
+        description: "Verifier que l'automatisation ne cree jamais de PR tant que les validations ne sont pas vertes.",
+        decision: "human_validation",
+        scoreImpact: 24,
+      },
+      {
+        title: "Ancrer les propositions dans des sources verifiees",
+        module: "Product Research",
+        impact: "Eleve",
+        risk: "Faible",
+        difficulty: "Faible",
+        priority: "Important",
+        status: "En continu",
+        inspiration: "NN/g / Vercel",
+        description: "Utiliser les sources fiables allowlistees pour guider les experts Product Lab.",
+        decision: "human_validation",
+        scoreImpact: 22,
+      },
+      {
+        title: "Transformer analytics en recommandations exploitables",
+        module: "Analytics",
+        impact: "Eleve",
+        risk: "Moyen",
+        difficulty: "Moyenne",
+        priority: "Important",
+        status: "A cadrer",
+        inspiration: "Shopify Admin / Linear",
+        description: "Relier les evenements a des prochaines actions lisibles.",
+        decision: "human_validation",
+        scoreImpact: 18,
+      },
+    ];
+
+    const selected = selectProductLabReviewFindings(
+      findings,
+      { id: "audit-roadmap" },
+      {
+        processed: {
+          itemId: "processed",
+          title: "Bloquer toute PR si lint tests ou build echouent - CI sans surprise",
+          originalTitle: "Bloquer toute PR si lint tests ou build echouent",
+          module: "Code Health",
+          status: "approved",
+          automationAction: "hold",
+          applicationStatus: "pr_ready",
+          processedAt: "2026-05-17T03:00:00.000Z",
+        },
+      },
+    );
+
+    expect(selected.map((finding) => finding.title)).not.toContain("Bloquer toute PR si lint tests ou build echouent");
+    expect(selected.length).toBeGreaterThan(0);
+  });
+
   it("renders a report with mandatory sections", () => {
     const root = createTempProject();
     const result = runProductLab({

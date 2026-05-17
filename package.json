@@ -24,6 +24,7 @@
     "product-lab:supabase:diagnose": "node scripts/product-lab-supabase.mjs diagnose",
     "product-lab:decisions:pull": "node scripts/product-lab-supabase.mjs pull-decisions",
     "product-lab:decisions:mark-processed": "node scripts/product-lab-supabase.mjs mark-processed",
+    "product-lab:proposals:archive-processed": "node scripts/product-lab-supabase.mjs archive-processed",
     "product-lab:pr-status:record": "node scripts/product-lab-supabase.mjs record-pr-status",
     "product-lab:run-status:record": "node scripts/product-lab-supabase.mjs record-run",
     "product-lab:smoke-credits": "node scripts/product-lab-smoke-credits.mjs",
