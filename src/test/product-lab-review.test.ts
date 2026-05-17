@@ -33,6 +33,28 @@ describe("Product Lab admin review", () => {
     expect(items[0].localDecision.status).toBe("pending");
   });
 
+  it("uses the Product Lab run id in decision matching so same-day reruns stay fresh", () => {
+    const firstQueue = {
+      ...fallbackProductLabReviewQueue,
+      sourceRun: { ...fallbackProductLabReviewQueue.sourceRun, runId: "2026-05-17-audit-roadmap-111" },
+    };
+    const secondQueue = {
+      ...fallbackProductLabReviewQueue,
+      sourceRun: { ...fallbackProductLabReviewQueue.sourceRun, runId: "2026-05-17-audit-roadmap-222" },
+    };
+    const item = firstQueue.items[0];
+    const decisions = writeProductLabDecision({} as ProductLabDecisionMap, item.id, "approved", "OK.", {
+      automationAction: "authorize_next_run",
+      sourceRun: firstQueue.sourceRun,
+      sourceRunKey: getProductLabQueueRunKey(firstQueue),
+    });
+
+    const rerunItems = mergeProductLabReviewItems(secondQueue, decisions);
+
+    expect(getProductLabQueueRunKey(firstQueue)).not.toBe(getProductLabQueueRunKey(secondQueue));
+    expect(rerunItems[0].localDecision.status).toBe("pending");
+  });
+
   it("records and exports admin decisions", () => {
     const item = fallbackProductLabReviewQueue.items[0];
     const decisions = writeProductLabDecision({} as ProductLabDecisionMap, item.id, "approved", "OK avec garde-fous.", {

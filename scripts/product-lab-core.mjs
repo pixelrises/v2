@@ -387,6 +387,7 @@ export const getProductLabReviewItemId = (finding, theme) =>
   [
     theme?.date ?? theme?.runDate ?? theme?.sourceRun?.date,
     theme?.id ?? "global",
+    theme?.runInstance ?? theme?.runId ?? theme?.sourceRun?.runId,
     finding?.module ?? "module",
     finding?.title ?? finding?.description ?? "improvement",
   ]
@@ -1563,10 +1564,15 @@ export const selectProductLabReviewFindings = (findings, theme, adminDecisions =
 
 export const buildProductLabReviewQueue = (result) => {
   const reportPath = path.join("reports", "product-lab", "daily", `daily-${result.date}.md`).replace(/\\/g, "/");
+  const runInstance =
+    process.env.PRODUCT_LAB_RUN_ID ||
+    process.env.GITHUB_RUN_ID ||
+    slugify(process.env.PRODUCT_LAB_RUN_STARTED_AT || new Date().toISOString());
+  const runId = `${result.date}-${result.theme.id}-${runInstance}`;
   const reviewItems = selectProductLabReviewFindings(result.findings, result.theme, result.adminDecisions).map((finding, index) =>
     applyDailyReviewFocus(finding, result, index),
   );
-  const queueTheme = { ...result.theme, date: result.date, runDate: result.date };
+  const queueTheme = { ...result.theme, date: result.date, runDate: result.date, runId, runInstance };
   const scoreEntries = Object.entries(result.scores).map(([name, score]) => ({ name, note: score.note }));
   const averageScore = scoreEntries.length
     ? Math.round(scoreEntries.reduce((total, score) => total + score.note, 0) / scoreEntries.length)
@@ -1613,7 +1619,7 @@ export const buildProductLabReviewQueue = (result) => {
       week: result.week,
       theme: result.theme.label,
       reportPath,
-      runId: `${result.date}-${result.theme.id}`,
+      runId,
     },
     summary: {
       total: finalItems.length,

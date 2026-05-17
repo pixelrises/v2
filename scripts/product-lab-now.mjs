@@ -55,6 +55,11 @@ if (dryRun) {
   process.exit(0);
 }
 
+run("AI review", ["scripts/product-lab-ai-review.mjs"], {
+  PRODUCT_LAB_MODE: mode,
+  PRODUCT_LAB_MAX_REVIEW_ITEMS: maxProposals,
+});
+
 run("push proposals to Supabase", ["scripts/product-lab-supabase.mjs", "push-proposals"], {
   PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: "true",
   PRODUCT_LAB_MODE: mode,

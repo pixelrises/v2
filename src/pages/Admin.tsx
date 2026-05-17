@@ -1147,11 +1147,36 @@ const Admin = () => {
     () => mergeProductLabReviewItems(productLabQueue ?? { ...productLabScopeConfig.fallbackQueue, items: [] }, productLabDecisions),
     [productLabDecisions, productLabQueue, productLabScopeConfig.fallbackQueue],
   );
+  const productLabVisibleReviewItems = useMemo(() => {
+    const statusRank: Record<ProductLabDecisionStatus, number> = {
+      pending: 0,
+      needs_review: 1,
+      approved: 2,
+      rejected: 3,
+    };
+
+    return [...productLabReviewItems].sort(
+      (left, right) =>
+        statusRank[left.localDecision.status] - statusRank[right.localDecision.status] ||
+        String(right.id).localeCompare(String(left.id)),
+    );
+  }, [productLabReviewItems]);
   const productLabReviewStats = useMemo(() => getProductLabReviewStats(productLabReviewItems), [productLabReviewItems]);
   const productLabQueueSource = productLabQueue?.loadSource ?? "fallback";
   const productLabQueueSourceInfo = productLabQueueSourceMeta[productLabQueueSource];
   const productLabGeneratedAt = formatProductLabGeneratedAt(productLabQueue);
   const productLabFreshness = getProductLabFreshness(productLabQueue);
+  const productLabAiReview = productLabQueue?.summary.aiReview;
+  const productLabAiReviewLabel =
+    productLabAiReview?.status === "generated"
+      ? `${productLabAiReview.generated ?? 0} proposition(s) IA`
+      : productLabAiReview?.status === "failed"
+        ? "Analyse IA echouee"
+        : productLabAiReview?.status === "skipped_missing_gateway"
+          ? "IA non configuree"
+          : productLabAiReview?.status === "disabled"
+            ? "IA desactivee"
+            : "Analyse locale";
   const productLabDisplayedCount = productLabReviewItems.length;
   const productLabExpectedCount = productLabQueue?.summary.total ?? productLabDisplayedCount;
   const unsyncedProductLabDecisions = useMemo(
@@ -2081,7 +2106,7 @@ const Admin = () => {
                     </p>
                   </div>
 
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                     {[
                       {
                         label: "A trancher",
@@ -2102,6 +2127,12 @@ const Admin = () => {
                           (productLabQueueSource === "supabase" ? productLabDisplayedCount : 0),
                         detail: `${productLabRunStatus?.proposalsGenerated ?? productLabDisplayedCount} generee(s)`,
                         tone: "text-primary",
+                      },
+                      {
+                        label: "Analyse IA",
+                        value: productLabAiReview?.status === "generated" ? "active" : "controle",
+                        detail: productLabAiReviewLabel,
+                        tone: productLabAiReview?.status === "generated" ? "text-green-200" : "text-amber-200",
                       },
                       {
                         label: "V2 live",
@@ -2264,17 +2295,20 @@ const Admin = () => {
                       Dernieres propositions recues
                     </p>
                     <h3 className="mt-2 text-lg font-semibold text-foreground">
-                      Ce que le dernier run a envoye dans l'admin
+                      Propositions d'amelioration a traiter
                     </h3>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Source d'analyse : {productLabAiReviewLabel}. Les cartes a trancher remontent toujours en premier.
+                    </p>
                   </div>
                   <span className="w-fit rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs text-muted-foreground">
                     {productLabDisplayedCount}/{productLabExpectedCount} affichee(s)
                   </span>
                 </div>
 
-                {productLabReviewItems.length > 0 ? (
+                {productLabVisibleReviewItems.length > 0 ? (
                   <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                    {productLabReviewItems.slice(0, 4).map((item) => {
+                    {productLabVisibleReviewItems.slice(0, 4).map((item) => {
                       const statusLabel =
                         item.localDecision.status === "approved"
                           ? "Validee"
@@ -2499,9 +2533,9 @@ const Admin = () => {
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 Chargement des decisions Product Lab...
               </div>
-            ) : productLabReviewItems.length > 0 ? (
+            ) : productLabVisibleReviewItems.length > 0 ? (
               <div className="grid gap-4">
-                {productLabReviewItems.map((item) => {
+                {productLabVisibleReviewItems.map((item) => {
                   const isSyncedApproval =
                     item.localDecision.status === "approved" && item.localDecision.persisted === "supabase";
                   const applicationStatus = item.localDecision.applicationStatus ?? "pending";

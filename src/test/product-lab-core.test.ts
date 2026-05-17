@@ -423,19 +423,27 @@ describe("Pixelrises Product Lab core", () => {
 
   it("creates run-scoped review item ids so old validations do not hide new proposals", () => {
     const root = createTempProject();
-    const result = runProductLab({
-      root,
-      action: "daily",
-      dryRun: true,
-      forcedTheme: "site-builder",
-      date: new Date("2026-05-05T10:00:00.000Z"),
-    });
-    const queue = JSON.parse(fs.readFileSync(path.join(root, "public/product-lab-review.json"), "utf8"));
+    const previousRunId = process.env.PRODUCT_LAB_RUN_ID;
+    process.env.PRODUCT_LAB_RUN_ID = "github-run-123";
 
-    expect(result.date).toBe("2026-05-05");
-    expect(queue.items.length).toBeGreaterThanOrEqual(2);
-    expect(queue.items.every((item: { id: string }) => item.id.startsWith("2026-05-05-site-builder-"))).toBe(true);
-    expect(queue.sourceRun.runId).toBe("2026-05-05-site-builder");
+    try {
+      const result = runProductLab({
+        root,
+        action: "daily",
+        dryRun: true,
+        forcedTheme: "site-builder",
+        date: new Date("2026-05-05T10:00:00.000Z"),
+      });
+      const queue = JSON.parse(fs.readFileSync(path.join(root, "public/product-lab-review.json"), "utf8"));
+
+      expect(result.date).toBe("2026-05-05");
+      expect(queue.items.length).toBeGreaterThanOrEqual(2);
+      expect(queue.items.every((item: { id: string }) => item.id.startsWith("2026-05-05-site-builder-github-run-123-"))).toBe(true);
+      expect(queue.sourceRun.runId).toBe("2026-05-05-site-builder-github-run-123");
+    } finally {
+      if (previousRunId === undefined) delete process.env.PRODUCT_LAB_RUN_ID;
+      else process.env.PRODUCT_LAB_RUN_ID = previousRunId;
+    }
   });
 
   it("keeps legacy admin approvals valid by matching title and module", () => {
@@ -507,6 +515,8 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("Run V2 generator smoke QA");
     expect(workflow).toContain("Check V2 generator smoke QA configuration");
     expect(workflow).toContain("npm run smoke:generator");
+    expect(workflow).toContain("Generate AI Product Lab proposals");
+    expect(workflow).toContain("npm run product-lab:ai-review");
     expect(workflow).toContain("vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '10'");
     expect(workflow).toContain('PRODUCT_LAB_MIN_REVIEW_ITEMS: "2"');
     expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "2"');

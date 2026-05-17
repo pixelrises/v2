@@ -20,6 +20,7 @@
     "product-lab:report": "node scripts/product-lab.mjs report --dry-run",
     "product-lab:daily": "node scripts/product-lab.mjs daily",
     "product-lab:weekly": "node scripts/product-lab.mjs weekly",
+    "product-lab:ai-review": "node scripts/product-lab-ai-review.mjs",
     "product-lab:research": "node scripts/product-lab-research.mjs",
     "product-lab:supabase:diagnose": "node scripts/product-lab-supabase.mjs diagnose",
     "product-lab:decisions:pull": "node scripts/product-lab-supabase.mjs pull-decisions",

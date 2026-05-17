@@ -54,6 +54,7 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
     expect(readProjectFile("package.json")).toContain('"product-lab:diagnostic"');
     expect(readProjectFile("package.json")).toContain('"product-lab:now"');
+    expect(readProjectFile("package.json")).toContain('"product-lab:ai-review"');
   });
 
   it("provides a local Product Lab now command that writes proposals and run status safely", () => {
@@ -63,6 +64,7 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(localRunner).toContain("scripts/product-lab.mjs");
     expect(localRunner).toContain("scripts/product-lab-supabase.mjs");
     expect(localRunner).toContain("push-proposals");
+    expect(localRunner).toContain("scripts/product-lab-ai-review.mjs");
     expect(localRunner).toContain("record-run");
     expect(localRunner).toContain("shouldApplyFixes");
     expect(localRunner).toContain('mode === "prMode" || mode === "autoMergeControlled"');

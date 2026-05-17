@@ -47,6 +47,7 @@ export interface ProductLabReviewQueue {
     week: string;
     theme: string;
     reportPath: string;
+    runId?: string;
   };
   summary: {
     total: number;
@@ -57,6 +58,18 @@ export interface ProductLabReviewQueue {
     lowestScore?: {
       name: string;
       note: number;
+    };
+    aiReview?: {
+      status?: "generated" | "empty" | "failed" | "disabled" | "skipped_missing_gateway";
+      model?: string;
+      generated?: number;
+      generatedAt?: string;
+      error?: string;
+      usage?: {
+        inputTokens?: number;
+        outputTokens?: number;
+        totalTokens?: number;
+      };
     };
   };
   items: ProductLabReviewItem[];
@@ -182,7 +195,7 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 
 export const getProductLabSourceRunKey = (sourceRun: unknown) => {
   if (!isObject(sourceRun)) return "";
-  return [sourceRun.date, sourceRun.week, sourceRun.theme]
+  return [sourceRun.runId, sourceRun.date, sourceRun.week, sourceRun.theme]
     .filter((value) => typeof value === "string" && value.trim().length > 0)
     .join("|");
 };
@@ -692,6 +705,7 @@ export const readProductLabReviewQueueFromSupabase = async (scope: ProductLabSco
       generatedAt:
         typeof latest.generated_at === "string" ? latest.generated_at : new Date().toISOString(),
       sourceRun: {
+        runId: typeof sourceRun.runId === "string" ? sourceRun.runId : undefined,
         date: typeof sourceRun.date === "string" ? sourceRun.date : "supabase",
         week: typeof sourceRun.week === "string" ? sourceRun.week : "supabase",
         theme: typeof sourceRun.theme === "string" ? sourceRun.theme : config.label,
@@ -754,7 +768,7 @@ export const buildProductLabRunStatusFromQueue = (
   if (!queue) return null;
   const runId =
     typeof queue.sourceRun === "object"
-      ? [queue.sourceRun.date, queue.sourceRun.week, queue.sourceRun.theme].filter(Boolean).join("|")
+      ? [queue.sourceRun.runId, queue.sourceRun.date, queue.sourceRun.week, queue.sourceRun.theme].filter(Boolean).join("|")
       : "";
 
   return {
