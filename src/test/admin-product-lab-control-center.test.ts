@@ -49,4 +49,13 @@ describe("Admin Product Lab control center", () => {
     expect(adminSource).toContain("if (!adminReady) return;");
     expect(adminSource).toMatch(/setAdminReady\(true\);[\s\S]{0,220}loadProductLabStateForScope\(productLabScope\)/);
   });
+
+  it("shows Product Lab proposal domains in the admin cards", () => {
+    expect(adminSource).toContain("productLabDomainMeta");
+    expect(adminSource).toContain("Domaine :");
+    expect(adminSource).toContain("Marketing");
+    expect(adminSource).toContain("Systeme");
+    expect(adminSource).toContain("SEO");
+    expect(adminSource).toContain("Generateur");
+  });
 });

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { filterActionableProductLabProposals } from "./product-lab-governance.mjs";
-import { redactSecrets } from "./product-lab-core.mjs";
+import { classifyProductLabDomain, productLabProposalDomains, redactSecrets } from "./product-lab-core.mjs";
 
 loadEnv({ path: path.join(process.cwd(), ".env.local"), override: false, quiet: true });
 loadEnv({ path: path.join(process.cwd(), ".env"), override: false, quiet: true });
@@ -111,6 +111,7 @@ Contraintes:
 - pas de refonte globale;
 - pas de Stripe/auth/RLS/live deploy sans validation humaine;
 - chaque proposition doit avoir un module, un impact, un risque, un avant, un apres, et des fichiers probables;
+- chaque proposition doit avoir un domain parmi: marketing, systeme, seo, generateur, ia;
 - si le smoke donne un vrai signal, priorise ce signal;
 - reponds uniquement en JSON valide.
 
@@ -118,6 +119,7 @@ Schema attendu:
 [
   {
     "title": "Titre concret",
+    "domain": "marketing|systeme|seo|generateur|ia",
     "module": "Site Builder|Product Lab|AI Spaces|Game Builder|Agent Builder|Dashboard|Code Health|Analytics|Integrations / Templates|Multi-IA / Systeme|Product Vision",
     "description": "Action precise et testable",
     "priority": "Critique|Important|Amelioration",
@@ -137,12 +139,18 @@ const normalizeAIItem = (item, index, queue) => {
   const module = typeof item?.module === "string" ? item.module.trim() : "Product Lab";
   const description = typeof item?.description === "string" ? item.description.trim() : "";
   if (!title || !description) return null;
+  const requestedDomain = normalize(item?.domain);
+  const domain =
+    productLabProposalDomains.includes(requestedDomain)
+      ? requestedDomain
+      : classifyProductLabDomain({ ...item, module, title, description });
 
   const runId = queue?.sourceRun?.runId || [queue?.sourceRun?.date, queue?.sourceRun?.theme].filter(Boolean).join("-");
   return {
     id: `${slugify(runId)}-ai-${index + 1}-${slugify(module)}-${slugify(title)}`,
     title,
     module,
+    domain,
     simpleSummary: `${module}: ${description}`,
     priority: ["Critique", "Important", "Amelioration"].includes(item.priority) ? item.priority : "Important",
     impact: ["Eleve", "Moyen", "Faible"].includes(item.impact) ? item.impact : "Eleve",

@@ -54,6 +54,7 @@ import {
   type ProductLabReviewQueue,
   type ProductLabReviewItemWithDecision,
   type ProductLabRunStatus,
+  type ProductLabProposalDomain,
 } from "@/modules/product-lab/product-lab-review";
 import { aiSpacesList } from "@/modules/ai-spaces";
 
@@ -91,6 +92,34 @@ const productLabQueueSourceMeta: Record<
     label: "Secours local",
     tone: "border-amber-400/20 bg-amber-400/10 text-amber-200",
     description: "Aucune file live n'a ete trouvee; l'admin affiche une carte de configuration.",
+  },
+};
+
+const productLabDomainMeta: Record<ProductLabProposalDomain, { label: string; tone: string; description: string }> = {
+  marketing: {
+    label: "Marketing",
+    tone: "border-rose-300/25 bg-rose-300/[0.08] text-rose-100",
+    description: "Conversion, promesse, pricing, activation ou tunnel client.",
+  },
+  systeme: {
+    label: "Systeme",
+    tone: "border-sky-300/25 bg-sky-300/[0.08] text-sky-100",
+    description: "CI, Product Lab, Supabase, securite, billing ou architecture.",
+  },
+  seo: {
+    label: "SEO",
+    tone: "border-emerald-300/25 bg-emerald-300/[0.08] text-emerald-100",
+    description: "Referencement, structure locale, meta, FAQ ou visibilite Google.",
+  },
+  generateur: {
+    label: "Generateur",
+    tone: "border-primary/25 bg-primary/[0.1] text-primary",
+    description: "Site Builder, Game Builder, preview, export ou quality gate.",
+  },
+  ia: {
+    label: "IA",
+    tone: "border-cyan-300/25 bg-cyan-300/[0.08] text-cyan-100",
+    description: "Orchestration IA, prompts, agents, modele, fallback ou AI Spaces.",
   },
 };
 
@@ -1162,6 +1191,23 @@ const Admin = () => {
     );
   }, [productLabReviewItems]);
   const productLabReviewStats = useMemo(() => getProductLabReviewStats(productLabReviewItems), [productLabReviewItems]);
+  const productLabDomainStats = useMemo(
+    () =>
+      productLabReviewItems.reduce(
+        (stats, item) => {
+          stats[item.domain] += 1;
+          return stats;
+        },
+        {
+          marketing: 0,
+          systeme: 0,
+          seo: 0,
+          generateur: 0,
+          ia: 0,
+        } satisfies Record<ProductLabProposalDomain, number>,
+      ),
+    [productLabReviewItems],
+  );
   const productLabQueueSource = productLabQueue?.loadSource ?? "fallback";
   const productLabQueueSourceInfo = productLabQueueSourceMeta[productLabQueueSource];
   const productLabGeneratedAt = formatProductLabGeneratedAt(productLabQueue);
@@ -2305,10 +2351,28 @@ const Admin = () => {
                     {productLabDisplayedCount}/{productLabExpectedCount} affichee(s)
                   </span>
                 </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {Object.entries(productLabDomainStats)
+                    .filter(([, count]) => count > 0)
+                    .map(([domain, count]) => {
+                      const meta = productLabDomainMeta[domain as ProductLabProposalDomain];
+
+                      return (
+                        <span
+                          key={domain}
+                          className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${meta.tone}`}
+                          title={meta.description}
+                        >
+                          {meta.label} x{count}
+                        </span>
+                      );
+                    })}
+                </div>
 
                 {productLabVisibleReviewItems.length > 0 ? (
                   <div className="mt-4 grid gap-3 lg:grid-cols-2">
                     {productLabVisibleReviewItems.slice(0, 4).map((item) => {
+                      const domainMeta = productLabDomainMeta[item.domain];
                       const statusLabel =
                         item.localDecision.status === "approved"
                           ? "Validee"
@@ -2333,6 +2397,9 @@ const Admin = () => {
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-primary">
                               {item.module}
+                            </span>
+                            <span className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] ${domainMeta.tone}`}>
+                              {domainMeta.label}
                             </span>
                             <span className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] ${statusClass}`}>
                               {statusLabel}
@@ -2553,6 +2620,7 @@ const Admin = () => {
                   const autoMergeStatus = item.localDecision.autoMergeStatus || "not_requested";
                   const prStatusMeta = productLabPrStatusMeta[prStatus] ?? productLabPrStatusMeta.not_created;
                   const autoMergeMeta = productLabAutoMergeMeta[autoMergeStatus] ?? productLabAutoMergeMeta.not_requested;
+                  const domainMeta = productLabDomainMeta[item.domain];
                   const touchedSensitiveFiles = item.localDecision.touchedSensitiveFiles ?? [];
                   const decisionLabel =
                     item.localDecision.status === "approved"
@@ -2591,6 +2659,12 @@ const Admin = () => {
                             <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary">
                               {item.module}
                             </span>
+                            <span
+                              className={`rounded-full border px-3 py-1 text-xs ${domainMeta.tone}`}
+                              title={domainMeta.description}
+                            >
+                              {domainMeta.label}
+                            </span>
                             <span className={`rounded-full border px-3 py-1 text-xs ${decisionClass}`}>
                               {decisionLabel}
                             </span>
@@ -2604,6 +2678,7 @@ const Admin = () => {
                           </p>
                         </div>
                         <div className="grid min-w-[220px] gap-2 rounded-2xl border border-white/10 bg-black/20 p-4 text-xs text-muted-foreground">
+                          <p>Domaine : {domainMeta.label}</p>
                           <p>Impact : {item.impact}</p>
                           <p>Risque : {item.risk}</p>
                           <p>Difficulte : {item.difficulty}</p>

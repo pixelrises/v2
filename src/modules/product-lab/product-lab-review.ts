@@ -7,6 +7,7 @@ export type ProductLabFindingDecision = "auto_safe" | "human_validation";
 export type ProductLabApplicationStatus = "pending" | "pr_ready" | "skipped" | "validation_failed";
 export type ProductLabScope = "v2" | "v1";
 export type ProductLabQueueSource = "supabase" | "public" | "fallback";
+export type ProductLabProposalDomain = "marketing" | "systeme" | "seo" | "generateur" | "ia";
 export type ProductLabPrStatus = "not_created" | "creating" | "created" | "checks_running" | "checks_ok" | "checks_failed";
 export type ProductLabAutoMergeStatus =
   | "not_requested"
@@ -20,6 +21,7 @@ export interface ProductLabReviewItem {
   id: string;
   title: string;
   module: string;
+  domain: ProductLabProposalDomain;
   simpleSummary: string;
   priority: string;
   impact: string;
@@ -193,6 +195,61 @@ export const getProductLabRlsMessage = (scope: ProductLabScope) =>
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+export const productLabProposalDomains: ProductLabProposalDomain[] = [
+  "marketing",
+  "systeme",
+  "seo",
+  "generateur",
+  "ia",
+];
+
+const normalizeDomainText = (value: unknown) =>
+  String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const hasDomainSignal = (haystack: string, signals: string[]) =>
+  signals.some((signal) => ` ${haystack} `.includes(` ${normalizeDomainText(signal)} `));
+
+export const normalizeProductLabProposalDomain = (value: unknown): ProductLabProposalDomain => {
+  if (!isObject(value)) return "marketing";
+  const explicitDomain = normalizeDomainText(value.domain);
+  if (productLabProposalDomains.includes(explicitDomain as ProductLabProposalDomain)) {
+    return explicitDomain as ProductLabProposalDomain;
+  }
+
+  const haystack = normalizeDomainText(
+    [
+      value.module,
+      value.title,
+      value.simpleSummary,
+      value.description,
+      value.status,
+      value.inspiration,
+      value.beforeState,
+      value.afterState,
+      Array.isArray(value.concernedFiles) ? value.concernedFiles.join(" ") : "",
+    ].join(" "),
+  );
+
+  if (hasDomainSignal(haystack, ["seo", "local seo", "referencement", "schema", "meta", "h1", "h2", "google", "ranking", "search", "faq", "serp"])) {
+    return "seo";
+  }
+  if (hasDomainSignal(haystack, ["ia", "ai", "multi ia", "multi-ai", "agent", "prompt", "model", "gateway", "orchestrator", "llm", "provider", "fallback", "quality gate"])) {
+    return "ia";
+  }
+  if (hasDomainSignal(haystack, ["builder", "site builder", "game builder", "agent builder", "generateur", "generation", "preview", "prototype", "blueprint", "visual editor", "section", "export", "snippet", "package"])) {
+    return "generateur";
+  }
+  if (hasDomainSignal(haystack, ["systeme", "code health", "product lab", "github", "workflow", "ci", "build", "test", "lint", "supabase", "rls", "grant", "stripe", "billing", "credit", "credits", "security", "securite", "auth", "webhook", "edge function", "migration", "admin"])) {
+    return "systeme";
+  }
+  return "marketing";
+};
+
 export const getProductLabSourceRunKey = (sourceRun: unknown) => {
   if (!isObject(sourceRun)) return "";
   return [sourceRun.runId, sourceRun.date, sourceRun.week, sourceRun.theme]
@@ -214,6 +271,7 @@ const normalizeReviewItem = (value: unknown, fallbackId: string): ProductLabRevi
     id,
     title,
     module,
+    domain: normalizeProductLabProposalDomain(value),
     simpleSummary: typeof value.simpleSummary === "string" ? value.simpleSummary : title,
     priority: typeof value.priority === "string" ? value.priority : "Important",
     impact: typeof value.impact === "string" ? value.impact : "Moyen",
@@ -271,6 +329,7 @@ export const fallbackProductLabReviewQueue: ProductLabReviewQueue = {
       id: "local-agent-builder-security",
       title: "Durcir la securite des actions agents",
       module: "Agent Builder",
+      domain: "ia",
       simpleSummary: "Verifier que les agents ne peuvent pas publier, modifier ou connecter sans validation.",
       priority: "Important",
       impact: "Eleve",
@@ -317,6 +376,7 @@ export const fallbackProductLabV1ReviewQueue: ProductLabReviewQueue = {
       id: "v1-product-lab-setup",
       title: "Brancher le Product Lab V1",
       module: "Product Lab V1",
+      domain: "systeme",
       simpleSummary:
         "Connecter la V1 a ses tables separees pour auditer le generateur V1 et remonter les decisions dans cet admin.",
       priority: "Critique",

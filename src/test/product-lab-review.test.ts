@@ -14,6 +14,7 @@ import {
   isProductLabMissingTableError,
   isProductLabRlsError,
   mergeProductLabReviewItems,
+  normalizeProductLabProposalDomain,
   writeProductLabDecision,
   type ProductLabDecisionMap,
 } from "@/modules/product-lab/product-lab-review";
@@ -31,6 +32,24 @@ describe("Product Lab admin review", () => {
 
     expect(items.length).toBeGreaterThan(0);
     expect(items[0].localDecision.status).toBe("pending");
+    expect(["marketing", "systeme", "seo", "generateur", "ia"]).toContain(items[0].domain);
+  });
+
+  it("normalizes proposal domains for admin display", () => {
+    expect(
+      normalizeProductLabProposalDomain({
+        module: "Site Builder",
+        title: "SEO local par ville",
+        description: "Meta, FAQ et H1 localises.",
+      }),
+    ).toBe("seo");
+    expect(
+      normalizeProductLabProposalDomain({
+        module: "Product Lab",
+        title: "Workflow GitHub Actions",
+        description: "Verifier CI, lint, build et Supabase.",
+      }),
+    ).toBe("systeme");
   });
 
   it("uses the Product Lab run id in decision matching so same-day reruns stay fresh", () => {

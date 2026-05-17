@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildResearchEvidence,
+  classifyProductLabDomain,
   classifyImprovement,
   findApprovedAdminDecision,
   getProductLabReviewItemId,
@@ -93,6 +94,48 @@ describe("Pixelrises Product Lab core", () => {
     expect(redacted).not.toContain("vck_1234567890");
     expect(redacted).not.toContain("secret-token-1234567890");
     expect(redacted).toContain("[REDACTED]");
+  });
+
+  it("classifies Product Lab proposals by business domain", () => {
+    expect(
+      classifyProductLabDomain({
+        module: "Site Builder",
+        title: "Renforcer le SEO local des pages generees",
+        description: "Ajouter meta locale, FAQ et structure H1/H2 par ville.",
+      }),
+    ).toBe("seo");
+
+    expect(
+      classifyProductLabDomain({
+        module: "Multi-IA / Systeme",
+        title: "Durcir le routage AI Gateway",
+        description: "Verifier modele, fallback IA et Quality Gate avant retour client.",
+      }),
+    ).toBe("ia");
+
+    expect(
+      classifyProductLabDomain({
+        module: "Game Builder",
+        title: "Rendre le prototype web jouable",
+        description: "Corriger preview, restart et export package.",
+      }),
+    ).toBe("generateur");
+
+    expect(
+      classifyProductLabDomain({
+        module: "Code Health",
+        title: "Bloquer la PR si lint ou build echoue",
+        description: "Renforcer le workflow GitHub Actions et les tests CI.",
+      }),
+    ).toBe("systeme");
+
+    expect(
+      classifyProductLabDomain({
+        module: "Product Vision",
+        title: "Clarifier la promesse et le CTA d'activation",
+        description: "Optimiser conversion, onboarding et tunnel client.",
+      }),
+    ).toBe("marketing");
   });
 
   it("uses a static research fallback when live verification has not run", () => {

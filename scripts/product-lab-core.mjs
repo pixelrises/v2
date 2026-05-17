@@ -383,6 +383,129 @@ const normalize = (value) =>
 
 const slugify = (value) => normalize(value).replace(/\s+/g, "-") || "item";
 
+export const productLabProposalDomains = ["marketing", "systeme", "seo", "generateur", "ia"];
+
+const productLabDomainKeywords = {
+  seo: [
+    "seo",
+    "local seo",
+    "referencement",
+    "schema",
+    "meta",
+    "h1",
+    "h2",
+    "google",
+    "ranking",
+    "search",
+    "faq",
+    "serp",
+  ],
+  ia: [
+    "ia",
+    "ai",
+    "multi ia",
+    "multi-ai",
+    "agent",
+    "agents",
+    "prompt",
+    "model",
+    "gateway",
+    "orchestrator",
+    "llm",
+    "provider",
+    "fallback",
+    "quality gate",
+  ],
+  generateur: [
+    "builder",
+    "site builder",
+    "game builder",
+    "agent builder",
+    "generateur",
+    "generation",
+    "preview",
+    "prototype",
+    "blueprint",
+    "visual editor",
+    "section",
+    "export",
+    "snippet",
+    "package",
+  ],
+  systeme: [
+    "systeme",
+    "code health",
+    "product lab",
+    "github",
+    "workflow",
+    "ci",
+    "build",
+    "test",
+    "lint",
+    "supabase",
+    "rls",
+    "grant",
+    "stripe",
+    "billing",
+    "credit",
+    "credits",
+    "security",
+    "securite",
+    "auth",
+    "webhook",
+    "edge function",
+    "migration",
+    "admin",
+  ],
+  marketing: [
+    "marketing",
+    "conversion",
+    "cta",
+    "copy",
+    "landing",
+    "pricing",
+    "onboarding",
+    "activation",
+    "lead",
+    "leads",
+    "business",
+    "positionnement",
+    "promesse",
+    "proof",
+    "preuve",
+  ],
+};
+
+const containsDomainKeyword = (haystack, domain) =>
+  productLabDomainKeywords[domain].some((keyword) => ` ${haystack} `.includes(` ${normalize(keyword)} `));
+
+export const classifyProductLabDomain = (finding) => {
+  const explicitDomain = normalize(finding?.domain);
+  if (productLabProposalDomains.includes(explicitDomain)) return explicitDomain;
+
+  const haystack = normalize(
+    [
+      finding?.module,
+      finding?.title,
+      finding?.originalTitle,
+      finding?.simpleSummary,
+      finding?.description,
+      finding?.status,
+      finding?.inspiration,
+      finding?.beforeState,
+      finding?.afterState,
+      Array.isArray(finding?.concernedFiles) ? finding.concernedFiles.join(" ") : "",
+    ].join(" "),
+  );
+
+  if (productLabProposalDomains.includes(haystack)) return haystack;
+  if (containsDomainKeyword(haystack, "seo")) return "seo";
+  if (containsDomainKeyword(haystack, "ia")) return "ia";
+  if (containsDomainKeyword(haystack, "generateur")) return "generateur";
+  if (containsDomainKeyword(haystack, "systeme")) return "systeme";
+  return "marketing";
+};
+
 export const getProductLabReviewItemId = (finding, theme) =>
   [
     theme?.date ?? theme?.runDate ?? theme?.sourceRun?.date,
@@ -1587,6 +1710,7 @@ export const buildProductLabReviewQueue = (result) => {
     title: finding.title,
     originalTitle: finding.originalTitle || finding.title,
     module: finding.module,
+    domain: classifyProductLabDomain(finding),
     simpleSummary: buildReviewSimpleSummary(finding),
     priority: finding.priority,
     impact: finding.impact,
