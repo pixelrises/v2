@@ -14,6 +14,8 @@ const mode = dryRun
     ? args[modeIndex + 1]
     : process.env.PRODUCT_LAB_MODE || "proposalOnly";
 const source = sourceIndex >= 0 ? args[sourceIndex + 1] : process.env.PRODUCT_LAB_RUN_SOURCE || "local";
+const startedAt = new Date().toISOString();
+const shouldApplyFixes = mode === "prMode" || mode === "autoMergeControlled";
 
 const run = (label, commandArgs, extraEnv = {}) => {
   console.log(`\nProduct Lab now - ${label}`);
@@ -41,10 +43,11 @@ run("generate proposals", [
 ], {
   PRODUCT_LAB_MODE: mode,
   PRODUCT_LAB_DRY_RUN: dryRun ? "true" : "false",
+  PRODUCT_LAB_APPLY_SAFE_FIXES: shouldApplyFixes ? "true" : "false",
   PRODUCT_LAB_FORCE_GENERATE: "true",
   PRODUCT_LAB_MAX_REVIEW_ITEMS: maxProposals,
   PRODUCT_LAB_RUN_SOURCE: source,
-  PRODUCT_LAB_RUN_STARTED_AT: new Date().toISOString(),
+  PRODUCT_LAB_RUN_STARTED_AT: startedAt,
 });
 
 if (dryRun) {
@@ -57,6 +60,7 @@ run("push proposals to Supabase", ["scripts/product-lab-supabase.mjs", "push-pro
   PRODUCT_LAB_MODE: mode,
   PRODUCT_LAB_FORCE_GENERATE: "true",
   PRODUCT_LAB_RUN_SOURCE: source,
+  PRODUCT_LAB_RUN_STARTED_AT: startedAt,
 });
 
 run("record run status", ["scripts/product-lab-supabase.mjs", "record-run"], {
@@ -64,6 +68,7 @@ run("record run status", ["scripts/product-lab-supabase.mjs", "record-run"], {
   PRODUCT_LAB_MODE: mode,
   PRODUCT_LAB_FORCE_GENERATE: "true",
   PRODUCT_LAB_RUN_SOURCE: source,
+  PRODUCT_LAB_RUN_STARTED_AT: startedAt,
   PRODUCT_LAB_RUN_STATUS: "completed",
 });
 

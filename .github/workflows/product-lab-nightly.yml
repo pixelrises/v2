@@ -127,13 +127,27 @@ jobs:
             dry_run="true"
           fi
 
+          apply_fixes="false"
+          create_pr="false"
+          allow_auto_merge="false"
+          if [ "$mode" = "prMode" ] || [ "$mode" = "autoMergeControlled" ]; then
+            apply_fixes="true"
+            create_pr="true"
+          fi
+          if [ "$mode" = "autoMergeControlled" ]; then
+            allow_auto_merge="true"
+          fi
+
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
           echo "dry_run=$dry_run" >> "$GITHUB_OUTPUT"
+          echo "apply_fixes=$apply_fixes" >> "$GITHUB_OUTPUT"
+          echo "create_pr=$create_pr" >> "$GITHUB_OUTPUT"
+          echo "allow_auto_merge=$allow_auto_merge" >> "$GITHUB_OUTPUT"
           echo "force_generate=$force_generate" >> "$GITHUB_OUTPUT"
           echo "max_proposals=$max_proposals" >> "$GITHUB_OUTPUT"
           echo "source=$source" >> "$GITHUB_OUTPUT"
           echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
-          echo "Product Lab mode: $mode, dryRun=$dry_run, forceGenerate=$force_generate, maxProposals=$max_proposals, source=$source"
+          echo "Product Lab mode: $mode, dryRun=$dry_run, applyFixes=$apply_fixes, createPr=$create_pr, autoMerge=$allow_auto_merge, forceGenerate=$force_generate, maxProposals=$max_proposals, source=$source"
 
       - name: Pull admin-approved Product Lab decisions
         if: steps.guard.outputs.run == 'true'
@@ -161,7 +175,7 @@ jobs:
         env:
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY || secrets.API_GATEWAY_VERCEL }}
           PRODUCT_LAB_MAX_PATCHES: "2"
-          PRODUCT_LAB_APPLY_SAFE_FIXES: "true"
+          PRODUCT_LAB_APPLY_SAFE_FIXES: ${{ steps.run_mode.outputs.apply_fixes }}
           PRODUCT_LAB_MODE: ${{ steps.run_mode.outputs.mode }}
           PRODUCT_LAB_DRY_RUN: ${{ steps.run_mode.outputs.dry_run }}
           PRODUCT_LAB_FORCE_GENERATE: ${{ steps.run_mode.outputs.force_generate }}
@@ -362,7 +376,11 @@ jobs:
             echo "has_approved_improvements=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_approved_improvements=false" >> "$GITHUB_OUTPUT"
-            echo "No admin-approved improvements were applied. No PR will be created."
+            if [ "${{ steps.run_mode.outputs.create_pr }}" = "true" ]; then
+              echo "No admin-approved improvements were applied. No PR will be created."
+            else
+              echo "Proposal-only mode: no admin-approved improvement application expected."
+            fi
           fi
 
       - name: Prepare Product Lab branch name
@@ -387,6 +405,7 @@ jobs:
         id: auto_merge_policy
         if: >
           steps.guard.outputs.run == 'true' &&
+          steps.run_mode.outputs.create_pr == 'true' &&
           steps.validation.outputs.checks_passed == 'true' &&
           steps.validation.outputs.has_changes == 'true' &&
           steps.validation.outputs.has_approved_improvements == 'true'
@@ -465,6 +484,7 @@ jobs:
         id: create-pr
         if: >
           steps.guard.outputs.run == 'true' &&
+          steps.run_mode.outputs.create_pr == 'true' &&
           steps.validation.outputs.checks_passed == 'true' &&
           steps.validation.outputs.has_changes == 'true' &&
           steps.validation.outputs.has_approved_improvements == 'true'
@@ -497,6 +517,7 @@ jobs:
         if: >
           steps.guard.outputs.run == 'true' &&
           steps.create-pr.outcome == 'success' &&
+          steps.run_mode.outputs.allow_auto_merge == 'true' &&
           steps.auto_merge_policy.outputs.auto_merge_allowed == 'true'
         continue-on-error: true
         env:
@@ -530,9 +551,12 @@ jobs:
         shell: bash
         run: |
           if [ "${{ steps.auto_merge_policy.outputs.auto_merge_allowed }}" = "true" ]; then
-            if [ "${{ steps.auto_merge.outcome }}" = "success" ]; then
+            if [ "${{ steps.run_mode.outputs.allow_auto_merge }}" = "true" ] && [ "${{ steps.auto_merge.outcome }}" = "success" ]; then
               export PRODUCT_LAB_AUTO_MERGE_STATUS="${{ steps.auto_merge.outputs.status || 'auto_merge_requested' }}"
               export PRODUCT_LAB_AUTO_MERGE_BLOCK_REASON=""
+            elif [ "${{ steps.run_mode.outputs.allow_auto_merge }}" != "true" ]; then
+              export PRODUCT_LAB_AUTO_MERGE_STATUS="not_requested"
+              export PRODUCT_LAB_AUTO_MERGE_BLOCK_REASON="Mode prMode: PR creee, merge manuel ou validation GitHub requise."
             else
               export PRODUCT_LAB_AUTO_MERGE_STATUS="auto_merge_request_failed"
               export PRODUCT_LAB_AUTO_MERGE_BLOCK_REASON="GitHub auto-merge request failed or repository auto-merge is not enabled."

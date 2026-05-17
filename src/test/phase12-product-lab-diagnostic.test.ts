@@ -64,6 +64,8 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(localRunner).toContain("scripts/product-lab-supabase.mjs");
     expect(localRunner).toContain("push-proposals");
     expect(localRunner).toContain("record-run");
+    expect(localRunner).toContain("shouldApplyFixes");
+    expect(localRunner).toContain('mode === "prMode" || mode === "autoMergeControlled"');
     expect(localRunner).toContain('PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: "true"');
     expect(localRunner).toContain("dry-run complete. No Supabase write was attempted.");
     expect(localRunner).not.toContain("create-pull-request");
@@ -75,6 +77,7 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(supabaseSync).toContain("getServiceRoleDiagnostics");
     expect(supabaseSync).toContain("issuer_matches_url");
     expect(supabaseSync).toContain("archiveProcessedReviewItems");
+    expect(supabaseSync).toContain("stale open item(s) archived");
     expect(supabaseSync).toContain("all generated proposals were already processed");
     expect(supabaseSync).toContain('["scheduled", "manual", "local", "workflow_dispatch"]');
     expect(supabaseSync).toContain("const source = normalizeRunSourceForDb(requestedSource)");

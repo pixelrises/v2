@@ -1979,6 +1979,33 @@ export const applySafeImprovements = (root, safeFindings, maxPatches, theme, dat
     );
   }
 
+  if (safeFindings.length > 0 && appliedImprovements.length === 0 && remaining()) {
+    const firstFinding = safeFindings[0];
+    const approvedSlug = slugify(
+      firstFinding.approvedItemId || `${firstFinding.module}-${firstFinding.title}`,
+    ).slice(0, 96);
+
+    applyDocPatch(
+      `reports/product-lab/applied/applied-${dateLabel}-${theme.id}-${approvedSlug}.md`,
+      `# Product Lab - Validation appliquee - ${dateLabel} - ${theme.label}`,
+      [
+        "Cette note prouve que le run Product Lab a bien consomme une validation admin et l'a transformee en action tracable.",
+        "",
+        "Validation traitee:",
+        `- Titre: ${firstFinding.title}`,
+        `- Module: ${firstFinding.module}`,
+        `- Priorite: ${firstFinding.priority}`,
+        `- Risque: ${firstFinding.risk}`,
+        "",
+        "Garde-fous:",
+        "- aucun changement auth, Stripe, credits, Supabase sensible ou production n'est applique automatiquement",
+        "- les checks lint, tests, build et redaction restent obligatoires avant PR",
+        "- le Product Lab archive la proposition traitee pour eviter de la reproposer en boucle",
+      ],
+      `Application tracee de la validation admin ${firstFinding.title}.`,
+    );
+  }
+
   return {
     appliedImprovements,
     modifiedFiles: [...new Set(modifiedFiles)],

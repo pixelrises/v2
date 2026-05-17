@@ -195,6 +195,24 @@ const pushProposals = async () => {
     return;
   }
 
+  const currentItemIds = new Set(rows.map((row) => row.item_id));
+  const openRows = await restFetch(`${config.reviewTable}?select=item_id&status=eq.open&limit=500`, {
+    method: "GET",
+  }).catch(() => []);
+  const staleItemIds = (Array.isArray(openRows) ? openRows : [])
+    .map((row) => (typeof row?.item_id === "string" ? row.item_id : ""))
+    .filter((itemId) => itemId && !currentItemIds.has(itemId));
+
+  for (const itemId of staleItemIds) {
+    await restFetch(`${config.reviewTable}?item_id=eq.${encodeURIComponent(itemId)}`, {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({ status: "archived" }),
+    });
+  }
+
   await restFetch(`${config.reviewTable}?on_conflict=item_id`, {
     method: "POST",
     headers: {
@@ -206,7 +224,7 @@ const pushProposals = async () => {
   console.log(
     `Product Lab Supabase proposal sync complete: ${rows.length} item(s) for ${config.label}. ${
       queue.items.length - rows.length
-    } already processed item(s) skipped.`,
+    } already processed item(s) skipped, ${staleItemIds.length} stale open item(s) archived.`,
   );
 };
 
@@ -479,8 +497,8 @@ const recordRunStatus = async () => {
   const diagnostic = readJson("product-lab/state/phase12-diagnostic.json", {});
   const startedAt =
     process.env.PRODUCT_LAB_RUN_STARTED_AT ||
-    diagnostic.generatedAt ||
     queue.generatedAt ||
+    diagnostic.generatedAt ||
     new Date().toISOString();
   const completedAt = process.env.PRODUCT_LAB_RUN_COMPLETED_AT || new Date().toISOString();
   const requestedSource =

@@ -513,6 +513,10 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("steps.smoke_preflight.outputs.ready == 'true'");
     expect(workflow).toContain("steps.generator_smoke.outcome");
     expect(workflow).toContain("PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: \"true\"");
+    expect(workflow).toContain("apply_fixes=\"false\"");
+    expect(workflow).toContain("steps.run_mode.outputs.create_pr == 'true'");
+    expect(workflow).toContain("steps.run_mode.outputs.allow_auto_merge == 'true'");
+    expect(workflow).toContain("PRODUCT_LAB_APPLY_SAFE_FIXES: ${{ steps.run_mode.outputs.apply_fixes }}");
     expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_URL");
     expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
     expect(workflow).toContain("steps.proposals_push.outcome");
