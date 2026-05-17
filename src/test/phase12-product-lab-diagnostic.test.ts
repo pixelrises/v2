@@ -49,6 +49,8 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(workflow).toContain("Resolve Product Lab mode");
     expect(workflow).toContain("steps.run_mode.outputs.dry_run != 'true'");
     expect(workflow).toContain("npm run product-lab:run-status:record");
+    expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_URL");
+    expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
     expect(readProjectFile("package.json")).toContain('"product-lab:diagnostic"');
     expect(readProjectFile("package.json")).toContain('"product-lab:now"');
   });
@@ -66,6 +68,7 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(localRunner).not.toContain("create-pull-request");
     expect(localRunner).not.toContain("gh pr merge");
     expect(supabaseSync).toContain("normalizeRunSourceForDb");
+    expect(supabaseSync).toContain("process.env.NEXT_PUBLIC_SUPABASE_URL");
     expect(supabaseSync).toContain('["scheduled", "manual", "local", "workflow_dispatch"]');
     expect(supabaseSync).toContain("const source = normalizeRunSourceForDb(requestedSource)");
   });

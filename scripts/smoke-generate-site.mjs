@@ -29,10 +29,22 @@ const requiredEnv = (name) => {
   return value;
 };
 
+const firstEnv = (...names) => {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+  throw new Error(`Missing environment variable: ${names.join(" or ")}`);
+};
+
 const supabaseUrl =
   process.env.SUPABASE_FUNCTIONS_URL?.trim() ||
-  `${requiredEnv("VITE_SUPABASE_URL").replace(/\/$/, "")}/functions/v1`;
-const publishableKey = requiredEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
+  `${firstEnv("VITE_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL").replace(/\/$/, "")}/functions/v1`;
+const publishableKey = firstEnv(
+  "VITE_SUPABASE_PUBLISHABLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_PUBLISHABLE_KEY",
+);
 const realQaEnabled = process.env.PIXELRISES_GENERATOR_REAL_QA === "1";
 const dailyRealBudget = Math.max(
   0,
@@ -554,7 +566,7 @@ const getSmokeBearerToken = async () => {
   const password = process.env.PIXELRISES_SMOKE_PASSWORD?.trim();
   if (!email || !password) return "";
 
-  const authEndpoint = `${requiredEnv("VITE_SUPABASE_URL").replace(/\/$/, "")}/auth/v1/token?grant_type=password`;
+  const authEndpoint = `${firstEnv("VITE_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL").replace(/\/$/, "")}/auth/v1/token?grant_type=password`;
   const response = await fetch(authEndpoint, {
     method: "POST",
     headers: {

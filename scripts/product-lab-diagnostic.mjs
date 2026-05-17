@@ -75,7 +75,7 @@ const supabaseAudit = {
 };
 
 const envAudit = {
-  VITE_SUPABASE_URL: Boolean(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL),
+  VITE_SUPABASE_URL: Boolean(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL),
   SUPABASE_SERVICE_ROLE_KEY: Boolean(
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.PIXELRISES_SUPABASE_SERVICE_ROLE_KEY,
   ),

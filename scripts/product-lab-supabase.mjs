@@ -15,7 +15,7 @@ loadEnv({ path: path.join(root, ".env.local"), override: false, quiet: true });
 loadEnv({ path: path.join(root, ".env"), override: false, quiet: true });
 
 const getSupabaseConfig = () => {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.PIXELRISES_SUPABASE_SERVICE_ROLE_KEY;
 
   return {

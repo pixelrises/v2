@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   ArrowRight,
@@ -56,6 +56,16 @@ export function GeneralAIFloatingAssistant() {
   const [prompt, setPrompt] = useState("");
   const [isRouting, setIsRouting] = useState(false);
   const [turns, setTurns] = useState<AssistantTurn[]>([]);
+  const routingTimeoutRef = useRef<number | undefined>(undefined);
+
+  useEffect(
+    () => () => {
+      if (routingTimeoutRef.current !== undefined) {
+        window.clearTimeout(routingTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   const contextLabel = useMemo(
     () => pageContext.find((item) => location.pathname.startsWith(item.prefix))?.label ?? "Pixelrises",
@@ -73,7 +83,13 @@ export function GeneralAIFloatingAssistant() {
     const result = routeGeneralAIRequest(cleanPrompt);
     setTurns((previous) => [{ id: makeTurnId(), prompt: cleanPrompt, result }, ...previous].slice(0, 5));
     setPrompt("");
-    window.setTimeout(() => setIsRouting(false), 180);
+    if (routingTimeoutRef.current !== undefined) {
+      window.clearTimeout(routingTimeoutRef.current);
+    }
+    routingTimeoutRef.current = window.setTimeout(() => {
+      setIsRouting(false);
+      routingTimeoutRef.current = undefined;
+    }, 180);
   };
 
   const applyQuickPrompt = (value: string) => {

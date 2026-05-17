@@ -449,6 +449,8 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("steps.smoke_preflight.outputs.ready == 'true'");
     expect(workflow).toContain("steps.generator_smoke.outcome");
     expect(workflow).toContain("PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: \"true\"");
+    expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_URL");
+    expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
     expect(workflow).toContain("steps.proposals_push.outcome");
     expect(workflow).toContain("Check Product Lab report redaction");
     expect(workflow).toContain("npm run product-lab:redaction:check");
@@ -479,6 +481,8 @@ describe("Pixelrises Product Lab core", () => {
     const smokeScript = fs.readFileSync(path.join(process.cwd(), "scripts/smoke-generate-site.mjs"), "utf8");
 
     expect(smokeScript).toContain("Generator smoke test requires PIXELRISES_SMOKE_BEARER_TOKEN");
+    expect(smokeScript).toContain('firstEnv("VITE_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL")');
+    expect(smokeScript).toContain('"NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"');
     expect(smokeScript).not.toContain("smoke credentials are not configured. No credits were consumed.");
   });
 
