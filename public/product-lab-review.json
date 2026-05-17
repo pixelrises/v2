@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-17T04:10:59.309Z",
+  "generatedAt": "2026-05-17T04:31:07.051Z",
   "sourceRun": {
     "date": "2026-05-17",
     "week": "2026-W20",
@@ -23,7 +23,7 @@
       "mode": "live",
       "verifiedSources": 4,
       "totalSources": 4,
-      "verifiedAt": "2026-05-17T03:32:46.838Z"
+      "verifiedAt": "2026-05-17T04:31:06.779Z"
     }
   },
   "items": [
@@ -60,7 +60,7 @@
           "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "authority": "official",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-17T03:32:46.371Z"
+          "checkedAt": "2026-05-17T04:31:06.255Z"
         },
         {
           "id": "linear-method",
@@ -68,7 +68,7 @@
           "url": "https://linear.app/method",
           "authority": "product-practice",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-17T03:32:46.467Z"
+          "checkedAt": "2026-05-17T04:31:06.518Z"
         }
       ],
       "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"roadmap semaine\" pour eviter les cartes repetitives.",
@@ -109,7 +109,7 @@
           "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "authority": "official",
           "verificationStatus": "verified",
-          "checkedAt": "2026-05-17T03:32:46.371Z"
+          "checkedAt": "2026-05-17T04:31:06.255Z"
         }
       ],
       "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"CI sans surprise\" pour eviter les cartes repetitives.",

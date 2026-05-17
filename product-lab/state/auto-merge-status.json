@@ -1,5 +1,5 @@
 {
-  "evaluatedAt": "2026-05-17T03:35:46.362Z",
+  "evaluatedAt": "2026-05-17T04:35:32.243Z",
   "allowed": true,
   "riskLevel": "low",
   "autoMergeStatus": "eligible",
@@ -9,6 +9,6 @@
     "product-lab/state/research-sources.json",
     "public/product-lab-review.json",
     "reports/product-lab/daily/daily-2026-05-17.md",
-    "reports/product-lab/improvements/improvement-2026-05-17-audit-roadmap.md"
+    "reports/product-lab/applied/"
   ]
 }
