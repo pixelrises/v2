@@ -29,6 +29,41 @@ const isConfigured = () => {
   return Boolean(url && serviceRoleKey);
 };
 
+const getSupabaseProjectRef = () => {
+  const { url } = getSupabaseConfig();
+  try {
+    return new URL(url).hostname.split(".")[0] || "unknown";
+  } catch {
+    return "invalid-url";
+  }
+};
+
+const getJwtPayload = (token) => {
+  try {
+    const [, payload] = String(token || "").split(".");
+    if (!payload) return {};
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(Buffer.from(normalized, "base64").toString("utf8"));
+  } catch {
+    return {};
+  }
+};
+
+const getServiceRoleDiagnostics = () => {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+  const payload = getJwtPayload(serviceRoleKey);
+  return {
+    hasUrl: Boolean(url),
+    projectRef: getSupabaseProjectRef(),
+    hasServiceRoleKey: Boolean(serviceRoleKey),
+    keyLooksLikeJwt: String(serviceRoleKey || "").split(".").length === 3,
+    role: typeof payload.role === "string" ? payload.role : "",
+    issuer: typeof payload.iss === "string" ? redactProductLabText(payload.iss) : "",
+    refMatchesIssuer:
+      Boolean(url && payload.iss) && String(payload.iss).includes(getSupabaseProjectRef()),
+  };
+};
+
 const requireSync = () => process.env.PRODUCT_LAB_REQUIRE_SUPABASE_SYNC === "true";
 
 const skipOrFail = (message) => {
@@ -56,7 +91,12 @@ const restFetch = async (resource, options = {}) => {
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`Supabase REST ${response.status}: ${redactProductLabText(body.slice(0, 500))}`);
+    const diagnostics = getServiceRoleDiagnostics();
+    throw new Error(
+      `Supabase REST ${response.status} for ${getSupabaseProjectRef()}: ${redactProductLabText(body.slice(0, 500))}. ` +
+        `Diagnostics: role=${diagnostics.role || "unknown"}, jwt=${diagnostics.keyLooksLikeJwt ? "yes" : "no"}, ` +
+        `issuer_matches_url=${diagnostics.refMatchesIssuer ? "yes" : "no"}.`,
+    );
   }
 
   if (response.status === 204) return null;
@@ -96,6 +136,12 @@ const pushProposals = async () => {
     skipOrFail("Product Lab Supabase proposal sync failed: missing service role configuration.");
     return;
   }
+  const diagnostics = getServiceRoleDiagnostics();
+  console.log(
+    `Product Lab Supabase target: ${diagnostics.projectRef}, service_role_present=${diagnostics.hasServiceRoleKey ? "yes" : "no"}, role=${
+      diagnostics.role || "unknown"
+    }, issuer_matches_url=${diagnostics.refMatchesIssuer ? "yes" : "no"}.`,
+  );
 
   const config = getScopeConfig();
   const queue = readJson(getReviewQueuePath(), null);
@@ -336,6 +382,12 @@ const recordRunStatus = async () => {
     console.log("Product Lab run status sync skipped: missing service role configuration.");
     return;
   }
+  const diagnostics = getServiceRoleDiagnostics();
+  console.log(
+    `Product Lab run status target: ${diagnostics.projectRef}, service_role_present=${diagnostics.hasServiceRoleKey ? "yes" : "no"}, role=${
+      diagnostics.role || "unknown"
+    }, issuer_matches_url=${diagnostics.refMatchesIssuer ? "yes" : "no"}.`,
+  );
 
   const config = getScopeConfig();
   const summary = readJson("product-lab/state/last-run-summary.json", {});
