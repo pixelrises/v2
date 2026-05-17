@@ -22,7 +22,7 @@ describe("Admin Product Lab control center", () => {
   it("documents the automatic improvement loop and validation gates", () => {
     expect(adminSource).toContain("Boucle Product Lab");
     expect(adminSource).toContain("Audit complet");
-    expect(adminSource).toContain("2 a 4 priorites");
+    expect(adminSource).toContain("8 propositions");
     expect(adminSource).toContain("PR controlee");
     expect(adminSource).toContain("Validation admin");
     expect(adminSource).toContain("validation humaine");

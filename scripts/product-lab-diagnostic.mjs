@@ -18,7 +18,7 @@ const readArg = (name, fallback = "") => {
 const dryRun = !hasArg("--real");
 const forceGenerate = hasArg("--force-generate") || process.env.PRODUCT_LAB_FORCE_GENERATE === "true";
 const forcedTheme = readArg("--theme", "audit-roadmap");
-const maxProposals = readArg("--max-proposals", process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS || "2");
+const maxProposals = readArg("--max-proposals", process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS || "8");
 const mode = readArg("--mode", dryRun ? "dryRun" : "proposalOnly");
 const today = new Date();
 
@@ -93,7 +93,7 @@ const result = runProductLab({
 
 const queuePath = "public/product-lab-review.json";
 const queue = JSON.parse(readText(queuePath));
-const max = Math.max(1, Math.min(5, Number.parseInt(maxProposals, 10) || 2));
+const max = Math.max(1, Math.min(10, Number.parseInt(maxProposals, 10) || 8));
 const testProposalId = `${result.date}-phase12-product-lab-diagnostic-test`;
 
 if (forceGenerate) {

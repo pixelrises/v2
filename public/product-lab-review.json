@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-05-17T04:55:53.729Z",
+  "generatedAt": "2026-05-17T14:51:38.858Z",
   "sourceRun": {
     "date": "2026-05-17",
     "week": "2026-W20",
     "theme": "Audit Global / Refactor / Tests / Roadmap",
     "reportPath": "reports/product-lab/daily/daily-2026-05-17.md",
-    "runId": "2026-05-17-audit-roadmap-2026-05-17t04-55-53-573z"
+    "runId": "2026-05-17-audit-roadmap-2026-05-17t14-51-38-691z"
   },
   "summary": {
-    "total": 2,
-    "actionableTotal": 2,
-    "rejectedVagueProposals": 2,
+    "total": 8,
+    "actionableTotal": 8,
+    "rejectedVagueProposals": 7,
     "maxAutoSafePatches": 2,
     "sensitiveChangesRequireApproval": true,
-    "dailySummary": "Theme Audit Global / Refactor / Tests / Roadmap: 2 proposition(s) actionnable(s) a valider, modifier ou refuser avant application. Objectif utile: 2-2 propositions max par run.",
+    "dailySummary": "Theme Audit Global / Refactor / Tests / Roadmap: 8 proposition(s) actionnable(s) a valider, modifier ou refuser avant application. Objectif utile: 8-8 propositions max par run.",
     "averageScore": 76,
     "lowestScore": {
       "name": "Analytics Score",
@@ -29,13 +29,13 @@
       "status": "failed",
       "model": "Pixelrises AI Gateway",
       "generated": 0,
-      "generatedAt": "2026-05-17T04:56:53.399Z",
+      "generatedAt": "2026-05-17T14:51:39.466Z",
       "error": "Analyse IA indisponible pour ce run: credits ou acces AI Gateway a verifier."
     }
   },
   "items": [
     {
-      "id": "2026-05-17-audit-roadmap-2026-05-17t04-55-53-573z-product-vision-aligner-chaque-patch-sur-la-vision-idee-vers-projet-concret-roadmap-semaine",
+      "id": "2026-05-17-audit-roadmap-2026-05-17t14-51-38-691z-product-vision-aligner-chaque-patch-sur-la-vision-idee-vers-projet-concret-roadmap-semaine",
       "title": "Aligner chaque patch sur la vision idee vers projet concret - roadmap semaine",
       "originalTitle": "Aligner chaque patch sur la vision idee vers projet concret",
       "module": "Product Vision",
@@ -84,7 +84,7 @@
       "dataState": "real"
     },
     {
-      "id": "2026-05-17-audit-roadmap-2026-05-17t04-55-53-573z-product-research-ancrer-les-propositions-dans-des-sources-verifiees-ci-sans-surprise",
+      "id": "2026-05-17-audit-roadmap-2026-05-17t14-51-38-691z-product-research-ancrer-les-propositions-dans-des-sources-verifiees-ci-sans-surprise",
       "title": "Ancrer les propositions dans des sources verifiees - CI sans surprise",
       "originalTitle": "Ancrer les propositions dans des sources verifiees",
       "module": "Product Research",
@@ -112,6 +112,297 @@
         "reports/product-lab/daily"
       ],
       "evidenceSources": [
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
+        }
+      ],
+      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"CI sans surprise\" pour eviter les cartes repetitives.",
+      "afterState": "La prochaine iteration cible \"CI sans surprise\" avec une action concrete, mesurable et limitee au scope V2.",
+      "dataState": "real"
+    },
+    {
+      "id": "2026-05-17-audit-roadmap-2026-05-17t14-51-38-691z-ai-spaces-auditer-les-ai-spaces-comme-couche-d-accompagnement-dette-technique-utile",
+      "title": "Auditer les AI Spaces comme couche d'accompagnement - dette technique utile",
+      "originalTitle": "Auditer les AI Spaces comme couche d'accompagnement",
+      "module": "AI Spaces",
+      "domain": "ia",
+      "simpleSummary": "AI Spaces: Verifier prompts, quick actions, garde-fous, historique, conversion vers Builders et clarté entre Builders et AI Spaces. Focus du run: cibler les refactors legers qui reduisent bugs et duplication. Impact eleve, risque faible.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Faible",
+      "difficulty": "Moyenne",
+      "status": "Propose",
+      "inspiration": "Delos / Base44 / ChatGPT-style workspaces",
+      "decision": "auto_safe",
+      "description": "Verifier prompts, quick actions, garde-fous, historique, conversion vers Builders et clarté entre Builders et AI Spaces. Focus du run: cibler les refactors legers qui reduisent bugs et duplication.",
+      "scoreImpact": 30,
+      "runFocus": {
+        "id": "technical-debt",
+        "short": "dette technique utile",
+        "description": "cibler les refactors legers qui reduisent bugs et duplication"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/AISpaces.tsx",
+        "src/pages/AISpaceDetail.tsx",
+        "src/modules/ai-spaces"
+      ],
+      "evidenceSources": [
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
+        }
+      ],
+      "beforeState": "Les Builders creent deja des projets, mais l'accompagnement par profil doit rester lisible et mesurable.",
+      "afterState": "Chaque espace IA propose une aide specialisee, des actions rapides, des liens vers Builders et des protections adaptees.",
+      "dataState": "real"
+    },
+    {
+      "id": "2026-05-17-audit-roadmap-2026-05-17t14-51-38-691z-site-builder-mesurer-la-similarite-entre-previews-generees-roadmap-semaine",
+      "title": "Mesurer la similarite entre previews generees - roadmap semaine",
+      "originalTitle": "Mesurer la similarite entre previews generees",
+      "module": "Site Builder",
+      "domain": "ia",
+      "simpleSummary": "Site Builder: Ajouter un score de similarite pour detecter quand deux sites generes reutilisent trop la meme structure, les memes titres ou les memes layouts. Focus du run: classer les prochains chantiers par impact, risque et validation humaine. Impact eleve, risque faible.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Faible",
+      "difficulty": "Moyenne",
+      "status": "A ajouter",
+      "inspiration": "Mobbin / 21st.dev / Linear",
+      "decision": "auto_safe",
+      "description": "Ajouter un score de similarite pour detecter quand deux sites generes reutilisent trop la meme structure, les memes titres ou les memes layouts. Focus du run: classer les prochains chantiers par impact, risque et validation humaine.",
+      "scoreImpact": 30,
+      "runFocus": {
+        "id": "roadmap-week",
+        "short": "roadmap semaine",
+        "description": "classer les prochains chantiers par impact, risque et validation humaine"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/SiteBuilder.tsx",
+        "src/modules/creation-engine",
+        "supabase/functions/ai-orchestrator/index.ts"
+      ],
+      "evidenceSources": [
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
+        }
+      ],
+      "beforeState": "Les tests verifient la qualite, mais ne transforment pas encore assez la similarite visuelle en proposition concrete.",
+      "afterState": "Le Product Lab remonte automatiquement les familles de sites trop semblables et propose un patch cible sur blueprint, prompt ou preview.",
+      "dataState": "real"
+    },
+    {
+      "id": "2026-05-17-audit-roadmap-2026-05-17t14-51-38-691z-agent-builder-durcir-la-securite-des-actions-agents-ci-sans-surprise",
+      "title": "Durcir la securite des actions agents - CI sans surprise",
+      "originalTitle": "Durcir la securite des actions agents",
+      "module": "Agent Builder",
+      "domain": "ia",
+      "simpleSummary": "Agent Builder: Toute action sensible agent doit rester validable et visible. Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent. Impact eleve, risque moyen.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Moyen",
+      "difficulty": "Moyenne",
+      "status": "Propose",
+      "inspiration": "Delos / Base44",
+      "decision": "human_validation",
+      "description": "Toute action sensible agent doit rester validable et visible. Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent.",
+      "scoreImpact": 24,
+      "runFocus": {
+        "id": "ci-blockers",
+        "short": "CI sans surprise",
+        "description": "bloquer les PR Product Lab si lint, tests, build ou sync admin echouent"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/AgentBuilder.tsx",
+        "src/pages/Agents.tsx",
+        "src/modules/registries/index.ts"
+      ],
+      "evidenceSources": [
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
+        }
+      ],
+      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"CI sans surprise\" pour eviter les cartes repetitives.",
+      "afterState": "La prochaine iteration cible \"CI sans surprise\" avec une action concrete, mesurable et limitee au scope V2.",
+      "dataState": "real"
+    },
+    {
+      "id": "2026-05-17-audit-roadmap-2026-05-17t14-51-38-691z-multi-ia-systeme-durcir-le-routing-multi-ia-et-les-secours-ia-dette-technique-utile",
+      "title": "Durcir le routing Multi-IA et les secours IA - dette technique utile",
+      "originalTitle": "Durcir le routing Multi-IA et les secours IA",
+      "module": "Multi-IA / Systeme",
+      "domain": "ia",
+      "simpleSummary": "Multi-IA / Systeme: Verifier que chaque builder route vers le bon role IA, normalise la sortie et garde un mode de secours propre. Focus du run: cibler les refactors legers qui reduisent bugs et duplication. Impact eleve, risque moyen.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Moyen",
+      "difficulty": "Moyenne",
+      "status": "A cadrer",
+      "inspiration": "Moteur IA Pixelrises / Base44",
+      "decision": "human_validation",
+      "description": "Verifier que chaque builder route vers le bon role IA, normalise la sortie et garde un mode de secours propre. Focus du run: cibler les refactors legers qui reduisent bugs et duplication.",
+      "scoreImpact": 24,
+      "runFocus": {
+        "id": "technical-debt",
+        "short": "dette technique utile",
+        "description": "cibler les refactors legers qui reduisent bugs et duplication"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/modules/ai",
+        "supabase/functions/ai-orchestrator/index.ts",
+        "scripts/product-lab-core.mjs"
+      ],
+      "evidenceSources": [
+        {
+          "id": "vercel-ai-gateway-models",
+          "name": "Modes IA Pixelrises",
+          "url": "https://vercel.com/docs/ai-gateway/models-and-providers",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.438Z"
+        },
+        {
+          "id": "supabase-rls",
+          "name": "Supabase Row Level Security",
+          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.441Z"
+        },
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
+        }
+      ],
+      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"dette technique utile\" pour eviter les cartes repetitives.",
+      "afterState": "La prochaine iteration cible \"dette technique utile\" avec une action concrete, mesurable et limitee au scope V2.",
+      "dataState": "real"
+    },
+    {
+      "id": "2026-05-17-audit-roadmap-2026-05-17t14-51-38-691z-dashboard-renforcer-le-dashboard-avec-donnees-v2-reelles-roadmap-semaine",
+      "title": "Renforcer le dashboard avec donnees V2 reelles - roadmap semaine",
+      "originalTitle": "Renforcer le dashboard avec donnees V2 reelles",
+      "module": "Dashboard",
+      "domain": "systeme",
+      "simpleSummary": "Dashboard: Augmenter les insights reels Supabase sans supprimer les empty states. Focus du run: classer les prochains chantiers par impact, risque et validation humaine. Impact eleve, risque moyen.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Moyen",
+      "difficulty": "Moyenne",
+      "status": "A cadrer",
+      "inspiration": "Shopify Admin / Base44",
+      "decision": "auto_safe",
+      "description": "Augmenter les insights reels Supabase sans supprimer les empty states. Focus du run: classer les prochains chantiers par impact, risque et validation humaine.",
+      "scoreImpact": 24,
+      "runFocus": {
+        "id": "roadmap-week",
+        "short": "roadmap semaine",
+        "description": "classer les prochains chantiers par impact, risque et validation humaine"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/Dashboard.tsx",
+        "src/pages/Create.tsx"
+      ],
+      "evidenceSources": [
+        {
+          "id": "supabase-rls",
+          "name": "Supabase Row Level Security",
+          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.441Z"
+        },
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
+        },
+        {
+          "id": "linear-method",
+          "name": "Linear Method",
+          "url": "https://linear.app/method",
+          "authority": "product-practice",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.467Z"
+        }
+      ],
+      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"roadmap semaine\" pour eviter les cartes repetitives.",
+      "afterState": "La prochaine iteration cible \"roadmap semaine\" avec une action concrete, mesurable et limitee au scope V2.",
+      "dataState": "real"
+    },
+    {
+      "id": "2026-05-17-audit-roadmap-2026-05-17t14-51-38-691z-analytics-transformer-analytics-en-recommandations-exploitables-ci-sans-surprise",
+      "title": "Transformer analytics en recommandations exploitables - CI sans surprise",
+      "originalTitle": "Transformer analytics en recommandations exploitables",
+      "module": "Analytics",
+      "domain": "systeme",
+      "simpleSummary": "Analytics: Relier les evenements, projets et generations a des prochaines actions lisibles meme quand les donnees reelles sont partielles. Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent. Impact eleve, risque moyen.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Moyen",
+      "difficulty": "Moyenne",
+      "status": "A cadrer",
+      "inspiration": "Shopify Admin / Linear",
+      "decision": "human_validation",
+      "description": "Relier les evenements, projets et generations a des prochaines actions lisibles meme quand les donnees reelles sont partielles. Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent.",
+      "scoreImpact": 24,
+      "runFocus": {
+        "id": "ci-blockers",
+        "short": "CI sans surprise",
+        "description": "bloquer les PR Product Lab si lint, tests, build ou sync admin echouent"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/Analytics.tsx",
+        "src/pages/Dashboard.tsx",
+        "src/modules/storage/project-storage-adapter.ts"
+      ],
+      "evidenceSources": [
+        {
+          "id": "supabase-rls",
+          "name": "Supabase Row Level Security",
+          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.441Z"
+        },
         {
           "id": "github-actions-secrets",
           "name": "GitHub Actions Secrets",

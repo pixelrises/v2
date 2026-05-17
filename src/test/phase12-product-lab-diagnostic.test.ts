@@ -22,11 +22,11 @@ describe("Phase 12 Product Lab diagnostics", () => {
     const previous = process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS;
     delete process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS;
 
-    expect(getProductLabReviewLimits()).toEqual({ min: 2, max: 2 });
+    expect(getProductLabReviewLimits()).toEqual({ min: 8, max: 8 });
 
-    process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS = "5";
+    process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS = "10";
 
-    expect(getProductLabReviewLimits()).toEqual({ min: 2, max: 5 });
+    expect(getProductLabReviewLimits()).toEqual({ min: 8, max: 10 });
 
     if (previous === undefined) {
       delete process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS;
@@ -43,9 +43,9 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(workflow).toContain("dryRun:");
     expect(workflow).toContain("forceGenerate:");
     expect(workflow).toContain("maxProposals:");
-    expect(workflow).toContain('default: "2"');
-    expect(workflow).toContain('PRODUCT_LAB_MIN_REVIEW_ITEMS: "2"');
-    expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "2"');
+    expect(workflow).toContain('default: "8"');
+    expect(workflow).toContain('PRODUCT_LAB_MIN_REVIEW_ITEMS: "8"');
+    expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "8"');
     expect(workflow).toContain("mode:");
     expect(workflow).toContain("Resolve Product Lab mode");
     expect(workflow).toContain("steps.run_mode.outputs.dry_run != 'true'");

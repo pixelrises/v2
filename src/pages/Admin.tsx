@@ -426,8 +426,8 @@ const productLabNightlyCycle = [
     detail: "Le Product Lab teste generateur, UX, bugs, securite, responsive, IA et qualite produit.",
   },
   {
-    step: "2 a 4 priorites",
-    detail: "Les signaux sont filtres pour garder peu de propositions, mais vraiment actionnables.",
+    step: "8 propositions",
+    detail: "Les signaux sont classes par domaine pour remonter assez de matiere sans noyer la validation admin.",
   },
   {
     step: "Validation admin",

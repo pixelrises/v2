@@ -245,8 +245,8 @@ describe("Pixelrises Product Lab core", () => {
     const queue = JSON.parse(fs.readFileSync(path.join(root, "public/product-lab-review.json"), "utf8"));
     const modules = new Set(queue.items.map((item: { module: string }) => item.module));
 
-    expect(queue.items.length).toBeGreaterThanOrEqual(2);
-    expect(queue.items.length).toBeLessThanOrEqual(3);
+    expect(queue.items.length).toBeGreaterThanOrEqual(5);
+    expect(queue.items.length).toBeLessThanOrEqual(8);
     expect(modules.size).toBeGreaterThanOrEqual(1);
     expect(queue.items.every((item: { runFocus?: unknown }) => item.runFocus)).toBe(true);
     expect(queue.items.map((item: { title: string }) => item.title).join(" ")).toContain("anti-site generique");
@@ -300,9 +300,9 @@ describe("Pixelrises Product Lab core", () => {
 
     const selected = selectProductLabReviewFindings(findings, { id: "site-builder" });
 
-    expect(selected).toHaveLength(2);
+    expect(selected).toHaveLength(8);
     expect(selected[0].module).toBe("Site Builder");
-    expect(new Set(selected.map((finding) => finding.module)).size).toBe(2);
+    expect(new Set(selected.map((finding) => finding.module)).size).toBeGreaterThanOrEqual(5);
   });
 
   it("does not keep already processed Product Lab proposals in the active queue", () => {
@@ -561,8 +561,8 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("Generate AI Product Lab proposals");
     expect(workflow).toContain("npm run product-lab:ai-review");
     expect(workflow).toContain("vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '10'");
-    expect(workflow).toContain('PRODUCT_LAB_MIN_REVIEW_ITEMS: "2"');
-    expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "2"');
+    expect(workflow).toContain('PRODUCT_LAB_MIN_REVIEW_ITEMS: "8"');
+    expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "8"');
     expect(workflow).toContain("steps.smoke_preflight.outputs.ready == 'true'");
     expect(workflow).toContain("steps.generator_smoke.outcome");
     expect(workflow).toContain("PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: \"true\"");

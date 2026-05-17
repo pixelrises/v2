@@ -122,7 +122,7 @@ ${JSON.stringify(
   2,
 )}
 
-Genere 2 propositions d'amelioration V2 vraiment actionnables.
+Genere jusqu'a 8 propositions d'amelioration V2 vraiment actionnables.
 Contraintes:
 - pas de phrase vague;
 - pas de refonte globale;
@@ -260,11 +260,11 @@ const main = async () => {
       return;
     }
 
-    const maxItems = Number.parseInt(process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS || "2", 10);
+    const maxItems = Number.parseInt(process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS || "8", 10);
     const existing = queue.items.filter(
       (item) => !aiItems.some((aiItem) => normalize(aiItem.module) === normalize(item.module) && normalize(aiItem.title) === normalize(item.title)),
     );
-    const items = [...aiItems, ...existing].slice(0, Number.isFinite(maxItems) && maxItems > 0 ? maxItems : 2);
+    const items = [...aiItems, ...existing].slice(0, Number.isFinite(maxItems) && maxItems > 0 ? maxItems : 8);
     const updatedQueue = annotateQueue(
       {
         ...queue,
