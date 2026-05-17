@@ -1,17 +1,35 @@
 {
-  "evaluatedAt": "2026-05-15T00:03:51.564Z",
+  "evaluatedAt": "2026-05-17T01:09:57.054Z",
   "allowed": false,
   "riskLevel": "low",
   "autoMergeStatus": "blocked",
-  "blockReason": "aucune validation admin approuvee ; lint/test/build/smoke non valides ; aucune amelioration approuvee appliquee",
-  "touchedSensitiveFiles": [],
+  "blockReason": "aucune validation admin approuvee ; aucune amelioration approuvee appliquee ; fichiers sensibles modifies: .github/workflows/product-lab-nightly.yml, scripts/product-lab-core.mjs, scripts/product-lab-supabase.mjs",
+  "touchedSensitiveFiles": [
+    {
+      "file": ".github/workflows/product-lab-nightly.yml",
+      "reason": "workflow GitHub sensible"
+    },
+    {
+      "file": "scripts/product-lab-core.mjs",
+      "reason": "logique centrale Product Lab / application patches"
+    },
+    {
+      "file": "scripts/product-lab-supabase.mjs",
+      "reason": "sync decisions Product Lab vers Supabase"
+    }
+  ],
   "changedFiles": [
-    "product-lab/state/phase12-diagnostic.json",
+    ".github/workflows/product-lab-nightly.yml",
+    "product-lab/state/auto-merge-status.json",
     "product-lab/state/product-scores.json",
     "public/product-lab-review.json",
-    "src/components/v2/Phase9UI.tsx",
-    ".codex-tmp/",
-    "reports/product-lab/daily/daily-2026-05-15.md",
-    "reports/product-lab/diagnostics/phase12-2026-05-15.md"
+    "reports/product-lab/weekly/weekly-2026-W20.md",
+    "scripts/product-lab-core.mjs",
+    "scripts/product-lab-diagnostic.mjs",
+    "scripts/product-lab-now.mjs",
+    "scripts/product-lab-supabase.mjs",
+    "src/test/phase12-product-lab-diagnostic.test.ts",
+    "src/test/product-lab-core.test.ts",
+    "reports/product-lab/daily/daily-2026-05-17.md"
   ]
 }

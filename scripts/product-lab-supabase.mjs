@@ -81,6 +81,8 @@ const toInteger = (value, fallback = 0) => {
   const parsed = Number.parseInt(String(value ?? ""), 10);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
+const normalizeRunSourceForDb = (value) =>
+  ["scheduled", "manual", "local", "workflow_dispatch"].includes(value) ? value : "local";
 const getScopeConfig = () => PRODUCT_LAB_SCOPES[process.env.PRODUCT_LAB_SCOPE || "v2"] ?? PRODUCT_LAB_SCOPES.v2;
 const getReviewQueuePath = () => {
   if (process.env.PRODUCT_LAB_REVIEW_QUEUE_PATH) return process.env.PRODUCT_LAB_REVIEW_QUEUE_PATH;
@@ -345,7 +347,9 @@ const recordRunStatus = async () => {
     queue.generatedAt ||
     new Date().toISOString();
   const completedAt = process.env.PRODUCT_LAB_RUN_COMPLETED_AT || new Date().toISOString();
-  const source = process.env.PRODUCT_LAB_RUN_SOURCE || (process.env.GITHUB_ACTIONS === "true" ? "scheduled" : "local");
+  const requestedSource =
+    process.env.PRODUCT_LAB_RUN_SOURCE || (process.env.GITHUB_ACTIONS === "true" ? "scheduled" : "local");
+  const source = normalizeRunSourceForDb(requestedSource);
   const mode = process.env.PRODUCT_LAB_MODE || (summary.dryRun ? "dryRun" : "proposalOnly");
   const runId =
     process.env.PRODUCT_LAB_RUN_ID ||
@@ -355,6 +359,7 @@ const recordRunStatus = async () => {
   const reportSummary = redactProductLabObject({
     queueSummary: queue.summary ?? {},
     reportPath: queue?.sourceRun?.reportPath || `reports/product-lab/daily/daily-${summary.date || ""}.md`,
+    requestedSource,
     approvedFindings: Array.isArray(summary.approvedFindings) ? summary.approvedFindings.length : 0,
     appliedImprovements: Array.isArray(summary.appliedImprovements) ? summary.appliedImprovements.length : 0,
     modifiedFiles: Array.isArray(summary.modifiedFiles) ? summary.modifiedFiles : [],

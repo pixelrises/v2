@@ -20,9 +20,13 @@ describe("Phase 12 Product Lab diagnostics", () => {
 
   it("keeps proposal volume configurable but capped for the admin queue", () => {
     const previous = process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS;
-    process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS = "3";
+    delete process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS;
 
-    expect(getProductLabReviewLimits()).toEqual({ min: 2, max: 3 });
+    expect(getProductLabReviewLimits()).toEqual({ min: 2, max: 2 });
+
+    process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS = "5";
+
+    expect(getProductLabReviewLimits()).toEqual({ min: 2, max: 5 });
 
     if (previous === undefined) {
       delete process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS;
@@ -38,9 +42,9 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(workflow).toContain("dryRun:");
     expect(workflow).toContain("forceGenerate:");
     expect(workflow).toContain("maxProposals:");
-    expect(workflow).toContain('default: "3"');
+    expect(workflow).toContain('default: "2"');
     expect(workflow).toContain('PRODUCT_LAB_MIN_REVIEW_ITEMS: "2"');
-    expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "3"');
+    expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "2"');
     expect(workflow).toContain("mode:");
     expect(workflow).toContain("Resolve Product Lab mode");
     expect(workflow).toContain("steps.run_mode.outputs.dry_run != 'true'");
@@ -51,6 +55,7 @@ describe("Phase 12 Product Lab diagnostics", () => {
 
   it("provides a local Product Lab now command that writes proposals and run status safely", () => {
     const localRunner = readProjectFile("scripts/product-lab-now.mjs");
+    const supabaseSync = readProjectFile("scripts/product-lab-supabase.mjs");
 
     expect(localRunner).toContain("scripts/product-lab.mjs");
     expect(localRunner).toContain("scripts/product-lab-supabase.mjs");
@@ -60,6 +65,9 @@ describe("Phase 12 Product Lab diagnostics", () => {
     expect(localRunner).toContain("dry-run complete. No Supabase write was attempted.");
     expect(localRunner).not.toContain("create-pull-request");
     expect(localRunner).not.toContain("gh pr merge");
+    expect(supabaseSync).toContain("normalizeRunSourceForDb");
+    expect(supabaseSync).toContain('["scheduled", "manual", "local", "workflow_dispatch"]');
+    expect(supabaseSync).toContain("const source = normalizeRunSourceForDb(requestedSource)");
   });
 
   it("prepares Product Lab run observability tables with RLS and explicit grants", () => {

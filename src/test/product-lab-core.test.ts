@@ -240,7 +240,7 @@ describe("Pixelrises Product Lab core", () => {
     expect(secondQueue.items.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("caps review findings at three while keeping module diversity", () => {
+  it("caps review findings at the default daily volume while keeping module diversity", () => {
     const findings = Array.from({ length: 12 }, (_, index) => ({
       title: `Proposition ${index}`,
       module: index === 0 ? "Site Builder" : `Module ${index}`,
@@ -257,9 +257,9 @@ describe("Pixelrises Product Lab core", () => {
 
     const selected = selectProductLabReviewFindings(findings, { id: "site-builder" });
 
-    expect(selected).toHaveLength(3);
+    expect(selected).toHaveLength(2);
     expect(selected[0].module).toBe("Site Builder");
-    expect(new Set(selected.map((finding) => finding.module)).size).toBe(3);
+    expect(new Set(selected.map((finding) => finding.module)).size).toBe(2);
   });
 
   it("renders a report with mandatory sections", () => {
@@ -445,7 +445,7 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("npm run smoke:generator");
     expect(workflow).toContain("vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '10'");
     expect(workflow).toContain('PRODUCT_LAB_MIN_REVIEW_ITEMS: "2"');
-    expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "3"');
+    expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "2"');
     expect(workflow).toContain("steps.smoke_preflight.outputs.ready == 'true'");
     expect(workflow).toContain("steps.generator_smoke.outcome");
     expect(workflow).toContain("PRODUCT_LAB_REQUIRE_SUPABASE_SYNC: \"true\"");

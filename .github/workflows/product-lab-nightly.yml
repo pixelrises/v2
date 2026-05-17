@@ -30,7 +30,7 @@ on:
       maxProposals:
         description: "Maximum proposals to display in the admin queue"
         required: true
-        default: "3"
+        default: "2"
         type: choice
         options:
           - "1"
@@ -52,7 +52,7 @@ env:
   PIXELRISES_GENERATOR_REAL_QA: ${{ vars.PIXELRISES_GENERATOR_REAL_QA || '1' }}
   PIXELRISES_GENERATOR_DAILY_REAL_BUDGET: ${{ vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '10' }}
   PRODUCT_LAB_MIN_REVIEW_ITEMS: "2"
-  PRODUCT_LAB_MAX_REVIEW_ITEMS: "3"
+  PRODUCT_LAB_MAX_REVIEW_ITEMS: "2"
 
 jobs:
   product-lab:
@@ -119,7 +119,7 @@ jobs:
             mode="proposalOnly"
             dry_run="false"
             force_generate="true"
-            max_proposals="${PRODUCT_LAB_MAX_REVIEW_ITEMS:-3}"
+            max_proposals="${PRODUCT_LAB_MAX_REVIEW_ITEMS:-2}"
             source="scheduled"
           fi
 

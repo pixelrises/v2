@@ -6,7 +6,8 @@ import { filterActionableProductLabProposals } from "./product-lab-governance.mj
 export const PRODUCT_LAB_NAME = "Pixelrises Continuous Product Lab";
 export const DEFAULT_MAX_PATCHES = 2;
 export const PRODUCT_LAB_MIN_REVIEW_ITEMS = 2;
-export const PRODUCT_LAB_MAX_REVIEW_ITEMS = 3;
+export const PRODUCT_LAB_DEFAULT_REVIEW_ITEMS = 2;
+export const PRODUCT_LAB_MAX_REVIEW_ITEMS = 5;
 export const PRODUCT_LAB_SCHEDULE = {
   timezone: "Europe/Paris",
   targetLocalHour: 0,
@@ -24,7 +25,7 @@ const readIntegerEnv = (name, fallback, { min = 1, max = 20 } = {}) => {
 };
 
 export const getProductLabReviewLimits = () => {
-  const max = readIntegerEnv("PRODUCT_LAB_MAX_REVIEW_ITEMS", PRODUCT_LAB_MAX_REVIEW_ITEMS, {
+  const max = readIntegerEnv("PRODUCT_LAB_MAX_REVIEW_ITEMS", PRODUCT_LAB_DEFAULT_REVIEW_ITEMS, {
     min: 1,
     max: PRODUCT_LAB_MAX_REVIEW_ITEMS,
   });

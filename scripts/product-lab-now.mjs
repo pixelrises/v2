@@ -7,7 +7,7 @@ const maxIndex = args.indexOf("--max-proposals");
 const modeIndex = args.indexOf("--mode");
 const sourceIndex = args.indexOf("--source");
 
-const maxProposals = maxIndex >= 0 ? args[maxIndex + 1] : process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS || "3";
+const maxProposals = maxIndex >= 0 ? args[maxIndex + 1] : process.env.PRODUCT_LAB_MAX_REVIEW_ITEMS || "2";
 const mode = dryRun
   ? "dryRun"
   : modeIndex >= 0

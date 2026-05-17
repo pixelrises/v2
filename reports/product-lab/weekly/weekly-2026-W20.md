@@ -33,7 +33,7 @@ Synthese initiale generee par le Product Lab. Les tendances seront plus riches a
 - Aucun blocage critique detecte.
 
 ## Risques
-- Patches automatiques verrouilles tant que le premier dry-run n'est pas valide.
+- Patches automatiques limites aux propositions explicitement validees dans l'admin.
 - Aucune PR automatique ne doit etre creee si lint, tests ou build echouent.
 - Les changements sensibles restent en validation humaine et ne sont jamais mergés automatiquement.
 
