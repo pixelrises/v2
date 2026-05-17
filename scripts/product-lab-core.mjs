@@ -520,20 +520,47 @@ export const getProductLabReviewItemId = (finding, theme) =>
 
 export const readProductLabAdminDecisions = (root) => {
   const decisionPath = path.join(root, "product-lab", "state", "admin-decisions.json");
-  if (!fs.existsSync(decisionPath)) return {};
+  const openReviewPath = path.join(root, "product-lab", "state", "open-review-items.json");
+  const accumulator = {};
 
   try {
-    const parsed = JSON.parse(fs.readFileSync(decisionPath, "utf8"));
-    const decisions = Array.isArray(parsed?.decisions) ? parsed.decisions : Object.values(parsed?.decisions ?? {});
+    if (fs.existsSync(decisionPath)) {
+      const parsed = JSON.parse(fs.readFileSync(decisionPath, "utf8"));
+      const decisions = Array.isArray(parsed?.decisions) ? parsed.decisions : Object.values(parsed?.decisions ?? {});
 
-    return decisions.reduce((accumulator, decision) => {
-      if (!decision?.itemId) return accumulator;
-      accumulator[decision.itemId] = decision;
-      return accumulator;
-    }, {});
+      for (const decision of decisions) {
+        if (!decision?.itemId) continue;
+        accumulator[decision.itemId] = decision;
+      }
+    }
   } catch {
-    return {};
+    // Keep Product Lab resilient: a broken local decision cache must not block the nightly audit.
   }
+
+  try {
+    if (fs.existsSync(openReviewPath)) {
+      const parsed = JSON.parse(fs.readFileSync(openReviewPath, "utf8"));
+      const openItems = Array.isArray(parsed?.items) ? parsed.items : [];
+
+      for (const item of openItems) {
+        if (!item?.itemId || accumulator[item.itemId]) continue;
+        accumulator[item.itemId] = {
+          itemId: item.itemId,
+          title: item.title,
+          originalTitle: item.originalTitle || item?.reviewItem?.originalTitle || item.title,
+          module: item.module || item?.reviewItem?.module || "Product Lab",
+          reviewItem: item.reviewItem || {},
+          sourceRun: item.sourceRun || {},
+          status: "open_backlog",
+          applicationStatus: "open_backlog",
+        };
+      }
+    }
+  } catch {
+    // Same principle here: stale backlog cache should not break Product Lab.
+  }
+
+  return accumulator;
 };
 
 const themeModuleById = {
@@ -749,6 +776,7 @@ const isApprovedAdminDecision = (decision) =>
   decision?.status === "approved" && decision?.automationAction === "authorize_next_run";
 
 const isProcessedAdminDecision = (decision) =>
+  decision?.applicationStatus === "open_backlog" ||
   decision?.applicationStatus === "pr_ready" ||
   Boolean(decision?.processedAt) ||
   Boolean(decision?.processedRun?.prUrl) ||

@@ -32,6 +32,10 @@ const run = (label, commandArgs, extraEnv = {}) => {
   }
 };
 
+run("pull admin decisions and open backlog", ["scripts/product-lab-supabase.mjs", "pull-decisions"], {
+  PRODUCT_LAB_MODE: mode,
+});
+
 run("generate proposals", [
   "scripts/product-lab.mjs",
   "daily",

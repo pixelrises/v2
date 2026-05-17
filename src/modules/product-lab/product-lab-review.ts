@@ -38,6 +38,9 @@ export interface ProductLabReviewItem {
   beforeState: string;
   afterState: string;
   dataState?: "real" | "example" | "mock" | "pending" | "error" | "empty" | "local/fallback";
+  sourceRun?: ProductLabReviewQueue["sourceRun"];
+  sourceRunKey?: string;
+  generatedAt?: string;
 }
 
 export interface ProductLabReviewQueue {
@@ -257,6 +260,11 @@ export const getProductLabSourceRunKey = (sourceRun: unknown) => {
 
 export const getProductLabQueueRunKey = (queue: ProductLabReviewQueue | null | undefined) =>
   getProductLabSourceRunKey(queue?.sourceRun);
+
+export const getProductLabItemRunKey = (
+  item: Pick<ProductLabReviewItem, "sourceRun" | "sourceRunKey">,
+  queue?: ProductLabReviewQueue | null,
+) => item.sourceRunKey || getProductLabSourceRunKey(item.sourceRun) || getProductLabQueueRunKey(queue);
 
 const normalizeReviewItem = (value: unknown, fallbackId: string): ProductLabReviewItem | null => {
   if (!isObject(value)) return null;
@@ -548,10 +556,11 @@ export const persistProductLabDecisionToSupabase = async (
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user.id;
     if (!userId) return { persisted: false, error: "Session admin absente." };
+    const itemSourceRun = item.sourceRun ?? queue.sourceRun;
 
     const payload = {
       item_id: decision.itemId,
-      source_run: queue.sourceRun,
+      source_run: itemSourceRun,
       review_item: item,
       status: decision.status,
       admin_note: decision.note,
@@ -591,14 +600,16 @@ export const getUnsyncedProductLabDecisions = (
   queue?: ProductLabReviewQueue | null,
 ) => {
   const visibleItemIds = queue ? new Set(queue.items.map((item) => item.id)) : null;
-  const queueRunKey = getProductLabQueueRunKey(queue);
+  const itemRunKeys = queue
+    ? new Map(queue.items.map((item) => [item.id, getProductLabItemRunKey(item, queue)]))
+    : null;
 
   return Object.values(decisions).filter(
     (decision) =>
       decision.status !== "pending" &&
       decision.persisted !== "supabase" &&
       (!visibleItemIds || visibleItemIds.has(decision.itemId)) &&
-      (!queueRunKey || decision.sourceRunKey === queueRunKey),
+      (!itemRunKeys || !itemRunKeys.get(decision.itemId) || decision.sourceRunKey === itemRunKeys.get(decision.itemId)),
   );
 };
 
@@ -629,8 +640,8 @@ export const syncProductLabDecisionsToSupabase = async (
     if (result.persisted) {
       synced.push({
         ...decision,
-        sourceRunKey: getProductLabQueueRunKey(queue),
-        sourceRun: queue.sourceRun,
+        sourceRunKey: getProductLabItemRunKey(item, queue),
+        sourceRun: item.sourceRun ?? queue.sourceRun,
         persisted: "supabase",
       });
     } else {
@@ -657,25 +668,36 @@ export const readProductLabReviewQueueFromSupabase = async (scope: ProductLabSco
       .select("item_id,source_run,queue_summary,review_item,status,generated_at")
       .eq("status", "open")
       .order("generated_at", { ascending: false })
-      .limit(100);
+      .limit(300);
 
     if (error || !Array.isArray(data) || data.length === 0) return null;
 
     const rows = data.filter(isObject);
-      const latest = rows[0] ?? {};
+    const latest = rows[0] ?? {};
     const sourceRun = isObject(latest.source_run) ? latest.source_run : {};
-    const currentRunKey = getProductLabSourceRunKey(sourceRun);
-    const currentRows = currentRunKey
-      ? rows.filter((row) => getProductLabSourceRunKey(isObject(row.source_run) ? row.source_run : {}) === currentRunKey)
-      : rows;
 
-    const items = currentRows
-      .map((row) =>
-        normalizeReviewItem(
-          row.review_item,
-          typeof row.item_id === "string" ? row.item_id : "",
-        ),
-      )
+    const items = rows
+      .map((row) => {
+        const rowSourceRun = isObject(row.source_run) ? row.source_run : {};
+        const item = normalizeReviewItem(row.review_item, typeof row.item_id === "string" ? row.item_id : "");
+        if (!item) return null;
+
+        return {
+          ...item,
+          sourceRun: {
+            runId: typeof rowSourceRun.runId === "string" ? rowSourceRun.runId : undefined,
+            date: typeof rowSourceRun.date === "string" ? rowSourceRun.date : "supabase",
+            week: typeof rowSourceRun.week === "string" ? rowSourceRun.week : "supabase",
+            theme: typeof rowSourceRun.theme === "string" ? rowSourceRun.theme : config.label,
+            reportPath:
+              typeof rowSourceRun.reportPath === "string"
+                ? rowSourceRun.reportPath
+                : config.fallbackQueue.sourceRun.reportPath,
+          },
+          sourceRunKey: getProductLabSourceRunKey(rowSourceRun),
+          generatedAt: typeof row.generated_at === "string" ? row.generated_at : undefined,
+        };
+      })
       .filter((item): item is ProductLabReviewItem => Boolean(item));
 
     if (!items.length) return null;
@@ -696,7 +718,7 @@ export const readProductLabReviewQueueFromSupabase = async (scope: ProductLabSco
             : config.fallbackQueue.sourceRun.reportPath,
       },
       summary: {
-        total: typeof queueSummary.total === "number" ? queueSummary.total : items.length,
+        total: items.length,
         maxAutoSafePatches:
           typeof queueSummary.maxAutoSafePatches === "number" ? queueSummary.maxAutoSafePatches : 2,
         sensitiveChangesRequireApproval:
@@ -705,8 +727,8 @@ export const readProductLabReviewQueueFromSupabase = async (scope: ProductLabSco
             : true,
         dailySummary:
           typeof queueSummary.dailySummary === "string"
-            ? queueSummary.dailySummary
-            : "Propositions Product Lab chargees depuis Supabase.",
+            ? `Backlog ouverte cumulee: ${items.length} proposition(s) a trancher. Dernier run: ${queueSummary.dailySummary}`
+            : `Backlog ouverte cumulee depuis Supabase: ${items.length} proposition(s) a trancher sans doublons volontaires.`,
         averageScore: typeof queueSummary.averageScore === "number" ? queueSummary.averageScore : undefined,
         lowestScore: isObject(queueSummary.lowestScore)
           ? {
@@ -850,8 +872,9 @@ export const mergeProductLabReviewItems = (
   const queueRunKey = getProductLabQueueRunKey(queue);
 
   return queue.items.map((item) => {
+    const itemRunKey = getProductLabItemRunKey(item, queue);
     const decision = decisions[item.id];
-    const isDecisionForCurrentRun = decision && (!queueRunKey || decision.sourceRunKey === queueRunKey);
+    const isDecisionForCurrentRun = decision && (!itemRunKey || decision.sourceRunKey === itemRunKey);
 
     return {
       ...item,
@@ -868,8 +891,8 @@ export const mergeProductLabReviewItems = (
             applicationStatus: "pending",
             processedAt: "",
             processedRun: {},
-            sourceRunKey: queueRunKey,
-            sourceRun: queue.sourceRun,
+            sourceRunKey: itemRunKey || queueRunKey,
+            sourceRun: item.sourceRun ?? queue.sourceRun,
           },
     };
   });

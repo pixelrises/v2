@@ -130,12 +130,73 @@ const toInteger = (value, fallback = 0) => {
   const parsed = Number.parseInt(String(value ?? ""), 10);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
+const normalizeReviewText = (value) =>
+  String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+const getBaseReviewTitle = (value) => String(value ?? "").split(" - ")[0] || String(value ?? "");
+const getReviewFingerprint = (value) => {
+  const reviewItem = isObject(value?.review_item) ? value.review_item : isObject(value?.reviewItem) ? value.reviewItem : value;
+  const module = normalizeReviewText(value?.module || reviewItem?.module);
+  const title = normalizeReviewText(reviewItem?.originalTitle || getBaseReviewTitle(value?.title || reviewItem?.title));
+  return module && title ? `${module}:${title}` : "";
+};
 const normalizeRunSourceForDb = (value) =>
   ["scheduled", "manual", "local", "workflow_dispatch"].includes(value) ? value : "local";
 const getScopeConfig = () => PRODUCT_LAB_SCOPES.v2;
 const getReviewQueuePath = () => {
   if (process.env.PRODUCT_LAB_REVIEW_QUEUE_PATH) return process.env.PRODUCT_LAB_REVIEW_QUEUE_PATH;
   return "public/product-lab-review.json";
+};
+
+const readOpenReviewRows = async (config) =>
+  restFetch(
+    [
+      config.reviewTable,
+      "?select=item_id,title,module,source_run,review_item,status,generated_at",
+      "&status=eq.open",
+      "&order=generated_at.desc",
+      "&limit=500",
+    ].join(""),
+    { method: "GET" },
+  );
+
+const writeOpenReviewState = (rows, configured = true) => {
+  const items = (Array.isArray(rows) ? rows : [])
+    .filter(isObject)
+    .map((row) => {
+      const reviewItem = isObject(row.review_item) ? row.review_item : {};
+      return {
+        itemId: typeof row.item_id === "string" ? row.item_id : "",
+        title: typeof row.title === "string" ? row.title : typeof reviewItem.title === "string" ? reviewItem.title : "",
+        originalTitle:
+          typeof reviewItem.originalTitle === "string"
+            ? reviewItem.originalTitle
+            : typeof row.title === "string"
+              ? getBaseReviewTitle(row.title)
+              : "",
+        module: typeof row.module === "string" ? row.module : typeof reviewItem.module === "string" ? reviewItem.module : "",
+        status: typeof row.status === "string" ? row.status : "open",
+        sourceRun: isObject(row.source_run) ? row.source_run : {},
+        generatedAt: typeof row.generated_at === "string" ? row.generated_at : "",
+        reviewItem,
+      };
+    })
+    .filter((item) => item.itemId && item.title);
+
+  writeJson(
+    "product-lab/state/open-review-items.json",
+    redactProductLabObject({
+      pulledAt: new Date().toISOString(),
+      configured,
+      items,
+    }),
+  );
+
+  return items;
 };
 
 const pushProposals = async () => {
@@ -160,7 +221,7 @@ const pushProposals = async () => {
   const processedRows = await restFetch(
     [
       config.decisionsTable,
-      "?select=item_id,application_status,processed_at,processed_run,automation_action",
+      "?select=item_id,application_status,processed_at,processed_run,automation_action,review_item",
       "&or=(application_status.eq.pr_ready,processed_at.not.is.null)",
       "&limit=500",
     ].join(""),
@@ -171,9 +232,36 @@ const pushProposals = async () => {
       .map((row) => (typeof row?.item_id === "string" ? row.item_id : ""))
       .filter(Boolean),
   );
+  const processedFingerprints = new Set(
+    (Array.isArray(processedRows) ? processedRows : [])
+      .map(getReviewFingerprint)
+      .filter(Boolean),
+  );
 
+  const openRows = await readOpenReviewRows(config).catch(() => []);
+  const openFingerprints = new Set(
+    (Array.isArray(openRows) ? openRows : [])
+      .map(getReviewFingerprint)
+      .filter(Boolean),
+  );
+
+  const skipped = {
+    processed: 0,
+    duplicateOpen: 0,
+  };
   const rows = queue.items
-    .filter((item) => !processedItemIds.has(item.id))
+    .filter((item) => {
+      const fingerprint = getReviewFingerprint(item);
+      if (processedItemIds.has(item.id) || (fingerprint && processedFingerprints.has(fingerprint))) {
+        skipped.processed += 1;
+        return false;
+      }
+      if (fingerprint && openFingerprints.has(fingerprint)) {
+        skipped.duplicateOpen += 1;
+        return false;
+      }
+      return true;
+    })
     .map((item) => ({
       item_id: item.id,
       source_run: queue.sourceRun ?? {},
@@ -189,26 +277,10 @@ const pushProposals = async () => {
     }));
 
   if (!rows.length) {
-    skipOrFail("Product Lab Supabase proposal sync skipped: all generated proposals were already processed.");
+    console.log(
+      `Product Lab Supabase proposal sync complete: 0 new item(s) for ${config.label}. ${skipped.processed} already processed, ${skipped.duplicateOpen} already open. Backlog kept intact.`,
+    );
     return;
-  }
-
-  const currentItemIds = new Set(rows.map((row) => row.item_id));
-  const openRows = await restFetch(`${config.reviewTable}?select=item_id&status=eq.open&limit=500`, {
-    method: "GET",
-  }).catch(() => []);
-  const staleItemIds = (Array.isArray(openRows) ? openRows : [])
-    .map((row) => (typeof row?.item_id === "string" ? row.item_id : ""))
-    .filter((itemId) => itemId && !currentItemIds.has(itemId));
-
-  for (const itemId of staleItemIds) {
-    await restFetch(`${config.reviewTable}?item_id=eq.${encodeURIComponent(itemId)}`, {
-      method: "PATCH",
-      headers: {
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify({ status: "archived" }),
-    });
   }
 
   await restFetch(`${config.reviewTable}?on_conflict=item_id`, {
@@ -220,9 +292,7 @@ const pushProposals = async () => {
   });
 
   console.log(
-    `Product Lab Supabase proposal sync complete: ${rows.length} item(s) for ${config.label}. ${
-      queue.items.length - rows.length
-    } already processed item(s) skipped, ${staleItemIds.length} stale open item(s) archived.`,
+    `Product Lab Supabase proposal sync complete: ${rows.length} new item(s) for ${config.label}. ${skipped.processed} already processed, ${skipped.duplicateOpen} already open. Existing open backlog kept.`,
   );
 };
 
@@ -233,6 +303,7 @@ const pullDecisions = async () => {
       configured: false,
       decisions: [],
     });
+    writeOpenReviewState([], false);
     console.log("Product Lab Supabase decision pull skipped: missing service role configuration.");
     return;
   }
@@ -294,8 +365,12 @@ const pullDecisions = async () => {
     configured: true,
     decisions,
   });
+  const openRows = await readOpenReviewRows(config).catch(() => []);
+  const openItems = writeOpenReviewState(openRows, true);
 
-  console.log(`Product Lab Supabase decision pull complete: ${decisions.length} approved item(s).`);
+  console.log(
+    `Product Lab Supabase decision pull complete: ${decisions.length} decision(s), ${openItems.length} open backlog item(s).`,
+  );
 };
 
 const markProcessedDecisions = async () => {

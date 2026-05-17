@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   exportProductLabDecisions,
   fallbackProductLabReviewQueue,
+  getProductLabItemRunKey,
   getProductLabQueueRunKey,
   getUnsyncedProductLabDecisions,
   getProductLabMissingTableMessage,
@@ -230,6 +231,49 @@ describe("Product Lab admin review", () => {
     expect(items[0].localDecision.status).toBe("pending");
   });
 
+  it("matches decisions against each item run inside an accumulated backlog", () => {
+    const firstRun = { ...fallbackProductLabReviewQueue.sourceRun, runId: "run-1", date: "2026-05-17" };
+    const secondRun = { ...fallbackProductLabReviewQueue.sourceRun, runId: "run-2", date: "2026-05-18" };
+    const firstItem = {
+      ...fallbackProductLabReviewQueue.items[0],
+      id: "first-run-item",
+      title: "Premiere proposition",
+      sourceRun: firstRun,
+      sourceRunKey: getProductLabQueueRunKey({ ...fallbackProductLabReviewQueue, sourceRun: firstRun }),
+    };
+    const secondItem = {
+      ...fallbackProductLabReviewQueue.items[0],
+      id: "second-run-item",
+      title: "Deuxieme proposition",
+      sourceRun: secondRun,
+      sourceRunKey: getProductLabQueueRunKey({ ...fallbackProductLabReviewQueue, sourceRun: secondRun }),
+    };
+    const queue = {
+      ...fallbackProductLabReviewQueue,
+      sourceRun: secondRun,
+      items: [firstItem, secondItem],
+    };
+    const decisions: ProductLabDecisionMap = {
+      [secondItem.id]: {
+        itemId: secondItem.id,
+        status: "approved",
+        note: "OK.",
+        correctionRequest: "",
+        rejectionMode: null,
+        automationAction: "authorize_next_run",
+        decidedAt: "2026-05-18T00:00:00.000Z",
+        applicationStatus: "pending",
+        sourceRunKey: getProductLabItemRunKey(secondItem, queue),
+        persisted: "supabase",
+      },
+    };
+
+    const items = mergeProductLabReviewItems(queue, decisions);
+
+    expect(items[0].localDecision.status).toBe("pending");
+    expect(items[1].localDecision.status).toBe("approved");
+  });
+
   it("counts review states for the admin dashboard", () => {
     const item = fallbackProductLabReviewQueue.items[0];
     const decisions = writeProductLabDecision({} as ProductLabDecisionMap, item.id, "needs_review", "A preciser.", {
@@ -272,6 +316,8 @@ describe("Product Lab admin review", () => {
   it("keeps Supabase as the Product Lab source of truth before JSON fallback", () => {
     expect(productLabReviewSource).toContain("Supabase is the source GitHub Actions reads for admin approvals.");
     expect(productLabReviewSource).toContain('.eq("status", "open")');
+    expect(productLabReviewSource).toContain("Backlog ouverte cumulee");
+    expect(productLabReviewSource).not.toContain("const currentRows");
     expect(productLabReviewSource.indexOf("if (remoteQueue)")).toBeLessThan(
       productLabReviewSource.indexOf("if (publicQueue)"),
     );

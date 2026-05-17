@@ -34,6 +34,7 @@ import {
   exportProductLabDecisions,
   buildProductLabRunStatusFromQueue,
   getProductLabQueueRunKey,
+  getProductLabItemRunKey,
   getProductLabScopeConfig,
   getProductLabReviewStats,
   loadProductLabReviewQueue,
@@ -1277,7 +1278,8 @@ const Admin = () => {
     const itemId = item.id;
     const note = productLabNotes[itemId]?.trim() || fallbackNote;
     const correctionRequest = productLabCorrectionRequests[itemId]?.trim() || "";
-    const sourceRunKey = getProductLabQueueRunKey(productLabQueue);
+    const sourceRunKey = getProductLabItemRunKey(item, productLabQueue);
+    const sourceRun = item.sourceRun ?? productLabQueue?.sourceRun;
     const nextDecisions = writeProductLabDecision(
       productLabDecisions,
       itemId,
@@ -1288,7 +1290,7 @@ const Admin = () => {
         rejectionMode: options.rejectionMode,
         automationAction: options.automationAction,
         sourceRunKey,
-        sourceRun: productLabQueue?.sourceRun,
+        sourceRun,
       },
       productLabScope,
     );
@@ -1329,7 +1331,7 @@ const Admin = () => {
           [itemId]: {
             ...previous[itemId],
             sourceRunKey,
-            sourceRun: productLabQueue?.sourceRun,
+            sourceRun,
             persisted: "supabase",
           },
         }));
@@ -1360,7 +1362,7 @@ const Admin = () => {
             [itemId]: {
               ...nextDecisions[itemId],
               sourceRunKey,
-              sourceRun: productLabQueue?.sourceRun,
+              sourceRun,
               persisted: persistenceResult.persisted ? "supabase" : "localStorage",
             },
           },

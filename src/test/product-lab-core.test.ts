@@ -10,6 +10,7 @@ import {
   getProductLabReviewItemId,
   getThemeForParisDate,
   mergeApprovedAdminFindings,
+  readProductLabAdminDecisions,
   redactSecrets,
   renderBacklog,
   renderDailyReport,
@@ -367,6 +368,68 @@ describe("Pixelrises Product Lab core", () => {
 
     expect(selected.map((finding) => finding.title)).not.toContain("Bloquer toute PR si lint tests ou build echouent");
     expect(selected.length).toBeGreaterThan(0);
+  });
+
+  it("uses the open Supabase backlog as memory so nightly runs avoid duplicate issues", () => {
+    const root = createTempProject();
+    fs.mkdirSync(path.join(root, "product-lab/state"), { recursive: true });
+    fs.writeFileSync(
+      path.join(root, "product-lab/state/open-review-items.json"),
+      JSON.stringify({
+        configured: true,
+        items: [
+          {
+            itemId: "open-dashboard",
+            title: "Renforcer le dashboard avec donnees V2 reelles - roadmap semaine",
+            originalTitle: "Renforcer le dashboard avec donnees V2 reelles",
+            module: "Dashboard",
+            reviewItem: {
+              title: "Renforcer le dashboard avec donnees V2 reelles - roadmap semaine",
+              originalTitle: "Renforcer le dashboard avec donnees V2 reelles",
+              module: "Dashboard",
+            },
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    const decisions = readProductLabAdminDecisions(root);
+    const selected = selectProductLabReviewFindings(
+      [
+        {
+          title: "Renforcer le dashboard avec donnees V2 reelles",
+          module: "Dashboard",
+          impact: "Eleve",
+          risk: "Faible",
+          difficulty: "Faible",
+          priority: "Important",
+          status: "A cadrer",
+          inspiration: "Shopify Admin",
+          description: "Relier dashboard et donnees live.",
+          decision: "human_validation",
+          scoreImpact: 20,
+        },
+        {
+          title: "Durcir le routing Multi-IA et les secours IA",
+          module: "Multi-IA / Systeme",
+          impact: "Eleve",
+          risk: "Moyen",
+          difficulty: "Moyenne",
+          priority: "Important",
+          status: "A cadrer",
+          inspiration: "Vercel AI Gateway",
+          description: "Stabiliser les secours IA.",
+          decision: "human_validation",
+          scoreImpact: 18,
+        },
+      ],
+      { id: "audit-roadmap" },
+      decisions,
+    );
+
+    expect(selected.map((finding) => finding.title)).not.toContain("Renforcer le dashboard avec donnees V2 reelles");
+    expect(selected.map((finding) => finding.title)).toContain("Durcir le routing Multi-IA et les secours IA");
   });
 
   it("renders a report with mandatory sections", () => {

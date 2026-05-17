@@ -16,6 +16,7 @@ dist-ssr
 generated
 product-lab/state/admin-decisions.json
 product-lab/state/last-run-summary.json
+product-lab/state/open-review-items.json
 .env
 .env.local
 .env.*
