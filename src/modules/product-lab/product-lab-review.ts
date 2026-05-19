@@ -59,6 +59,7 @@ export interface ProductLabReviewQueue {
     maxAutoSafePatches: number;
     sensitiveChangesRequireApproval: boolean;
     dailySummary?: string;
+    domainCoverage?: Partial<Record<ProductLabProposalDomain, number>>;
     averageScore?: number;
     lowestScore?: {
       name: string;

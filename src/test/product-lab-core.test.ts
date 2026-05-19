@@ -245,10 +245,14 @@ describe("Pixelrises Product Lab core", () => {
 
     const queue = JSON.parse(fs.readFileSync(path.join(root, "public/product-lab-review.json"), "utf8"));
     const modules = new Set(queue.items.map((item: { module: string }) => item.module));
+    const domains = new Set(queue.items.map((item: { domain: string }) => item.domain));
 
     expect(queue.items.length).toBeGreaterThanOrEqual(5);
     expect(queue.items.length).toBeLessThanOrEqual(8);
     expect(modules.size).toBeGreaterThanOrEqual(1);
+    expect(domains.size).toBeGreaterThanOrEqual(3);
+    expect(queue.summary.domainCoverage).toBeTruthy();
+    expect(queue.summary.dailySummary).toContain("Couverture:");
     expect(queue.items.every((item: { runFocus?: unknown }) => item.runFocus)).toBe(true);
     expect(queue.items.map((item: { title: string }) => item.title).join(" ")).toContain("anti-site generique");
     expect(queue.summary.total).toBe(queue.items.length);
@@ -304,6 +308,95 @@ describe("Pixelrises Product Lab core", () => {
     expect(selected).toHaveLength(8);
     expect(selected[0].module).toBe("Site Builder");
     expect(new Set(selected.map((finding) => finding.module)).size).toBeGreaterThanOrEqual(5);
+  });
+
+  it("keeps Product Lab review queues diverse across strategic domains", () => {
+    const findings = [
+      {
+        title: "Clarifier pricing et CTA d'activation",
+        module: "Product Vision",
+        impact: "Eleve",
+        risk: "Faible",
+        difficulty: "Faible",
+        priority: "Important",
+        status: "Propose",
+        inspiration: "Shopify Admin",
+        description: "Ameliorer conversion, onboarding, promesse et tunnel client.",
+        decision: "auto_safe",
+        scoreImpact: 22,
+      },
+      {
+        title: "Ajouter meta SEO locale aux pages publiques",
+        module: "Site Builder",
+        impact: "Eleve",
+        risk: "Faible",
+        difficulty: "Faible",
+        priority: "Important",
+        status: "Propose",
+        inspiration: "NN/g",
+        description: "Verifier title, meta, H1, FAQ et referencement local.",
+        decision: "auto_safe",
+        scoreImpact: 22,
+      },
+      {
+        title: "Durcir CI Supabase et tests billing",
+        module: "Code Health",
+        impact: "Eleve",
+        risk: "Faible",
+        difficulty: "Faible",
+        priority: "Important",
+        status: "Propose",
+        inspiration: "Vercel",
+        description: "Verifier workflow, build, lint, RLS, Stripe, credits et migration.",
+        decision: "human_validation",
+        scoreImpact: 22,
+      },
+      {
+        title: "Rendre le prototype Game Builder plus jouable",
+        module: "Game Builder",
+        impact: "Moyen",
+        risk: "Faible",
+        difficulty: "Faible",
+        priority: "Amelioration",
+        status: "Propose",
+        inspiration: "Roblox Creator Hub",
+        description: "Ameliorer builder, generation, preview, prototype, export et package.",
+        decision: "auto_safe",
+        scoreImpact: 18,
+      },
+      {
+        title: "Valider le routing AI Gateway par type de tache",
+        module: "Multi-IA / Systeme",
+        impact: "Eleve",
+        risk: "Moyen",
+        difficulty: "Moyenne",
+        priority: "Important",
+        status: "Propose",
+        inspiration: "Vercel AI Gateway",
+        description: "Verifier prompt, model, orchestrator, fallback et quality gate IA.",
+        decision: "human_validation",
+        scoreImpact: 18,
+      },
+      ...Array.from({ length: 6 }, (_, index) => ({
+        title: `Microcopy dashboard ${index}`,
+        module: `Dashboard ${index}`,
+        impact: "Moyen",
+        risk: "Faible",
+        difficulty: "Faible",
+        priority: "Amelioration",
+        status: "Propose",
+        inspiration: "Linear",
+        description: "Clarifier une prochaine action dashboard avec un libelle plus utile.",
+        decision: "auto_safe",
+        scoreImpact: 10,
+      })),
+    ];
+
+    const selected = selectProductLabReviewFindings(findings, { id: "audit-roadmap" });
+    const selectedDomains = new Set(selected.map((finding) => classifyProductLabDomain(finding)));
+
+    expect(selected).toHaveLength(8);
+    expect(selectedDomains).toEqual(new Set(["marketing", "seo", "systeme", "generateur", "ia"]));
   });
 
   it("does not keep already processed Product Lab proposals in the active queue", () => {
@@ -616,6 +709,10 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("actions/checkout@v6");
     expect(workflow).toContain("actions/setup-node@v6");
     expect(workflow).toContain('node-version: "24"');
+    expect(workflow).toContain("triggered_cron=\"${{ github.event.schedule }}\"");
+    expect(workflow).toContain("active Europe/Paris midnight cron");
+    expect(workflow).toContain("inactive seasonal cron");
+    expect(workflow).not.toContain("paris_hour=\"$(TZ=Europe/Paris date +%H)\"");
     expect(workflow).toContain("actions/upload-artifact@v7");
     expect(workflow).toContain("peter-evans/create-pull-request@v8");
     expect(workflow).toContain("Run V2 generator smoke QA");

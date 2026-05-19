@@ -1690,6 +1690,7 @@ export const selectProductLabReviewFindings = (findings, theme, adminDecisions =
   const sortedFindings = uniqueFindings.sort(compareReviewFindings(theme));
   const selected = [];
   const selectedModules = new Set();
+  const selectedDomains = new Set();
   const themeModule = themeModuleById[theme?.id];
 
   const addFinding = (finding) => {
@@ -1698,10 +1699,15 @@ export const selectProductLabReviewFindings = (findings, theme, adminDecisions =
     if (selected.some((item) => getProductLabReviewItemId(item, theme) === itemId)) return;
     selected.push(finding);
     selectedModules.add(finding.module);
+    selectedDomains.add(classifyProductLabDomain(finding));
   };
 
   sortedFindings
     .filter((finding) => finding.priority === "Critique" || finding.module === themeModule)
+    .forEach(addFinding);
+
+  sortedFindings
+    .filter((finding) => !selectedDomains.has(classifyProductLabDomain(finding)))
     .forEach(addFinding);
 
   sortedFindings
@@ -1763,6 +1769,13 @@ export const buildProductLabReviewQueue = (result) => {
   const actionableItems = filterActionableProductLabProposals(rawItems);
   const finalItems =
     actionableItems.length >= Math.min(min, rawItems.length) ? actionableItems : rawItems;
+  const domainCoverage = Object.fromEntries(
+    productLabProposalDomains.map((domain) => [domain, finalItems.filter((item) => item.domain === domain).length]),
+  );
+  const coveredDomains = Object.entries(domainCoverage)
+    .filter(([, count]) => count > 0)
+    .map(([domain]) => domain)
+    .join(", ");
 
   return {
     generatedAt: new Date().toISOString(),
@@ -1779,9 +1792,10 @@ export const buildProductLabReviewQueue = (result) => {
       rejectedVagueProposals: rawItems.length - actionableItems.length,
       maxAutoSafePatches: result.maxPatches,
       sensitiveChangesRequireApproval: true,
+      domainCoverage,
       dailySummary:
         finalItems.length > 0
-          ? `Theme ${result.theme.label}: ${finalItems.length} proposition(s) actionnable(s) a valider, modifier ou refuser avant application. Objectif utile: ${min}-${max} propositions max par run.`
+          ? `Theme ${result.theme.label}: ${finalItems.length} proposition(s) actionnable(s) a valider, modifier ou refuser avant application. Couverture: ${coveredDomains || "a renforcer"}. Objectif utile: ${min}-${max} propositions max par run.`
           : `Theme ${result.theme.label}: aucune nouvelle proposition unique. Le backlog ouvert couvre deja les signaux de ce run; traite ou archive les cartes existantes pour debloquer de nouveaux chantiers.`,
       averageScore,
       lowestScore,

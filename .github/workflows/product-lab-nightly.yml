@@ -74,19 +74,42 @@ jobs:
             exit 0
           fi
 
-          paris_hour="$(TZ=Europe/Paris date +%H)"
-          if [ "$paris_hour" = "00" ]; then
+          active_cron="$(node --input-type=module <<'NODE'
+          const now = new Date();
+          const parts = Object.fromEntries(
+            new Intl.DateTimeFormat("en-CA", {
+              timeZone: "Europe/Paris",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              hourCycle: "h23",
+            })
+              .formatToParts(now)
+              .filter((part) => part.type !== "literal")
+              .map((part) => [part.type, Number(part.value)]),
+          );
+          const parisAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute);
+          const offsetHours = Math.round((parisAsUtc - now.getTime()) / 60 / 60 / 1000);
+          const activeMidnightUtcHour = (24 - offsetHours) % 24;
+          process.stdout.write(`0 ${activeMidnightUtcHour} * * *`);
+          NODE
+          )"
+          triggered_cron="${{ github.event.schedule }}"
+
+          if [ "$triggered_cron" = "$active_cron" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
-            echo "Running at midnight Europe/Paris."
+            echo "Running scheduled Product Lab. Triggered cron $triggered_cron matches Europe/Paris midnight cron $active_cron."
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping because Europe/Paris hour is $paris_hour, not 00."
+            echo "Skipping seasonal duplicate cron. Triggered cron $triggered_cron, active Europe/Paris midnight cron $active_cron."
           fi
 
       - name: Explain safe skip
         if: steps.guard.outputs.run != 'true'
         run: |
-          echo "Product Lab skipped safely because this scheduled run is outside midnight Europe/Paris."
+          echo "Product Lab skipped safely because this scheduled run is the inactive seasonal cron."
           echo "Manual workflow_dispatch runs always execute the Product Lab."
 
       - name: Checkout
