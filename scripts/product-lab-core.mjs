@@ -1763,6 +1763,8 @@ export const buildProductLabReviewQueue = (result) => {
     evidenceSources: resolveEvidenceSources(result.researchEvidence, finding),
     beforeState: buildReviewBeforeState(finding),
     afterState: buildReviewAfterState(finding),
+    successMetric: buildReviewSuccessMetric(finding),
+    validationSteps: buildReviewValidationSteps(finding),
     dataState: "real",
   }));
   const { min, max } = getProductLabReviewLimits();
@@ -1876,6 +1878,71 @@ const buildReviewAfterState = (finding) => {
   if (finding.module === "Code Health") return "Aucune PR automatique n'est creee tant que lint, tests et build ne sont pas verts.";
   if (finding.module === "Product Research") return "Chaque run relie ses recommandations a une base de sources fiables, verifiee quand le workflow a du reseau.";
   return "Le Product Lab pourra agir au prochain run uniquement si la decision admin l'autorise.";
+};
+
+const buildReviewSuccessMetric = (finding) => {
+  if (finding.successMetric) return finding.successMetric;
+  if (finding.module === "Site Builder") {
+    return "Au prochain smoke generator, le brief cible passe sans contenu generique et avec un CTA/contextual SEO coherent.";
+  }
+  if (finding.module === "Game Builder") {
+    return "Le prototype ou package teste affiche une boucle jouable, une checklist claire et aucun statut de publication automatique.";
+  }
+  if (finding.module === "Agent Builder") {
+    return "Chaque action agent sensible affiche une validation humaine obligatoire avant execution ou patch.";
+  }
+  if (finding.module === "AI Spaces" || finding.module === "Multi-IA / Systeme") {
+    return "La sortie IA reste normalisee, redacted et testable meme en fallback ou erreur provider.";
+  }
+  if (finding.module === "Product Lab" || finding.module === "Code Health") {
+    return "Le run Product Lab suivant produit des propositions uniques, classees par domaine, sans PR si un controle echoue.";
+  }
+  if (finding.module === "Analytics") {
+    return "L'ecran affiche des donnees honnetes et une recommandation actionnable sans presenter un mock comme reel.";
+  }
+  return "La correction est verifiable par un test, un smoke ou une action admin explicite avant tout merge.";
+};
+
+const buildReviewValidationSteps = (finding) => {
+  if (Array.isArray(finding.validationSteps) && finding.validationSteps.length > 0) {
+    return finding.validationSteps.filter((step) => typeof step === "string" && step.trim()).slice(0, 4);
+  }
+
+  const stepsByModule = {
+    "Site Builder": [
+      "Relancer le smoke generator sur le brief concerne.",
+      "Verifier preview desktop/mobile sans JSON ni contenu generique.",
+      "Confirmer que credits et erreurs restent propres.",
+    ],
+    "Game Builder": [
+      "Generer un prototype web de test.",
+      "Verifier score, progression, restart et export.",
+      "Confirmer qu'aucune publication automatique n'est promise.",
+    ],
+    "Agent Builder": [
+      "Creer un agent test dans l'admin ou le builder.",
+      "Verifier permissions, chat test et validation humaine.",
+      "Confirmer qu'aucune action externe ne part sans accord.",
+    ],
+    "Product Lab": [
+      "Relancer Product Lab en proposalOnly.",
+      "Verifier que les cartes apparaissent dans /admin.",
+      "Valider que les doublons sont archives ou ignores.",
+    ],
+    "Code Health": [
+      "Lancer lint, tests et build.",
+      "Verifier que la PR Product Lab reste bloquee si un controle echoue.",
+      "Confirmer que le rapport redaction ne contient aucun secret.",
+    ],
+  };
+
+  return (
+    stepsByModule[finding.module] || [
+      "Valider le comportement dans l'interface V2.",
+      "Lancer le test ou smoke le plus proche du module.",
+      "Confirmer que la proposition respecte les garde-fous sensibles.",
+    ]
+  );
 };
 
 export const runChecks = (root) => {

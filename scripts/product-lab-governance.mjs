@@ -129,6 +129,8 @@ const containsSpecificEvidence = (item) => {
     item?.proposed_fix,
     item?.afterState,
     item?.beforeState,
+    item?.successMetric,
+    Array.isArray(item?.validationSteps) ? item.validationSteps.join(" ") : "",
   ]
     .filter(Boolean)
     .join(" ")

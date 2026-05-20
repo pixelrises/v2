@@ -174,8 +174,11 @@ Contraintes:
 - pas de refonte globale;
 - pas de Stripe/auth/RLS/live deploy sans validation humaine;
 - chaque proposition doit avoir un module, un impact, un risque, un avant, un apres, et des fichiers probables;
+- chaque proposition doit expliquer le probleme exact, l'impact business/utilisateur, une metrique de reussite et 2 a 4 etapes de validation;
 - chaque proposition doit avoir un domain parmi: marketing, systeme, seo, generateur, ia;
-- si le smoke donne un vrai signal, priorise ce signal;
+- si le smoke donne un vrai signal, cree au moins une proposition qui cite directement les cas/reasons echoues;
+- evite les doublons avec currentProposals et couvre plusieurs domaines quand c'est possible;
+- priorise ce qui rapproche Pixelrises de Lovable/v0/Base44/Linear sans copier leurs interfaces;
 - reponds uniquement en JSON valide.
 
 Schema attendu:
@@ -192,6 +195,8 @@ Schema attendu:
     "inspiration": "Lovable / v0 / Linear / Vercel / Supabase / Stripe",
     "beforeState": "Etat actuel",
     "afterState": "Etat attendu",
+    "successMetric": "Metrique verifiable apres correction",
+    "validationSteps": ["Etape test 1", "Etape test 2"],
     "concernedFiles": ["src/..."]
   }
 ]
@@ -207,6 +212,9 @@ const normalizeAIItem = (item, index, queue) => {
     productLabProposalDomains.includes(requestedDomain)
       ? requestedDomain
       : classifyProductLabDomain({ ...item, module, title, description });
+  const validationSteps = Array.isArray(item.validationSteps)
+    ? item.validationSteps.filter((step) => typeof step === "string" && step.trim()).slice(0, 4)
+    : [];
 
   const runId = queue?.sourceRun?.runId || [queue?.sourceRun?.date, queue?.sourceRun?.theme].filter(Boolean).join("-");
   return {
@@ -232,6 +240,17 @@ const normalizeAIItem = (item, index, queue) => {
       : [],
     beforeState: typeof item.beforeState === "string" ? item.beforeState : "A verifier dans le dernier run Product Lab.",
     afterState: typeof item.afterState === "string" ? item.afterState : "Amelioration visible et testable apres validation.",
+    successMetric:
+      typeof item.successMetric === "string" && item.successMetric.trim()
+        ? item.successMetric.trim()
+        : "Le prochain run Product Lab ou smoke QA valide la correction sans doublon ni regression visible.",
+    validationSteps: validationSteps.length
+      ? validationSteps
+      : [
+          "Relancer Product Lab en proposalOnly.",
+          "Verifier la carte dans /admin.",
+          "Lancer le smoke ou test cible avant toute PR.",
+        ],
     dataState: "real",
   };
 };
@@ -325,7 +344,7 @@ const main = async () => {
     const result = await generateText({
       model,
       prompt: buildPrompt(queue, summary, smoke),
-      maxOutputTokens: 1800,
+      maxOutputTokens: 2600,
       providerOptions: {
         gateway: {
           cacheControl: "max-age=0",

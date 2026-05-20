@@ -254,6 +254,10 @@ describe("Pixelrises Product Lab core", () => {
     expect(queue.summary.domainCoverage).toBeTruthy();
     expect(queue.summary.dailySummary).toContain("Couverture:");
     expect(queue.items.every((item: { runFocus?: unknown }) => item.runFocus)).toBe(true);
+    expect(queue.items.every((item: { successMetric?: string }) => (item.successMetric ?? "").length > 20)).toBe(true);
+    expect(queue.items.every((item: { validationSteps?: string[] }) => (item.validationSteps ?? []).length >= 2)).toBe(
+      true,
+    );
     expect(queue.items.map((item: { title: string }) => item.title).join(" ")).toContain("anti-site generique");
     expect(queue.summary.total).toBe(queue.items.length);
   });
@@ -722,6 +726,9 @@ describe("Pixelrises Product Lab core", () => {
     expect(workflow).toContain("continue-on-error: true");
     expect(workflow).toContain("Generate AI Product Lab proposals");
     expect(workflow).toContain("npm run product-lab:ai-review");
+    expect(workflow.indexOf("Run V2 generator smoke QA")).toBeLessThan(
+      workflow.indexOf("Generate AI Product Lab proposals"),
+    );
     expect(workflow).toContain("vars.PIXELRISES_GENERATOR_DAILY_REAL_BUDGET || '10'");
     expect(workflow).toContain('PRODUCT_LAB_MIN_REVIEW_ITEMS: "8"');
     expect(workflow).toContain('PRODUCT_LAB_MAX_REVIEW_ITEMS: "8"');

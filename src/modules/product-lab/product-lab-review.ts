@@ -37,6 +37,8 @@ export interface ProductLabReviewItem {
   concernedFiles: string[];
   beforeState: string;
   afterState: string;
+  successMetric?: string;
+  validationSteps?: string[];
   dataState?: "real" | "example" | "mock" | "pending" | "error" | "empty" | "local/fallback";
   sourceRun?: ProductLabReviewQueue["sourceRun"];
   sourceRunKey?: string;
@@ -244,6 +246,8 @@ export const normalizeProductLabProposalDomain = (value: unknown): ProductLabPro
       value.inspiration,
       value.beforeState,
       value.afterState,
+      value.successMetric,
+      Array.isArray(value.validationSteps) ? value.validationSteps.join(" ") : "",
       Array.isArray(value.concernedFiles) ? value.concernedFiles.join(" ") : "",
     ].join(" "),
   );
@@ -310,6 +314,10 @@ const normalizeReviewItem = (value: unknown, fallbackId: string): ProductLabRevi
       : [],
     beforeState: typeof value.beforeState === "string" ? value.beforeState : "",
     afterState: typeof value.afterState === "string" ? value.afterState : "",
+    successMetric: typeof value.successMetric === "string" ? value.successMetric : undefined,
+    validationSteps: Array.isArray(value.validationSteps)
+      ? value.validationSteps.filter((step): step is string => typeof step === "string")
+      : undefined,
     dataState:
       value.dataState === "real" ||
       value.dataState === "example" ||
@@ -365,6 +373,12 @@ export const fallbackProductLabReviewQueue: ProductLabReviewQueue = {
       beforeState: "Les permissions existent, mais la validation humaine doit rester plus visible dans le flow agent.",
       afterState:
         "Chaque action sensible agent devient explicitement validable avant execution ou patch automatique.",
+      successMetric: "Un agent test propose une action sensible sans jamais l'executer sans validation admin.",
+      validationSteps: [
+        "Creer un agent SEO de test.",
+        "Verifier le chat test et les permissions.",
+        "Confirmer que toute action externe reste en validation humaine.",
+      ],
     },
   ],
 };

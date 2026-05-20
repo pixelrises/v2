@@ -2814,6 +2814,34 @@ const Admin = () => {
                         </div>
                       </div>
 
+                      <div className="mt-4 grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+                        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.06] p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">
+                            Resultat mesurable
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                            {item.successMetric || "Le prochain run Product Lab ou smoke QA doit confirmer la correction sans regression."}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                            Validation avant PR
+                          </p>
+                          <ul className="mt-2 space-y-2 text-sm leading-6 text-muted-foreground">
+                            {(item.validationSteps?.length
+                              ? item.validationSteps
+                              : ["Relancer Product Lab.", "Verifier la carte dans l'admin.", "Lancer le smoke ou test cible."]).map(
+                              (step) => (
+                                <li key={step} className="flex gap-2">
+                                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                                  <span>{step}</span>
+                                </li>
+                              ),
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+
                       <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Garde-fou automation</p>
                         <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.automationPolicy}</p>

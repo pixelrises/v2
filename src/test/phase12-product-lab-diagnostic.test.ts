@@ -100,6 +100,9 @@ describe("Phase 12 Product Lab diagnostics", () => {
 
     expect(aiReview).toContain("Product Lab AI Gateway diagnostics");
     expect(aiReview).toContain("This diagnostic does not spend AI credits");
+    expect(aiReview).toContain("successMetric");
+    expect(aiReview).toContain("validationSteps");
+    expect(aiReview).toContain("cite directement les cas/reasons echoues");
     expect(aiReview).toContain("auth_required");
     expect(aiReview).toContain("credits_required");
     expect(aiReview).toContain("cacheControl");
