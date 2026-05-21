@@ -37,7 +37,17 @@ const DIAGNOSIS_JSON_SCHEMA = `{
   ],
   "resultat_attendu": "1 phrase sur le résultat concret attendu",
   "recommandation_offre": "Essentiel ou Professionnel ou Premium",
-  "raison_offre": "1 phrase claire expliquant pourquoi cette offre est la plus adaptée"
+  "raison_offre": "1 phrase claire expliquant pourquoi cette offre est la plus adaptée",
+  "site_accessible": true,
+  "analysis_source": "live_url_audit ou blocked_url_brief ou questionnaire_brief",
+  "tested_url": "https://site.fr",
+  "audit_brief": "Brief consultant expliquant les soucis et comment Pixelrises les corrige",
+  "expertise_angle": "Phrase qui met en valeur l'expertise Pixelrises sans promesse exageree",
+  "how_pixelrises_helps": "Comment Pixelrises transforme le diagnostic en site plus clair et plus vendeur",
+  "manual_checks": [
+    "verification manuelle utile 1",
+    "verification manuelle utile 2"
+  ]
 }`;
 
 type Diagnosis = {
@@ -49,6 +59,13 @@ type Diagnosis = {
   resultat_attendu: string;
   recommandation_offre: "Essentiel" | "Professionnel" | "Premium";
   raison_offre: string;
+  site_accessible?: boolean;
+  analysis_source?: "live_url_audit" | "blocked_url_brief" | "questionnaire_brief";
+  tested_url?: string;
+  audit_brief?: string;
+  expertise_angle?: string;
+  how_pixelrises_helps?: string;
+  manual_checks?: string[];
 };
 
 const DIAGNOSIS_RESPONSE_SCHEMA = {
@@ -79,6 +96,20 @@ const DIAGNOSIS_RESPONSE_SCHEMA = {
       enum: ["Essentiel", "Professionnel", "Premium"],
     },
     raison_offre: { type: "string" },
+    site_accessible: { type: "boolean" },
+    analysis_source: {
+      type: "string",
+      enum: ["live_url_audit", "blocked_url_brief", "questionnaire_brief"],
+    },
+    tested_url: { type: "string" },
+    audit_brief: { type: "string" },
+    expertise_angle: { type: "string" },
+    how_pixelrises_helps: { type: "string" },
+    manual_checks: {
+      type: "array",
+      items: { type: "string" },
+      maxItems: 4,
+    },
   },
   required: [
     "score_global",
@@ -174,6 +205,17 @@ function parseDiagnosis(content: string): Diagnosis | null {
         ? parsed.recommandation_offre
         : "Professionnel",
       raison_offre: String(parsed.raison_offre || ""),
+      site_accessible: typeof parsed.site_accessible === "boolean" ? parsed.site_accessible : undefined,
+      analysis_source: ["live_url_audit", "blocked_url_brief", "questionnaire_brief"].includes(parsed.analysis_source)
+        ? parsed.analysis_source
+        : undefined,
+      tested_url: typeof parsed.tested_url === "string" ? parsed.tested_url : "",
+      audit_brief: typeof parsed.audit_brief === "string" ? parsed.audit_brief : "",
+      expertise_angle: typeof parsed.expertise_angle === "string" ? parsed.expertise_angle : "",
+      how_pixelrises_helps: typeof parsed.how_pixelrises_helps === "string" ? parsed.how_pixelrises_helps : "",
+      manual_checks: Array.isArray(parsed.manual_checks)
+        ? parsed.manual_checks.map(String).filter(Boolean).slice(0, 4)
+        : [],
     };
   } catch {
     return null;
@@ -216,6 +258,83 @@ async function generateStructuredDiagnosis(prompt: string): Promise<Diagnosis | 
   return parseDiagnosis(text);
 }
 
+function stripHtml(value: string) {
+  return value
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractHtmlSignals(html: string) {
+  const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() || "";
+  const description =
+    html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)?.[1]?.trim() ||
+    html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i)?.[1]?.trim() ||
+    "";
+  const h1Count = (html.match(/<h1\b/gi) || []).length;
+  const h2Count = (html.match(/<h2\b/gi) || []).length;
+  const formCount = (html.match(/<form\b/gi) || []).length;
+  const buttonCount = (html.match(/<button\b|role=["']button["']/gi) || []).length;
+  const linkCount = (html.match(/<a\b/gi) || []).length;
+  const imageWithoutAltCount = (html.match(/<img(?![^>]*\balt=)/gi) || []).length;
+  const visibleText = stripHtml(html).slice(0, 3500);
+
+  return {
+    title,
+    description,
+    h1Count,
+    h2Count,
+    formCount,
+    buttonCount,
+    linkCount,
+    imageWithoutAltCount,
+    visibleText,
+  };
+}
+
+function buildBlockedSitePrompt({
+  url,
+  objectif,
+  budget,
+  hasSite,
+  reason,
+}: {
+  url: string;
+  objectif: unknown;
+  budget: unknown;
+  hasSite: unknown;
+  reason: string;
+}) {
+  return `Tu es un consultant digital senior de Pixelrises, une agence web premium orientée conversion.
+
+Le prospect a donné un site, mais l'audit automatique complet est bloqué.
+Site testé : ${url}
+Raison technique redacted : ${reason}
+Objectif principal : ${objectif || "non précisé"}
+Budget : ${budget || "non précisé"}
+Réponse à la question "avez-vous déjà un site" : ${hasSite || "non précisé"}
+
+Crée un brief stratégique honnête : ne prétends pas avoir lu le site si l'accès est bloqué.
+Tu dois quand même aider le prospect avec un plan clair :
+- les risques probables à vérifier;
+- comment corriger le message, la confiance, le CTA, le SEO local et la conversion;
+- comment Pixelrises apporte l'expertise : diagnostic, structure, copywriting, design, preuve, mise en ligne.
+
+Champs obligatoires à renseigner :
+- site_accessible: false
+- analysis_source: "blocked_url_brief"
+- tested_url: l'URL testée
+- audit_brief: résumé court du problème et de la méthode de correction
+- expertise_angle: phrase valorisant l'expertise Pixelrises sans promesse excessive
+- how_pixelrises_helps: comment Pixelrises transforme le brief en site utile
+- manual_checks: 3 à 4 vérifications concrètes à faire manuellement.
+
+Réponds en respectant cette structure :
+${DIAGNOSIS_JSON_SCHEMA}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -242,6 +361,8 @@ Réponse à la question "avez-vous déjà un site" : ${hasSite || "non précisé
 Crée un diagnostic réel, concis, crédible et actionnable en français.
 Ne sois ni vague ni théâtral. Ne parle pas comme une publicité.
 Adapte la recommandation au budget et à l'objectif.
+Renseigne site_accessible=false, analysis_source="questionnaire_brief", audit_brief, expertise_angle, how_pixelrises_helps et manual_checks.
+Le rapport doit mettre en valeur l'expertise Pixelrises : stratégie, structure, copywriting, design, preuves, conversion et lancement.
 
 Réponds en respectant cette structure :
 ${DIAGNOSIS_JSON_SCHEMA}`);
@@ -272,14 +393,72 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
     let htmlContent = "";
     try {
       const response = await fetch(parsedUrl.toString(), {
-        headers: { "User-Agent": "Pixelrises-Analyzer/1.0" },
-        redirect: "error",
+        headers: {
+          "User-Agent": "Pixelrises-Analyzer/1.0 (+https://pixelrises.fr)",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
+        redirect: "follow",
       });
+
+      if (!response.ok) {
+        const fallbackDiagnosis = await generateStructuredDiagnosis(
+          buildBlockedSitePrompt({
+            url: parsedUrl.toString(),
+            objectif,
+            budget,
+            hasSite,
+            reason: `HTTP_${response.status}`,
+          }),
+        );
+        if (!fallbackDiagnosis) {
+          return jsonResponse({ error: "Le diagnostic n'a pas pu être structuré correctement." }, 502);
+        }
+        return jsonResponse({
+          diagnosis: fallbackDiagnosis,
+          error: "Le site n'a pas permis un audit automatique complet. Un brief stratégique a été généré.",
+        });
+      }
+
       htmlContent = await response.text();
       htmlContent = htmlContent.substring(0, 8000);
+      if (stripHtml(htmlContent).length < 80) {
+        const fallbackDiagnosis = await generateStructuredDiagnosis(
+          buildBlockedSitePrompt({
+            url: parsedUrl.toString(),
+            objectif,
+            budget,
+            hasSite,
+            reason: "empty_or_unreadable_html",
+          }),
+        );
+        if (!fallbackDiagnosis) {
+          return jsonResponse({ error: "Le diagnostic n'a pas pu être structuré correctement." }, 502);
+        }
+        return jsonResponse({
+          diagnosis: fallbackDiagnosis,
+          error: "Le site n'a pas fourni assez de contenu lisible. Un brief stratégique a été généré.",
+        });
+      }
     } catch {
-      return jsonResponse({ error: "Impossible d'accéder au site pour réaliser l'analyse." });
+      const fallbackDiagnosis = await generateStructuredDiagnosis(
+        buildBlockedSitePrompt({
+          url: parsedUrl.toString(),
+          objectif,
+          budget,
+          hasSite,
+          reason: "fetch_blocked_or_timeout",
+        }),
+      );
+      if (!fallbackDiagnosis) {
+        return jsonResponse({ error: "Impossible d'accéder au site pour réaliser l'analyse." });
+      }
+      return jsonResponse({
+        diagnosis: fallbackDiagnosis,
+        error: "Le site n'a pas permis un audit automatique complet. Un brief stratégique a été généré.",
+      });
     }
+
+    const htmlSignals = extractHtmlSignals(htmlContent);
 
     const diagnosis = await generateStructuredDiagnosis(`Tu es un consultant digital senior de Pixelrises, une agence web premium orientée conversion.
 
@@ -294,8 +473,14 @@ Adapte la recommandation à l'objectif et au budget.
 
 Site analysé : ${parsedUrl.hostname}
 
-HTML :
-${htmlContent}
+Signaux techniques extraits :
+${JSON.stringify(htmlSignals, null, 2)}
+
+HTML brut limite :
+${htmlContent.slice(0, 4500)}
+
+Renseigne site_accessible=true, analysis_source="live_url_audit", tested_url="${parsedUrl.toString()}", audit_brief, expertise_angle, how_pixelrises_helps et manual_checks.
+Le rapport doit expliquer les soucis du site, comment les corriger, et pourquoi l'expertise Pixelrises aide à transformer le site en outil de confiance et conversion.
 
 Réponds en respectant cette structure :
 ${DIAGNOSIS_JSON_SCHEMA}`);

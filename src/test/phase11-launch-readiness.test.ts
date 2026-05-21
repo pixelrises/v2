@@ -129,6 +129,20 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(`${analyzeUrl}\n${grantCredits}`).not.toContain("error instanceof Error ? error.message");
   });
 
+  it("keeps the public diagnostic useful when a website blocks automated access", () => {
+    const analyzeUrl = readProjectFile("supabase/functions/analyze-url/index.ts");
+    const recommendationModule = readProjectFile("src/components/RecommendationModule.tsx");
+
+    expect(analyzeUrl).toContain("buildBlockedSitePrompt");
+    expect(analyzeUrl).toContain('redirect: "follow"');
+    expect(analyzeUrl).toContain('analysis_source: "blocked_url_brief"');
+    expect(analyzeUrl).toContain("extractHtmlSignals");
+    expect(recommendationModule).toContain("buildStrategicDiagnosis");
+    expect(recommendationModule).toContain("Brief d'expertise Pixelrises");
+    expect(recommendationModule).toContain("Vérifications manuelles utiles");
+    expect(recommendationModule).not.toContain("Impossible d'accéder au site pour réaliser l'analyse.");
+  });
+
   it("keeps Product Lab auto-merge blocked without admin approval and safe checks", () => {
     const governance = readProjectFile("scripts/product-lab-governance.mjs");
 
