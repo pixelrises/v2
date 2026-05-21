@@ -139,6 +139,8 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(analyzeUrl).toContain("extractHtmlSignals");
     expect(recommendationModule).toContain("buildStrategicDiagnosis");
     expect(recommendationModule).toContain("Pré-diagnostic stratégique");
+    expect(recommendationModule).toContain("Logique de l'analyse");
+    expect(recommendationModule).toContain("Pourquoi cette recommandation");
     expect(recommendationModule).toContain("Diagnostic & méthode Pixelrises");
     expect(recommendationModule).toContain("Contrôles qualité inclus");
     expect(recommendationModule).not.toContain("Impossible d'accéder au site pour réaliser l'analyse.");

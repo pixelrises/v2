@@ -419,6 +419,54 @@ const RecommendationModule = () => {
           "Mobile version readable, reassuring and fast.",
         ]
     : diagnosis?.manual_checks || [];
+  const currentObjective = answers.objectif || (isFr ? "objectif à préciser" : "goal to clarify");
+  const currentBudget = answers.budget || (isFr ? "budget à préciser" : "budget to clarify");
+  const currentWebsite = diagnosis?.tested_url || normalizeWebsiteUrl(answers.url);
+  const auditStatusLabel = isRealDiagnosis
+    ? isFr
+      ? "Audit du site + questionnaire"
+      : "Website audit + questionnaire"
+    : currentWebsite
+      ? isFr
+        ? "URL fournie + questionnaire"
+        : "Submitted URL + questionnaire"
+      : isFr
+        ? "Questionnaire stratégique"
+        : "Strategic questionnaire";
+  const priorityDetected = isFr ? "Confiance + conversion" : "Trust + conversion";
+  const logicSignals = [
+    {
+      label: isFr ? "Base utilisée" : "Input used",
+      value: auditStatusLabel,
+    },
+    {
+      label: isFr ? "Objectif client" : "Client goal",
+      value: currentObjective,
+    },
+    {
+      label: isFr ? "Budget déclaré" : "Declared budget",
+      value: currentBudget,
+    },
+    {
+      label: isFr ? "Priorité détectée" : "Detected priority",
+      value: priorityDetected,
+    },
+  ];
+  const decisionReasons = isFr
+    ? [
+        `Objectif "${currentObjective}" : on priorise un parcours simple vers la demande de contact.`,
+        `Budget "${currentBudget}" : on choisit le niveau d'accompagnement qui maximise le rapport vitesse / crédibilité.`,
+        currentWebsite
+          ? "URL fournie : on garde une logique de correction structurée avant de proposer la création."
+          : "Pas de site existant : on commence par cadrer l'offre avant de générer la première version.",
+      ]
+    : [
+        `Goal "${currentObjective}": prioritize a simple path to contact.`,
+        `Budget "${currentBudget}": choose the support level that maximizes speed / credibility.`,
+        currentWebsite
+          ? "Submitted URL: keep a structured correction logic before proposing creation."
+          : "No existing site: frame the offer before generating the first version.",
+      ];
 
   return (
     <section className="landing-section" id="diagnostic">
@@ -633,6 +681,38 @@ const RecommendationModule = () => {
                       <motion.div
                         initial={{ opacity: 0, y: 18 }}
                         animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.06 }}
+                        className="glass-card p-7 sm:p-8"
+                      >
+                        <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          <Search className="h-3.5 w-3.5 text-primary" />
+                          {isFr ? "Logique de l'analyse" : "Analysis logic"}
+                        </p>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {logicSignals.map((signal) => (
+                            <div
+                              key={signal.label}
+                              className="rounded-2xl border border-primary/10 bg-primary/[0.03] p-4"
+                            >
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                                {signal.label}
+                              </p>
+                              <p className="mt-1 text-sm font-semibold text-foreground">{signal.value}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-4 rounded-2xl border border-border bg-secondary/20 p-4">
+                          <p className="text-sm leading-6 text-muted-foreground">
+                            {isFr
+                              ? "La recommandation ne sort pas au hasard : elle croise votre objectif, votre budget, l'existence d'un site et les signaux de conversion à renforcer."
+                              : "The recommendation is not random: it combines your goal, budget, existing website state and the conversion signals to improve."}
+                          </p>
+                        </div>
+                      </motion.div>
+
+                      <motion.div
+                        initial={{ opacity: 0, y: 18 }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.08 }}
                         className="glass-card p-7 sm:p-8"
                       >
@@ -804,6 +884,22 @@ const RecommendationModule = () => {
                       {hasDiagnosticBrief ? diagnosis?.raison_offre || budgetReason : budgetReason}
                     </p>
                   </div>
+
+                  {hasDiagnosticBrief && (
+                    <div className="mb-4 rounded-2xl border border-border bg-secondary/20 p-4">
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        {isFr ? "Pourquoi cette recommandation" : "Why this recommendation"}
+                      </p>
+                      <div className="space-y-2.5">
+                        {decisionReasons.map((reason) => (
+                          <div key={reason} className="flex items-start gap-2.5">
+                            <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                            <p className="text-sm leading-6 text-muted-foreground">{reason}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {hasDiagnosticBrief && diagnosis?.how_pixelrises_helps && (
                     <div className="mb-4 rounded-2xl border border-green-500/20 bg-green-500/5 p-4">
