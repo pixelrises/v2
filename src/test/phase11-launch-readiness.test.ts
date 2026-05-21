@@ -129,15 +129,18 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(`${analyzeUrl}\n${grantCredits}`).not.toContain("error instanceof Error ? error.message");
   });
 
-  it("keeps the public diagnostic useful when a website blocks automated access", () => {
+  it("requires a real website audit when a user submits a URL", () => {
     const analyzeUrl = readProjectFile("supabase/functions/analyze-url/index.ts");
     const recommendationModule = readProjectFile("src/components/RecommendationModule.tsx");
 
-    expect(analyzeUrl).toContain("buildBlockedSitePrompt");
     expect(analyzeUrl).toContain('redirect: "follow"');
-    expect(analyzeUrl).toContain('analysis_source: "blocked_url_brief"');
+    expect(analyzeUrl).toContain("signal: AbortSignal.timeout(15000)");
     expect(analyzeUrl).toContain("extractHtmlSignals");
+    expect(analyzeUrl).toContain("Analyse vraiment le HTML fourni");
+    expect(analyzeUrl).toContain("Aucun diagnostic automatique n'a été généré");
     expect(recommendationModule).toContain("buildStrategicDiagnosis");
+    expect(recommendationModule).toContain("requiresRealWebsiteAudit");
+    expect(recommendationModule).toContain("Aucun faux diagnostic n'a été généré");
     expect(recommendationModule).toContain("Pré-diagnostic stratégique");
     expect(recommendationModule).toContain("Logique de l'analyse");
     expect(recommendationModule).toContain("Pourquoi cette recommandation");
@@ -145,8 +148,11 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(recommendationModule).toContain("Contrôles qualité inclus");
     expect(recommendationModule).not.toContain("Impossible d'accéder au site pour réaliser l'analyse.");
     expect(analyzeUrl).not.toContain("Impossible d'accéder au site pour réaliser l'analyse.");
+    expect(analyzeUrl).not.toContain("buildBlockedSitePrompt");
+    expect(analyzeUrl).not.toContain('analysis_source: "blocked_url_brief"');
     expect(recommendationModule).not.toContain("n'a pas pu etre audite automatiquement");
     expect(recommendationModule).not.toContain("L'acces automatique au site est bloque");
+    expect(recommendationModule).not.toContain("setDiagnosis(data?.diagnosis || buildStrategicDiagnosis");
     expect(recommendationModule).not.toContain("\"{diagnosis.raison_offre}\"");
   });
 

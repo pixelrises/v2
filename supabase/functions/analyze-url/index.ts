@@ -294,52 +294,6 @@ function extractHtmlSignals(html: string) {
   };
 }
 
-function buildBlockedSitePrompt({
-  url,
-  objectif,
-  budget,
-  hasSite,
-  reason,
-}: {
-  url: string;
-  objectif: unknown;
-  budget: unknown;
-  hasSite: unknown;
-  reason: string;
-}) {
-  return `Tu es un consultant digital senior de Pixelrises, une agence web premium orientée conversion.
-
-Le prospect a donné un site, mais l'audit automatique complet est bloqué.
-Site testé : ${url}
-Raison technique redacted : ${reason}
-Objectif principal : ${objectif || "non précisé"}
-Budget : ${budget || "non précisé"}
-Réponse à la question "avez-vous déjà un site" : ${hasSite || "non précisé"}
-
-Crée un pré-diagnostic stratégique honnête : ne prétends pas avoir lu le site si l'accès est limité.
-Important pour la crédibilité côté client :
-- ne mets pas le blocage technique au premier plan;
-- n'utilise pas de formulation d'échec technique dans situation, problemes ou audit_brief;
-- reformule comme une lecture stratégique basée sur l'objectif, le budget, l'URL fournie et les signaux disponibles;
-- montre l'expertise Pixelrises sans donner l'impression que l'outil a échoué.
-Tu dois quand même aider le prospect avec un plan clair :
-- les risques probables à vérifier;
-- comment corriger le message, la confiance, le CTA, le SEO local et la conversion;
-- comment Pixelrises apporte l'expertise : diagnostic, structure, copywriting, design, preuve, mise en ligne.
-
-Champs obligatoires à renseigner :
-- site_accessible: false
-- analysis_source: "blocked_url_brief"
-- tested_url: l'URL testée
-- audit_brief: résumé court de la méthode de correction, sans mentionner le blocage technique
-- expertise_angle: phrase valorisant l'expertise Pixelrises sans promesse excessive
-- how_pixelrises_helps: comment Pixelrises transforme le brief en site utile
-- manual_checks: 3 à 4 vérifications concrètes à faire manuellement.
-
-Réponds en respectant cette structure :
-${DIAGNOSIS_JSON_SCHEMA}`;
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -403,64 +357,29 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
           Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         },
         redirect: "follow",
+        signal: AbortSignal.timeout(15000),
       });
 
       if (!response.ok) {
-        const fallbackDiagnosis = await generateStructuredDiagnosis(
-          buildBlockedSitePrompt({
-            url: parsedUrl.toString(),
-            objectif,
-            budget,
-            hasSite,
-            reason: `HTTP_${response.status}`,
-          }),
+        return jsonResponse(
+          { error: "Le site n'a pas pu être lu correctement. Aucun diagnostic automatique n'a été généré." },
+          422,
         );
-        if (!fallbackDiagnosis) {
-          return jsonResponse({ error: "Le diagnostic n'a pas pu être structuré correctement." }, 502);
-        }
-        return jsonResponse({
-          diagnosis: fallbackDiagnosis,
-          error: "Pré-diagnostic généré à partir des informations disponibles.",
-        });
       }
 
       htmlContent = await response.text();
       htmlContent = htmlContent.substring(0, 8000);
       if (stripHtml(htmlContent).length < 80) {
-        const fallbackDiagnosis = await generateStructuredDiagnosis(
-          buildBlockedSitePrompt({
-            url: parsedUrl.toString(),
-            objectif,
-            budget,
-            hasSite,
-            reason: "empty_or_unreadable_html",
-          }),
+        return jsonResponse(
+          { error: "Le site ne fournit pas assez de contenu lisible pour un diagnostic fiable. Aucun rapport n'a été simulé." },
+          422,
         );
-        if (!fallbackDiagnosis) {
-          return jsonResponse({ error: "Le diagnostic n'a pas pu être structuré correctement." }, 502);
-        }
-        return jsonResponse({
-          diagnosis: fallbackDiagnosis,
-          error: "Pré-diagnostic généré à partir des informations disponibles.",
-        });
       }
     } catch {
-      const fallbackDiagnosis = await generateStructuredDiagnosis(
-        buildBlockedSitePrompt({
-          url: parsedUrl.toString(),
-          objectif,
-          budget,
-          hasSite,
-          reason: "fetch_blocked_or_timeout",
-        }),
+      return jsonResponse(
+        { error: "L'analyse réelle du site a été interrompue ou bloquée. Aucun rapport automatique n'a été généré." },
+        422,
       );
-      if (!fallbackDiagnosis) {
-        return jsonResponse({ error: "Le pré-diagnostic est temporairement indisponible. Réessayez dans quelques instants." });
-      }
-      return jsonResponse({
-        diagnosis: fallbackDiagnosis,
-        error: "Pré-diagnostic généré à partir des informations disponibles.",
-      });
     }
 
     const htmlSignals = extractHtmlSignals(htmlContent);
@@ -472,8 +391,11 @@ Objectif principal : ${objectif || "non précisé"}
 Budget : ${budget || "non précisé"}
 Réponse à la question "avez-vous déjà un site" : ${hasSite || "non précisé"}
 
-Analyse le HTML fourni. Identifie les vrais problèmes de clarté, crédibilité, hiérarchie, réassurance, conversion et orientation business.
-Sois honnête, utile et concret. Pas de phrases génériques.
+Analyse vraiment le HTML fourni et les signaux extraits. Tu dois agir comme un audit consultant, pas comme un générateur de texte.
+Identifie les vrais problèmes de clarté, crédibilité, hiérarchie, réassurance, conversion, SEO local, copywriting et orientation business.
+Chaque problème doit être relié à une observation concrète issue des signaux fournis : title, meta description, H1/H2, CTA, formulaires, liens, images sans alt ou texte visible.
+Rédige un brief copywriting exploitable : message à clarifier, preuve à ajouter, CTA à renforcer, ordre des sections à corriger.
+Sois honnête, utile et concret. Pas de phrases génériques, pas de promesse inventée, pas de faux avis, pas de fausses statistiques.
 Adapte la recommandation à l'objectif et au budget.
 
 Site analysé : ${parsedUrl.hostname}
@@ -485,7 +407,7 @@ HTML brut limite :
 ${htmlContent.slice(0, 4500)}
 
 Renseigne site_accessible=true, analysis_source="live_url_audit", tested_url="${parsedUrl.toString()}", audit_brief, expertise_angle, how_pixelrises_helps et manual_checks.
-Le rapport doit expliquer les soucis du site, comment les corriger, et pourquoi l'expertise Pixelrises aide à transformer le site en outil de confiance et conversion.
+Le rapport doit expliquer les soucis réels du site, comment les corriger, quelle logique de copy appliquer, et pourquoi l'expertise Pixelrises aide à transformer le site en outil de confiance et conversion.
 
 Réponds en respectant cette structure :
 ${DIAGNOSIS_JSON_SCHEMA}`);
