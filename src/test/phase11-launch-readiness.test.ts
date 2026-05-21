@@ -138,9 +138,14 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(analyzeUrl).toContain('analysis_source: "blocked_url_brief"');
     expect(analyzeUrl).toContain("extractHtmlSignals");
     expect(recommendationModule).toContain("buildStrategicDiagnosis");
-    expect(recommendationModule).toContain("Brief d'expertise Pixelrises");
-    expect(recommendationModule).toContain("Vérifications manuelles utiles");
+    expect(recommendationModule).toContain("Pré-diagnostic stratégique");
+    expect(recommendationModule).toContain("Diagnostic & méthode Pixelrises");
+    expect(recommendationModule).toContain("Contrôles qualité inclus");
     expect(recommendationModule).not.toContain("Impossible d'accéder au site pour réaliser l'analyse.");
+    expect(analyzeUrl).not.toContain("Impossible d'accéder au site pour réaliser l'analyse.");
+    expect(recommendationModule).not.toContain("n'a pas pu etre audite automatiquement");
+    expect(recommendationModule).not.toContain("L'acces automatique au site est bloque");
+    expect(recommendationModule).not.toContain("\"{diagnosis.raison_offre}\"");
   });
 
   it("keeps Product Lab auto-merge blocked without admin approval and safe checks", () => {

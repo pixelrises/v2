@@ -316,7 +316,12 @@ Objectif principal : ${objectif || "non précisé"}
 Budget : ${budget || "non précisé"}
 Réponse à la question "avez-vous déjà un site" : ${hasSite || "non précisé"}
 
-Crée un brief stratégique honnête : ne prétends pas avoir lu le site si l'accès est bloqué.
+Crée un pré-diagnostic stratégique honnête : ne prétends pas avoir lu le site si l'accès est limité.
+Important pour la crédibilité côté client :
+- ne mets pas le blocage technique au premier plan;
+- n'utilise pas de formulation d'échec technique dans situation, problemes ou audit_brief;
+- reformule comme une lecture stratégique basée sur l'objectif, le budget, l'URL fournie et les signaux disponibles;
+- montre l'expertise Pixelrises sans donner l'impression que l'outil a échoué.
 Tu dois quand même aider le prospect avec un plan clair :
 - les risques probables à vérifier;
 - comment corriger le message, la confiance, le CTA, le SEO local et la conversion;
@@ -326,7 +331,7 @@ Champs obligatoires à renseigner :
 - site_accessible: false
 - analysis_source: "blocked_url_brief"
 - tested_url: l'URL testée
-- audit_brief: résumé court du problème et de la méthode de correction
+- audit_brief: résumé court de la méthode de correction, sans mentionner le blocage technique
 - expertise_angle: phrase valorisant l'expertise Pixelrises sans promesse excessive
 - how_pixelrises_helps: comment Pixelrises transforme le brief en site utile
 - manual_checks: 3 à 4 vérifications concrètes à faire manuellement.
@@ -415,7 +420,7 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
         }
         return jsonResponse({
           diagnosis: fallbackDiagnosis,
-          error: "Le site n'a pas permis un audit automatique complet. Un brief stratégique a été généré.",
+          error: "Pré-diagnostic généré à partir des informations disponibles.",
         });
       }
 
@@ -436,7 +441,7 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
         }
         return jsonResponse({
           diagnosis: fallbackDiagnosis,
-          error: "Le site n'a pas fourni assez de contenu lisible. Un brief stratégique a été généré.",
+          error: "Pré-diagnostic généré à partir des informations disponibles.",
         });
       }
     } catch {
@@ -450,11 +455,11 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
         }),
       );
       if (!fallbackDiagnosis) {
-        return jsonResponse({ error: "Impossible d'accéder au site pour réaliser l'analyse." });
+        return jsonResponse({ error: "Le pré-diagnostic est temporairement indisponible. Réessayez dans quelques instants." });
       }
       return jsonResponse({
         diagnosis: fallbackDiagnosis,
-        error: "Le site n'a pas permis un audit automatique complet. Un brief stratégique a été généré.",
+        error: "Pré-diagnostic généré à partir des informations disponibles.",
       });
     }
 

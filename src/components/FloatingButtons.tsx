@@ -9,7 +9,18 @@ const FloatingButtons = () => {
   const isFr = locale === "fr";
 
   useEffect(() => {
-    const handleScroll = () => setShowCTA(window.scrollY > 600);
+    const handleScroll = () => {
+      const diagnostic = document.getElementById("diagnostic");
+      const diagnosticRect = diagnostic?.getBoundingClientRect();
+      const diagnosticVisible =
+        diagnosticRect &&
+        diagnosticRect.top < window.innerHeight * 0.9 &&
+        diagnosticRect.bottom > window.innerHeight * 0.2;
+
+      setShowCTA(window.scrollY > 600 && !diagnosticVisible);
+    };
+
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);

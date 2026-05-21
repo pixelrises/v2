@@ -133,7 +133,7 @@ const RecommendationModule = () => {
 
   const buildStrategicDiagnosis = (
     source: Diagnosis["analysis_source"],
-    accessMessage?: string,
+    _accessMessage?: string,
   ): Diagnosis => {
     const hasWebsite = answers.hasSite === "Oui" || answers.hasSite === "Yes";
     const objective = answers.objectif || (isFr ? "clarifier l'offre" : "clarify the offer");
@@ -149,46 +149,46 @@ const RecommendationModule = () => {
     const recommended = getLocalRecommendation();
 
     return {
-      score_global: hasWebsite ? 5 : 6,
+      score_global: hasWebsite ? 7 : 8,
       site_accessible: source === "live_url_audit",
       analysis_source: source,
       tested_url: testedUrl,
       situation: isFr
         ? hasWebsite
-          ? `Le site ${siteLabel || "indique"} n'a pas pu etre audite automatiquement jusqu'au bout. On peut quand meme preparer un brief de correction pour ameliorer la clarte, la confiance et la conversion.`
-          : "Vous partez d'une base ouverte : le plus important est de cadrer l'offre, le message et le chemin vers la demande de contact avant de penser au design."
+          ? `Pré-diagnostic établi à partir de votre objectif, de votre budget et de l'URL fournie. Pour ${siteLabel || "votre site"}, l'enjeu prioritaire est de clarifier l'offre, renforcer la preuve et raccourcir le chemin vers la prise de contact.`
+          : "Pré-diagnostic établi à partir de votre projet : le plus important est de cadrer l'offre, le message et le chemin vers la demande de contact avant de penser au design."
         : hasWebsite
-          ? `The website ${siteLabel || "provided"} could not be fully audited automatically. We can still prepare a correction brief to improve clarity, trust and conversion.`
-          : "You are starting from an open base: the priority is to clarify the offer, message and path to contact before design polish.",
+          ? `Strategic pre-diagnosis based on your goal, budget and submitted URL. For ${siteLabel || "your website"}, the priority is to clarify the offer, strengthen proof and shorten the path to contact.`
+          : "Strategic pre-diagnosis based on your project: the priority is to clarify the offer, message and path to contact before design polish.",
       problemes: isFr
         ? [
             hasWebsite
-              ? "L'acces automatique au site est bloque ou instable, ce qui empeche de confirmer la structure reelle sans verification manuelle."
-              : "Le message commercial doit etre verrouille avant generation pour eviter un site joli mais trop generique.",
-            `L'objectif "${objective}" doit devenir un CTA principal mesurable, pas plusieurs actions dispersees.`,
-            "Les preuves, objections et etapes de conversion doivent etre visibles des la premiere version.",
+              ? "La promesse doit être immédiatement lisible : cible, bénéfice, preuve et action principale doivent tenir en quelques secondes."
+              : "Le message commercial doit être verrouillé avant génération pour éviter un site joli mais trop générique.",
+            `L'objectif "${objective}" doit devenir un CTA principal mesurable, pas plusieurs actions dispersées.`,
+            "Les preuves, objections et étapes de conversion doivent être visibles dès la première version.",
           ]
         : [
             hasWebsite
-              ? "Automatic access to the website is blocked or unstable, so the real structure needs manual confirmation."
+              ? "The promise must be instantly readable: audience, benefit, proof and primary action should be clear within seconds."
               : "The commercial message must be locked before generation to avoid a polished but generic site.",
             `The goal "${objective}" needs one measurable primary CTA, not several scattered actions.`,
             "Proof, objections and conversion steps must be visible from the first version.",
           ],
       points_forts: isFr
         ? [
-            "Vous avez deja assez de contexte pour orienter une recommandation utile.",
-            "Le diagnostic peut devenir rapidement un plan de site, un brief contenu et une checklist de lancement.",
+            "Votre objectif est suffisamment clair pour transformer le diagnostic en plan d'action concret.",
+            "Pixelrises peut traduire ce cadrage en structure de page, copywriting, design et parcours de conversion.",
           ]
         : [
-            "You already have enough context to shape a useful recommendation.",
-            "The diagnosis can quickly become a site plan, content brief and launch checklist.",
+            "Your goal is clear enough to turn the diagnosis into a concrete action plan.",
+            "Pixelrises can translate this framing into page structure, copywriting, design and conversion flow.",
           ],
       plan_action: isFr
         ? [
             "Faire un audit express du hero : promesse, cible, offre, preuve et CTA principal.",
-            "Reecrire les sections cles avec une logique conversion : probleme, solution, methode, preuve, action.",
-            "Construire une premiere version Pixelrises puis la tester sur mobile, vitesse, lisibilite et demande de contact.",
+            "Réécrire les sections clés avec une logique conversion : problème, solution, méthode, preuve, action.",
+            "Construire une première version Pixelrises puis la tester sur mobile, vitesse, lisibilité et demande de contact.",
           ]
         : [
             "Run an express hero audit: promise, target, offer, proof and primary CTA.",
@@ -196,37 +196,33 @@ const RecommendationModule = () => {
             "Build a first Pixelrises version, then test mobile, speed, readability and contact intent.",
           ],
       resultat_attendu: isFr
-        ? "Vous obtenez une base plus claire, plus credible et plus facile a convertir en demandes qualifiees."
+        ? "Vous obtenez une base plus claire, plus crédible et plus facile à convertir en demandes qualifiées."
         : "You get a clearer, more credible base that is easier to convert into qualified enquiries.",
       recommandation_offre: recommended,
       raison_offre: isFr
-        ? `La formule ${recommended} est la plus coherente avec votre budget et le niveau de cadrage necessaire.`
+        ? `La formule ${recommended} est cohérente avec votre budget et le niveau de cadrage nécessaire.`
         : `The ${recommended} plan is the most coherent match for your budget and required strategy depth.`,
       audit_brief: isFr
-        ? accessMessage
-          ? `Le test automatique a ete tente, mais le site n'a pas repondu correctement : ${accessMessage}. La suite logique est un audit manuel court, puis une reconstruction des sections qui vendent.`
-          : "Brief de correction : clarifier la promesse, montrer la methode, rassurer vite et pousser une action principale."
-        : accessMessage
-          ? `The automatic test was attempted, but the website did not respond correctly: ${accessMessage}. Next step: a short manual audit, then rebuild the sections that sell.`
-          : "Correction brief: clarify the promise, show the method, reassure quickly and push one primary action.",
+        ? "Brief de correction : clarifier la promesse, structurer les preuves, rassurer rapidement et guider le visiteur vers une action principale."
+        : "Correction brief: clarify the promise, structure proof, reassure quickly and guide the visitor toward one primary action.",
       expertise_angle: isFr
-        ? "Pixelrises ne se limite pas a creer une page : on transforme le diagnostic en structure, copywriting, design, preuve et parcours de conversion."
+        ? "Pixelrises ne se limite pas à créer une page : on transforme le diagnostic en structure, copywriting, design, preuve et parcours de conversion."
         : "Pixelrises does not just create a page: we turn the diagnosis into structure, copywriting, design, proof and conversion flow.",
       how_pixelrises_helps: isFr
-        ? "On priorise ce qui bloque la confiance et la demande de contact, puis on genere une version prete a tester au lieu d'empiler des options."
+        ? "On priorise ce qui augmente la confiance et la demande de contact, puis on génère une version prête à tester au lieu d'empiler des options."
         : "We prioritize what blocks trust and contact intent, then generate a testable version instead of stacking options.",
       manual_checks: isFr
         ? [
-            "Ouvrir le site sur mobile et verifier si la promesse est comprise en moins de 5 secondes.",
-            "Controler si le CTA principal est visible sans scroll.",
-            "Verifier preuves, avis, cas, garanties ou elements de reassurance.",
-            "Lister les sections trop generiques a remplacer par des preuves metier.",
+            "Promesse compréhensible en moins de 5 secondes.",
+            "CTA principal visible et cohérent avec l'objectif.",
+            "Preuves métier présentes avant la demande de contact.",
+            "Version mobile lisible, rassurante et rapide.",
           ]
         : [
-            "Open the site on mobile and check if the promise is understood in under 5 seconds.",
-            "Check whether the primary CTA is visible without scrolling.",
-            "Verify proof, reviews, cases, guarantees or trust elements.",
-            "List generic sections to replace with business-specific proof.",
+            "Promise understandable in under 5 seconds.",
+            "Primary CTA visible and aligned with the goal.",
+            "Business proof shown before the contact request.",
+            "Mobile version readable, reassuring and fast.",
           ],
     };
   };
@@ -269,10 +265,9 @@ const RecommendationModule = () => {
         setDiagnosis(data?.diagnosis || buildStrategicDiagnosis("blocked_url_brief", data.error));
         setResultMode("estimate");
         setResultMessage(
-          data.error ||
-            (isFr
-              ? "Le diagnostic reel est temporairement indisponible."
-              : "The real diagnosis is temporarily unavailable."),
+          isFr
+            ? "Pré-diagnostic généré à partir des informations disponibles."
+            : "Pre-diagnosis generated from the available information.",
         );
       } else if (data?.diagnosis) {
         setDiagnosis(data.diagnosis);
@@ -280,8 +275,8 @@ const RecommendationModule = () => {
         setResultMessage(
           data.diagnosis.site_accessible === false
             ? isFr
-              ? "Le site a bloque l'audit complet. Pixelrises a prepare un brief de correction exploitable."
-              : "The website blocked the full audit. Pixelrises prepared a usable correction brief."
+              ? "Pré-diagnostic Pixelrises généré à partir des informations disponibles."
+              : "Pixelrises pre-diagnosis generated from the available information."
             : isFr
               ? "Diagnostic reel genere par Pixelrises."
               : "Real diagnosis generated by Pixelrises.",
@@ -385,6 +380,45 @@ const RecommendationModule = () => {
   const hasDiagnosticBrief = Boolean(diagnosis);
   const isRealDiagnosis = resultMode === "real" && Boolean(diagnosis);
   const showFallbackGuidance = resultMode === "estimate" || resultMode === "unavailable";
+  const isPreDiagnosis = hasDiagnosticBrief && diagnosis?.site_accessible === false;
+  const publicSituation = isPreDiagnosis
+    ? isFr
+      ? "Pré-diagnostic établi à partir de votre objectif, de votre budget et des informations disponibles. Le vrai sujet : rendre l'offre plus claire, plus rassurante et plus simple à transformer en demande de contact."
+      : "Strategic pre-diagnosis based on your goal, budget and available signals. The real focus: make the offer clearer, more reassuring and easier to turn into qualified contact."
+    : diagnosis?.situation;
+  const publicIssues = isPreDiagnosis
+    ? isFr
+      ? [
+          "La promesse doit être comprise immédiatement : cible, bénéfice, preuve et action principale.",
+          `L'objectif "${answers.objectif || "obtenir des clients"}" doit être traduit en un seul parcours de conversion.`,
+          "Les preuves, objections et éléments de réassurance doivent arriver plus tôt dans la page.",
+        ]
+      : [
+          "The promise must be understood immediately: audience, benefit, proof and primary action.",
+          `The goal "${answers.objectif || "get clients"}" must be translated into one conversion path.`,
+          "Proof, objections and reassurance elements should appear earlier on the page.",
+        ]
+    : diagnosis?.problemes || [];
+  const publicAuditBrief = isPreDiagnosis
+    ? isFr
+      ? "Lecture stratégique : on part de vos réponses pour cadrer ce qui vend vraiment, puis on transforme ce cadrage en structure de page, messages, preuves et CTA."
+      : "Strategic read: we start from your answers to frame what actually sells, then turn that into page structure, messages, proof and CTA."
+    : diagnosis?.audit_brief;
+  const publicQualityChecks = isPreDiagnosis
+    ? isFr
+      ? [
+          "Promesse lisible en moins de 5 secondes.",
+          "CTA principal visible, clair et aligné avec l'objectif.",
+          "Preuves métier présentes avant la demande de contact.",
+          "Version mobile lisible, rassurante et rapide.",
+        ]
+      : [
+          "Promise readable in under 5 seconds.",
+          "Primary CTA visible, clear and aligned with the goal.",
+          "Business proof shown before the contact request.",
+          "Mobile version readable, reassuring and fast.",
+        ]
+    : diagnosis?.manual_checks || [];
 
   return (
     <section className="landing-section" id="diagnostic">
@@ -547,11 +581,13 @@ const RecommendationModule = () => {
                       <div className="relative flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5">
                         <span
                           className={`text-2xl font-extrabold ${
-                            diagnosis ? scoreColor(diagnosis.score_global) : "text-primary"
+                            isRealDiagnosis && diagnosis ? scoreColor(diagnosis.score_global) : "text-primary"
                           }`}
                         >
-                          {hasDiagnosticBrief ? (
+                          {isRealDiagnosis ? (
                             <AnimatedCounter value={diagnosis!.score_global} duration={1400} />
+                          ) : hasDiagnosticBrief ? (
+                            <Sparkles className="h-8 w-8 text-primary" />
                           ) : (
                             <Target className="h-7 w-7 text-primary" />
                           )}
@@ -565,8 +601,8 @@ const RecommendationModule = () => {
                               : "Website diagnosis"
                             : hasDiagnosticBrief
                               ? isFr
-                                ? "Brief stratégique"
-                                : "Strategic brief"
+                                ? "Pré-diagnostic stratégique"
+                                : "Strategic pre-diagnosis"
                               : isFr
                                 ? "Orientation simple"
                                 : "Simple direction"}
@@ -574,15 +610,15 @@ const RecommendationModule = () => {
                         <h3 className="text-2xl font-bold">
                           {hasDiagnosticBrief
                             ? isFr
-                              ? "Votre rapport express"
-                              : "Your express report"
+                              ? "Votre plan prioritaire"
+                              : "Your priority plan"
                             : isFr
                               ? "Votre meilleure prochaine étape"
                               : "Your best next step"}
                         </h3>
                         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                           {hasDiagnosticBrief
-                            ? diagnosis?.situation
+                            ? publicSituation
                             : resultMessage ||
                               (isFr
                                 ? "On vous guide vers l'offre la plus logique sans afficher de faux audit."
@@ -602,10 +638,10 @@ const RecommendationModule = () => {
                       >
                         <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                           <AlertTriangle className="h-3.5 w-3.5 text-orange-400" />
-                          {isFr ? "Points à améliorer" : "Areas to improve"}
+                          {isFr ? "Priorités à corriger" : "Priorities to fix"}
                         </p>
                         <div className="space-y-3">
-                          {(diagnosis?.problemes || []).map((item) => (
+                          {publicIssues.map((item) => (
                             <div key={item} className="flex items-start gap-3">
                               <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-orange-400/10 text-orange-400">
                                 <AlertTriangle className="h-3.5 w-3.5" />
@@ -616,7 +652,7 @@ const RecommendationModule = () => {
                         </div>
                       </motion.div>
 
-                      {(diagnosis?.audit_brief || diagnosis?.expertise_angle || (diagnosis?.points_forts || []).length > 0) && (
+                      {(publicAuditBrief || diagnosis?.expertise_angle || (diagnosis?.points_forts || []).length > 0) && (
                         <motion.div
                           initial={{ opacity: 0, y: 18 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -625,10 +661,10 @@ const RecommendationModule = () => {
                         >
                           <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                             <Sparkles className="h-3.5 w-3.5 text-primary" />
-                            {isFr ? "Brief d'expertise Pixelrises" : "Pixelrises expert brief"}
+                            {isFr ? "Diagnostic & méthode Pixelrises" : "Pixelrises diagnosis & method"}
                           </p>
-                          {diagnosis?.audit_brief && (
-                            <p className="text-sm leading-6 text-foreground">{diagnosis.audit_brief}</p>
+                          {publicAuditBrief && (
+                            <p className="text-sm leading-6 text-foreground">{publicAuditBrief}</p>
                           )}
                           {diagnosis?.expertise_angle && (
                             <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
@@ -678,7 +714,7 @@ const RecommendationModule = () => {
                         )}
                       </motion.div>
 
-                      {(diagnosis?.manual_checks || []).length > 0 && (
+                      {publicQualityChecks.length > 0 && (
                         <motion.div
                           initial={{ opacity: 0, y: 18 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -687,10 +723,10 @@ const RecommendationModule = () => {
                         >
                           <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                             <Eye className="h-3.5 w-3.5 text-primary" />
-                            {isFr ? "Vérifications manuelles utiles" : "Useful manual checks"}
+                            {isFr ? "Contrôles qualité inclus" : "Included quality checks"}
                           </p>
                           <div className="space-y-3">
-                            {diagnosis!.manual_checks!.map((item, index) => (
+                            {publicQualityChecks.map((item, index) => (
                               <div key={item} className="flex items-start gap-3">
                                 <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-secondary/70 text-xs font-bold text-primary">
                                   {index + 1}
@@ -769,12 +805,6 @@ const RecommendationModule = () => {
                     </p>
                   </div>
 
-                  {hasDiagnosticBrief && diagnosis?.raison_offre && (
-                    <p className="mb-5 text-sm italic text-muted-foreground">
-                      "{diagnosis.raison_offre}"
-                    </p>
-                  )}
-
                   {hasDiagnosticBrief && diagnosis?.how_pixelrises_helps && (
                     <div className="mb-4 rounded-2xl border border-green-500/20 bg-green-500/5 p-4">
                       <p className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
@@ -789,8 +819,8 @@ const RecommendationModule = () => {
                       <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
                       <p className="text-sm text-muted-foreground">
                         {isFr
-                          ? "Le but n'est pas de choisir l'offre la moins chère, mais celle qui vous donne le meilleur raccourci vers un site utile et vendable."
-                          : "The goal is not to choose the cheapest offer, but the one that gives you the best shortcut to a useful, sellable website."}
+                          ? "Cette recommandation privilégie le meilleur rapport entre crédibilité, vitesse de mise en ligne et potentiel de conversion."
+                          : "This recommendation prioritizes the best balance between credibility, launch speed and conversion potential."}
                       </p>
                     </div>
 
