@@ -1,4 +1,7 @@
-project_id = "hxbbktdqrswnuarbzhsl"
+project_id = "xqrnrhnseblblebxfhwp"
 
 [functions.stripe-webhook]
+verify_jwt = false
+
+[functions.analyze-url]
 verify_jwt = false

@@ -300,7 +300,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    getRequiredEnvMap(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GEMINI_API_KEY"] as const);
+    getRequiredEnvMap(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const);
 
     const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     if (await isRateLimited(clientIp)) {
