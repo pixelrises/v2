@@ -137,6 +137,8 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(analyzeUrl).toContain("signal: AbortSignal.timeout(15000)");
     expect(analyzeUrl).toContain("extractHtmlSignals");
     expect(analyzeUrl).toContain("Analyse vraiment le HTML fourni");
+    expect(analyzeUrl).toContain("createAIChatCompletion");
+    expect(analyzeUrl).toContain("AI_GATEWAY_DIAGNOSTIC_MODEL");
     expect(analyzeUrl).toContain("Aucun diagnostic automatique n'a été généré");
     expect(recommendationModule).toContain("buildStrategicDiagnosis");
     expect(recommendationModule).toContain("requiresRealWebsiteAudit");
@@ -154,6 +156,8 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(recommendationModule).not.toContain("L'acces automatique au site est bloque");
     expect(recommendationModule).not.toContain("setDiagnosis(data?.diagnosis || buildStrategicDiagnosis");
     expect(recommendationModule).not.toContain("\"{diagnosis.raison_offre}\"");
+    expect(analyzeUrl).not.toContain("generativelanguage.googleapis.com");
+    expect(analyzeUrl).not.toContain('"GEMINI_API_KEY"');
   });
 
   it("keeps Product Lab auto-merge blocked without admin approval and safe checks", () => {

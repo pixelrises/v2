@@ -10,6 +10,7 @@ describe("Supabase Claude provider contract", () => {
     const provider = readProjectFile("supabase/functions/_shared/ai-provider.ts");
 
     expect(provider).toContain("AI_GATEWAY_API_KEY");
+    expect(provider).toContain("API_GATEWAY_VERCEL");
     expect(provider).toContain("https://ai-gateway.vercel.sh/v1/chat/completions");
     expect(provider).toContain("normalizeVercelGatewayModelName");
     expect(provider).toContain("createVercelGatewayChatCompletion");
@@ -49,5 +50,14 @@ describe("Supabase Claude provider contract", () => {
 
     expect(generateSite).toContain('"SUPABASE_SERVICE_ROLE_KEY"');
     expect(generateSite).not.toContain('"GEMINI_API_KEY",');
+  });
+
+  it("routes landing diagnostics through the shared AI provider", () => {
+    const analyzeUrl = readProjectFile("supabase/functions/analyze-url/index.ts");
+
+    expect(analyzeUrl).toContain("createAIChatCompletion");
+    expect(analyzeUrl).toContain("AI_GATEWAY_DIAGNOSTIC_MODEL");
+    expect(analyzeUrl).not.toContain('"GEMINI_API_KEY"');
+    expect(analyzeUrl).not.toContain("generativelanguage.googleapis.com");
   });
 });

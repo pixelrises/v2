@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getRequiredEnvMap } from "../_shared/env.ts";
+import { createAIChatCompletion } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -67,60 +68,6 @@ type Diagnosis = {
   how_pixelrises_helps?: string;
   manual_checks?: string[];
 };
-
-const DIAGNOSIS_RESPONSE_SCHEMA = {
-  type: "object",
-  properties: {
-    score_global: { type: "integer", minimum: 1, maximum: 10 },
-    situation: { type: "string" },
-    problemes: {
-      type: "array",
-      items: { type: "string" },
-      minItems: 2,
-      maxItems: 3,
-    },
-    points_forts: {
-      type: "array",
-      items: { type: "string" },
-      maxItems: 2,
-    },
-    plan_action: {
-      type: "array",
-      items: { type: "string" },
-      minItems: 2,
-      maxItems: 3,
-    },
-    resultat_attendu: { type: "string" },
-    recommandation_offre: {
-      type: "string",
-      enum: ["Essentiel", "Professionnel", "Premium"],
-    },
-    raison_offre: { type: "string" },
-    site_accessible: { type: "boolean" },
-    analysis_source: {
-      type: "string",
-      enum: ["live_url_audit", "blocked_url_brief", "questionnaire_brief"],
-    },
-    tested_url: { type: "string" },
-    audit_brief: { type: "string" },
-    expertise_angle: { type: "string" },
-    how_pixelrises_helps: { type: "string" },
-    manual_checks: {
-      type: "array",
-      items: { type: "string" },
-      maxItems: 4,
-    },
-  },
-  required: [
-    "score_global",
-    "situation",
-    "problemes",
-    "plan_action",
-    "resultat_attendu",
-    "recommandation_offre",
-    "raison_offre",
-  ],
-} as const;
 
 async function isRateLimited(ip: string): Promise<boolean> {
   const env = getRequiredEnvMap(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const);
@@ -223,38 +170,42 @@ function parseDiagnosis(content: string): Diagnosis | null {
 }
 
 async function generateStructuredDiagnosis(prompt: string): Promise<Diagnosis | null> {
-  const env = getRequiredEnvMap(["GEMINI_API_KEY"] as const);
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+  const model =
+    Deno.env.get("AI_GATEWAY_DIAGNOSTIC_MODEL")?.trim() ||
+    Deno.env.get("AI_GATEWAY_COPY_MODEL")?.trim() ||
+    Deno.env.get("AI_GATEWAY_OPENAI_MODEL")?.trim() ||
+    Deno.env.get("AI_GATEWAY_BALANCED_MODEL")?.trim() ||
+    "openai/gpt-4o-mini";
+
+  const response = await createAIChatCompletion({
+    model,
+    temperature: 0.2,
+    max_tokens: 1100,
+    messages: [
+      {
+        role: "system",
+        content:
+          "Tu es l'auditeur diagnostic Pixelrises. Réponds uniquement avec un objet JSON valide, sans markdown, sans texte autour, sans secret, sans trace technique.",
       },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseJsonSchema: DIAGNOSIS_RESPONSE_SCHEMA,
-          temperature: 0.2,
-          maxOutputTokens: 900,
-          thinkingConfig: {
-            thinkingBudget: 0,
-          },
-        },
-      }),
-    },
-  );
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+  });
 
   if (!response.ok) {
     if (response.status === 429) {
       throw new Error("RATE_LIMIT");
     }
-    throw new Error(`GEMINI_NATIVE_${response.status}`);
+    throw new Error(`AI_PROVIDER_${response.status}`);
   }
 
   const payload = await response.json();
-  const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  const content = payload?.choices?.[0]?.message?.content;
+  const text = Array.isArray(content)
+    ? content.map((item) => item?.text ?? "").join("\n")
+    : String(content ?? "");
   return parseDiagnosis(text);
 }
 
