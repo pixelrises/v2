@@ -137,6 +137,11 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(analyzeUrl).toContain("signal: AbortSignal.timeout(15000)");
     expect(analyzeUrl).toContain("extractHtmlSignals");
     expect(analyzeUrl).toContain("Analyse vraiment le HTML fourni");
+    expect(analyzeUrl).toContain("auditScope");
+    expect(analyzeUrl).toContain("html_server_limited_client_rendered");
+    expect(analyzeUrl).toContain("conversion_brief");
+    expect(analyzeUrl).toContain("audit_limitations");
+    expect(analyzeUrl).toContain("enforceBudgetRecommendation");
     expect(analyzeUrl).toContain("DEFAULT_RATE_LIMIT = 60");
     expect(analyzeUrl).toContain("ANALYZE_URL_RATE_LIMIT");
     expect(analyzeUrl).toContain("createAIChatCompletion");
@@ -150,6 +155,10 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(recommendationModule).toContain("Pourquoi cette recommandation");
     expect(recommendationModule).toContain("Diagnostic & méthode Pixelrises");
     expect(recommendationModule).toContain("Contrôles qualité inclus");
+    expect(recommendationModule).toContain("Signaux réellement utilisés");
+    expect(recommendationModule).toContain("Brief conversion");
+    expect(recommendationModule).toContain("Périmètre vérifié");
+    expect(recommendationModule).toContain("OFFER_RANK");
     expect(recommendationModule).not.toContain("Impossible d'accéder au site pour réaliser l'analyse.");
     expect(analyzeUrl).not.toContain("Impossible d'accéder au site pour réaliser l'analyse.");
     expect(analyzeUrl).not.toContain("buildBlockedSitePrompt");

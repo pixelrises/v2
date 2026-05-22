@@ -24,7 +24,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useTranslation } from "@/i18n/useTranslation";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import AnimatedCounter from "@/components/ui/animated-counter";
 
 const WHATSAPP_LINK = "https://wa.me/33775256214";
 
@@ -46,12 +45,23 @@ type Diagnosis = {
   expertise_angle?: string;
   how_pixelrises_helps?: string;
   manual_checks?: string[];
+  evidence?: string[];
+  conversion_brief?: string;
+  copy_angle?: string;
+  audit_limitations?: string[];
+  confidence_level?: "high" | "medium" | "limited";
 };
 
 const OFFERS: Record<string, { price: string; link: string }> = {
   Essentiel: { price: "490", link: "https://buy.stripe.com/eVqaEZgHHeF9d6v5qpaZi0k" },
   Professionnel: { price: "790", link: "https://buy.stripe.com/8x200l3UVdB56I7065aZi0j" },
   Premium: { price: "1190", link: "https://buy.stripe.com/bJe00l4YZ9kP3vV1a9aZi0i" },
+};
+
+const OFFER_RANK: Record<string, number> = {
+  Essentiel: 1,
+  Professionnel: 2,
+  Premium: 3,
 };
 
 const RecommendationModule = () => {
@@ -120,8 +130,12 @@ const RecommendationModule = () => {
 
   const enforceBudget = (offerName: string) => {
     const ceiling = parseBudgetCeiling(answers.budget);
+    const localRecommendation = getLocalRecommendation();
     const price = parseInt(OFFERS[offerName]?.price || "0", 10);
-    if (ceiling && price > ceiling) return getLocalRecommendation();
+    if (ceiling && price > ceiling) return localRecommendation;
+    if ((OFFER_RANK[offerName] || 0) < (OFFER_RANK[localRecommendation] || 0)) {
+      return localRecommendation;
+    }
     return offerName;
   };
 
@@ -224,6 +238,27 @@ const RecommendationModule = () => {
             "Business proof shown before the contact request.",
             "Mobile version readable, reassuring and fast.",
           ],
+      evidence: isFr
+        ? [
+            `Réponse objectif : ${objective}.`,
+            `Budget déclaré : ${answers.budget || "à préciser"}.`,
+            hasWebsite ? `URL fournie : ${siteLabel || testedUrl}.` : "Aucun site existant déclaré.",
+          ]
+        : [
+            `Goal answer: ${objective}.`,
+            `Declared budget: ${answers.budget || "to clarify"}.`,
+            hasWebsite ? `Submitted URL: ${siteLabel || testedUrl}.` : "No existing website declared.",
+          ],
+      conversion_brief: isFr
+        ? "Transformer le besoin en parcours clair : promesse courte, preuve visible, CTA unique, puis section de réassurance avant contact."
+        : "Turn the need into a clear journey: short promise, visible proof, one CTA, then reassurance before contact.",
+      copy_angle: isFr
+        ? `Angle conseillé : relier "${objective}" à un bénéfice concret et mesurable sans surpromesse.`
+        : `Recommended angle: connect "${objective}" to a concrete, measurable benefit without overpromising.`,
+      audit_limitations: isFr
+        ? ["Pré-diagnostic basé sur le questionnaire, sans lecture automatique complète d'un site."]
+        : ["Pre-diagnosis based on the questionnaire, without a full automatic website read."],
+      confidence_level: source === "live_url_audit" ? "high" : "medium",
     };
   };
 
@@ -266,6 +301,10 @@ const RecommendationModule = () => {
             : "Strategic brief generated from your answers. Validate it with a real audit when access is available.",
         );
         return;
+      }
+
+      if (requiresRealWebsiteAudit) {
+        await new Promise((resolve) => setTimeout(resolve, 1800));
       }
 
       const { data, error } = await supabase.functions.invoke("analyze-url", {
@@ -438,12 +477,6 @@ const RecommendationModule = () => {
     return Boolean(answers[currentStep.key as keyof typeof answers]);
   };
 
-  const scoreColor = (score: number) => {
-    if (score >= 7) return "text-green-400";
-    if (score >= 4) return "text-orange-400";
-    return "text-red-400";
-  };
-
   const hasDiagnosticBrief = Boolean(diagnosis);
   const isRealDiagnosis = resultMode === "real" && Boolean(diagnosis);
   const showFallbackGuidance = resultMode === "estimate" || resultMode === "unavailable";
@@ -486,6 +519,16 @@ const RecommendationModule = () => {
           "Mobile version readable, reassuring and fast.",
         ]
     : diagnosis?.manual_checks || [];
+  const publicEvidence = (diagnosis?.evidence || []).filter(Boolean).slice(0, 5);
+  const publicConversionBrief = diagnosis?.conversion_brief || "";
+  const publicCopyAngle = diagnosis?.copy_angle || "";
+  const publicAuditLimitations = (diagnosis?.audit_limitations || []).filter(Boolean).slice(0, 3);
+  const confidenceLabel = (() => {
+    if (!diagnosis?.confidence_level) return isFr ? "Analyse cadrée" : "Framed analysis";
+    if (diagnosis.confidence_level === "high") return isFr ? "Confiance élevée" : "High confidence";
+    if (diagnosis.confidence_level === "limited") return isFr ? "Périmètre limité" : "Limited scope";
+    return isFr ? "Confiance moyenne" : "Medium confidence";
+  })();
   const currentObjective = answers.objectif || (isFr ? "objectif à préciser" : "goal to clarify");
   const currentBudget = answers.budget || (isFr ? "budget à préciser" : "budget to clarify");
   const currentWebsite = diagnosis?.tested_url || normalizeWebsiteUrl(answers.url);
@@ -517,6 +560,10 @@ const RecommendationModule = () => {
     {
       label: isFr ? "Priorité détectée" : "Detected priority",
       value: priorityDetected,
+    },
+    {
+      label: isFr ? "Niveau de preuve" : "Evidence level",
+      value: confidenceLabel,
     },
   ];
   const decisionReasons = isFr
@@ -581,6 +628,23 @@ const RecommendationModule = () => {
                         ? "On prépare un diagnostic réel à partir de votre contexte business."
                         : "Preparing a real diagnosis based on your business context."}
                   </p>
+                  {answers.url && (
+                    <div className="mx-auto mt-6 grid max-w-2xl gap-3 text-left sm:grid-cols-2">
+                      {[
+                        isFr ? "Lecture de l'URL publique" : "Reading the public URL",
+                        isFr ? "Extraction des signaux visibles" : "Extracting visible signals",
+                        isFr ? "Analyse conversion par IA Pixelrises" : "Pixelrises AI conversion review",
+                        isFr ? "Rédaction du brief actionnable" : "Writing the action brief",
+                      ].map((item, index) => (
+                        <div key={item} className="rounded-2xl border border-primary/15 bg-primary/[0.04] p-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                            {isFr ? "Étape" : "Step"} {index + 1}
+                          </p>
+                          <p className="mt-1 text-sm font-medium text-foreground">{item}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </AnimatedSection>
@@ -747,13 +811,9 @@ const RecommendationModule = () => {
                     <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
                     <div className="relative flex items-center gap-5">
                       <div className="relative flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5">
-                        <span
-                          className={`text-2xl font-extrabold ${
-                            isRealDiagnosis && diagnosis ? scoreColor(diagnosis.score_global) : "text-primary"
-                          }`}
-                        >
+                        <span className="text-2xl font-extrabold text-primary">
                           {isRealDiagnosis ? (
-                            <AnimatedCounter value={diagnosis!.score_global} duration={1400} />
+                            <Search className="h-8 w-8 text-primary" />
                           ) : hasDiagnosticBrief ? (
                             <Sparkles className="h-8 w-8 text-primary" />
                           ) : (
@@ -830,6 +890,28 @@ const RecommendationModule = () => {
                         </div>
                       </motion.div>
 
+                      {publicEvidence.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 18 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.07 }}
+                          className="glass-card p-7 sm:p-8"
+                        >
+                          <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                            <Eye className="h-3.5 w-3.5 text-primary" />
+                            {isFr ? "Signaux réellement utilisés" : "Signals actually used"}
+                          </p>
+                          <div className="space-y-3">
+                            {publicEvidence.map((item) => (
+                              <div key={item} className="flex items-start gap-3">
+                                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-400" />
+                                <p className="text-sm leading-6 text-muted-foreground">{item}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+
                       <motion.div
                         initial={{ opacity: 0, y: 18 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -865,6 +947,26 @@ const RecommendationModule = () => {
                           </p>
                           {publicAuditBrief && (
                             <p className="text-sm leading-6 text-foreground">{publicAuditBrief}</p>
+                          )}
+                          {(publicConversionBrief || publicCopyAngle) && (
+                            <div className="mt-4 grid gap-3">
+                              {publicConversionBrief && (
+                                <div className="rounded-xl border border-primary/15 bg-primary/[0.04] p-4">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                                    {isFr ? "Brief conversion" : "Conversion brief"}
+                                  </p>
+                                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{publicConversionBrief}</p>
+                                </div>
+                              )}
+                              {publicCopyAngle && (
+                                <div className="rounded-xl border border-border bg-secondary/20 p-4">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                                    {isFr ? "Angle de message" : "Messaging angle"}
+                                  </p>
+                                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{publicCopyAngle}</p>
+                                </div>
+                              )}
+                            </div>
                           )}
                           {diagnosis?.expertise_angle && (
                             <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
@@ -933,6 +1035,27 @@ const RecommendationModule = () => {
                                 </div>
                                 <p className="text-sm text-muted-foreground">{item}</p>
                               </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {publicAuditLimitations.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 18 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.22 }}
+                          className="glass-card p-7 sm:p-8"
+                        >
+                          <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                            {isFr ? "Périmètre vérifié" : "Verified scope"}
+                          </p>
+                          <div className="space-y-3">
+                            {publicAuditLimitations.map((item) => (
+                              <p key={item} className="rounded-xl border border-border bg-secondary/20 p-4 text-sm leading-6 text-muted-foreground">
+                                {item}
+                              </p>
                             ))}
                           </div>
                         </motion.div>

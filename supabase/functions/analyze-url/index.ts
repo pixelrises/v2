@@ -57,7 +57,17 @@ const DIAGNOSIS_JSON_SCHEMA = `{
   "manual_checks": [
     "verification manuelle utile 1",
     "verification manuelle utile 2"
-  ]
+  ],
+  "evidence": [
+    "signal observe 1",
+    "signal observe 2"
+  ],
+  "conversion_brief": "Brief court de conversion : promesse, preuve, CTA, parcours",
+  "copy_angle": "Angle de message recommande",
+  "audit_limitations": [
+    "perimetre verifie ou point a confirmer"
+  ],
+  "confidence_level": "high ou medium ou limited"
 }`;
 
 type Diagnosis = {
@@ -76,7 +86,62 @@ type Diagnosis = {
   expertise_angle?: string;
   how_pixelrises_helps?: string;
   manual_checks?: string[];
+  evidence?: string[];
+  conversion_brief?: string;
+  copy_angle?: string;
+  audit_limitations?: string[];
+  confidence_level?: "high" | "medium" | "limited";
 };
+
+const OFFER_PRICES: Record<Diagnosis["recommandation_offre"], number> = {
+  Essentiel: 490,
+  Professionnel: 790,
+  Premium: 1190,
+};
+
+const OFFER_RANK: Record<Diagnosis["recommandation_offre"], number> = {
+  Essentiel: 1,
+  Professionnel: 2,
+  Premium: 3,
+};
+
+function parseBudgetCeiling(budget: unknown) {
+  const value = String(budget || "");
+  const numbers = value.match(/\d+/g)?.map(Number) || [];
+  if (numbers.length === 0) return 0;
+  if (/plus|more|\+/i.test(value)) return 99999;
+  return Math.max(...numbers);
+}
+
+function budgetRecommendation(budget: unknown): Diagnosis["recommandation_offre"] {
+  const ceiling = parseBudgetCeiling(budget);
+  if (ceiling > 1000) return "Premium";
+  if (ceiling >= 600) return "Professionnel";
+  return "Essentiel";
+}
+
+function enforceBudgetRecommendation(diagnosis: Diagnosis, budget: unknown): Diagnosis {
+  const expected = budgetRecommendation(budget);
+  const proposed = diagnosis.recommandation_offre;
+  const ceiling = parseBudgetCeiling(budget);
+  const proposedPrice = OFFER_PRICES[proposed] || 0;
+  const mustUseExpected =
+    (ceiling && proposedPrice > ceiling) ||
+    (OFFER_RANK[proposed] || 0) < (OFFER_RANK[expected] || 0);
+
+  if (!mustUseExpected) return diagnosis;
+
+  return {
+    ...diagnosis,
+    recommandation_offre: expected,
+    raison_offre:
+      expected === "Professionnel"
+        ? "La formule Professionnel correspond mieux au budget déclaré et au niveau de cadrage nécessaire pour corriger la clarté, la preuve et la conversion."
+        : expected === "Premium"
+          ? "La formule Premium est plus cohérente avec l'ambition et le budget déclarés pour produire une présence plus différenciante."
+          : diagnosis.raison_offre,
+  };
+}
 
 async function isRateLimited(ip: string): Promise<boolean> {
   const env = getRequiredEnvMap(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const);
@@ -172,6 +237,17 @@ function parseDiagnosis(content: string): Diagnosis | null {
       manual_checks: Array.isArray(parsed.manual_checks)
         ? parsed.manual_checks.map(String).filter(Boolean).slice(0, 4)
         : [],
+      evidence: Array.isArray(parsed.evidence)
+        ? parsed.evidence.map(String).filter(Boolean).slice(0, 5)
+        : [],
+      conversion_brief: typeof parsed.conversion_brief === "string" ? parsed.conversion_brief : "",
+      copy_angle: typeof parsed.copy_angle === "string" ? parsed.copy_angle : "",
+      audit_limitations: Array.isArray(parsed.audit_limitations)
+        ? parsed.audit_limitations.map(String).filter(Boolean).slice(0, 3)
+        : [],
+      confidence_level: ["high", "medium", "limited"].includes(parsed.confidence_level)
+        ? parsed.confidence_level
+        : "medium",
     };
   } catch {
     return null;
@@ -194,7 +270,7 @@ async function generateStructuredDiagnosis(prompt: string): Promise<Diagnosis | 
       {
         role: "system",
         content:
-          "Tu es l'auditeur diagnostic Pixelrises. Réponds uniquement avec un objet JSON valide, sans markdown, sans texte autour, sans secret, sans trace technique.",
+          "Tu es l'auditeur diagnostic Pixelrises. Réponds uniquement avec un objet JSON valide, sans markdown, sans texte autour, sans secret, sans trace technique. Tu ne dois jamais inventer de preuve, de chiffre, d'avis client ou d'observation non fournie.",
       },
       {
         role: "user",
@@ -227,12 +303,36 @@ function stripHtml(value: string) {
     .trim();
 }
 
+function cleanSignalText(value: string) {
+  return value
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function collectHtmlText(html: string, pattern: RegExp, limit = 8) {
+  const results: string[] = [];
+  for (const match of html.matchAll(pattern)) {
+    const value = cleanSignalText(match[1] || "");
+    if (value && value.length >= 2 && value.length <= 140 && !results.includes(value)) {
+      results.push(value);
+    }
+    if (results.length >= limit) break;
+  }
+  return results;
+}
+
 function extractHtmlSignals(html: string) {
   const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() || "";
   const description =
     html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)?.[1]?.trim() ||
     html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i)?.[1]?.trim() ||
     "";
+  const canonical = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i)?.[1]?.trim() || "";
   const h1Count = (html.match(/<h1\b/gi) || []).length;
   const h2Count = (html.match(/<h2\b/gi) || []).length;
   const formCount = (html.match(/<form\b/gi) || []).length;
@@ -240,16 +340,42 @@ function extractHtmlSignals(html: string) {
   const linkCount = (html.match(/<a\b/gi) || []).length;
   const imageWithoutAltCount = (html.match(/<img(?![^>]*\balt=)/gi) || []).length;
   const visibleText = stripHtml(html).slice(0, 3500);
+  const h1Texts = collectHtmlText(html, /<h1[^>]*>([\s\S]*?)<\/h1>/gi, 4);
+  const h2Texts = collectHtmlText(html, /<h2[^>]*>([\s\S]*?)<\/h2>/gi, 8);
+  const buttonTexts = collectHtmlText(html, /<button[^>]*>([\s\S]*?)<\/button>/gi, 8);
+  const linkTexts = collectHtmlText(html, /<a[^>]*>([\s\S]*?)<\/a>/gi, 12);
+  const ctaTexts = [...buttonTexts, ...linkTexts]
+    .filter((item) => /(contact|devis|appel|audit|diagnostic|rendez|reserver|réserver|acheter|commander|start|book|call|quote|buy)/i.test(item))
+    .slice(0, 8);
+  const hasContactSignal = /(mailto:|tel:|wa\.me|whatsapp|contact|prendre rendez|devis)/i.test(html);
+  const hasStructuredData = /application\/ld\+json/i.test(html);
+  const hasOpenGraph = /property=["']og:/i.test(html);
+  const isLikelyClientRendered =
+    visibleText.length < 700 &&
+    (/<div[^>]+id=["']root["']/i.test(html) ||
+      /<script[^>]+type=["']module["']/i.test(html) ||
+      /\/assets\/.+\.js/i.test(html) ||
+      /__next|data-reactroot|vite/i.test(html));
 
   return {
+    auditScope: isLikelyClientRendered ? "html_server_limited_client_rendered" : "html_server_content",
     title,
     description,
+    canonical,
     h1Count,
     h2Count,
+    h1Texts,
+    h2Texts,
     formCount,
     buttonCount,
     linkCount,
+    ctaTexts,
+    hasContactSignal,
+    hasStructuredData,
+    hasOpenGraph,
     imageWithoutAltCount,
+    textLength: visibleText.length,
+    isLikelyClientRendered,
     visibleText,
   };
 }
@@ -280,8 +406,9 @@ Réponse à la question "avez-vous déjà un site" : ${hasSite || "non précisé
 Crée un diagnostic réel, concis, crédible et actionnable en français.
 Ne sois ni vague ni théâtral. Ne parle pas comme une publicité.
 Adapte la recommandation au budget et à l'objectif.
-Renseigne site_accessible=false, analysis_source="questionnaire_brief", audit_brief, expertise_angle, how_pixelrises_helps et manual_checks.
+Renseigne site_accessible=false, analysis_source="questionnaire_brief", audit_brief, expertise_angle, how_pixelrises_helps, manual_checks, evidence, conversion_brief, copy_angle, audit_limitations et confidence_level="medium".
 Le rapport doit mettre en valeur l'expertise Pixelrises : stratégie, structure, copywriting, design, preuves, conversion et lancement.
+Ne prétends jamais avoir audité une URL si aucune URL n'a été analysée. Dans evidence, cite seulement les réponses du questionnaire.
 
 Réponds en respectant cette structure :
 ${DIAGNOSIS_JSON_SCHEMA}`);
@@ -290,7 +417,7 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
         return jsonResponse({ error: "Le diagnostic n'a pas pu être structuré correctement." }, 502);
       }
 
-      return jsonResponse({ diagnosis });
+      return jsonResponse({ diagnosis: enforceBudgetRecommendation(diagnosis, budget) });
     }
 
     let parsedUrl: URL;
@@ -329,7 +456,13 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
 
       htmlContent = await response.text();
       htmlContent = htmlContent.substring(0, 8000);
-      if (stripHtml(htmlContent).length < 80) {
+      const preliminarySignals = extractHtmlSignals(htmlContent);
+      if (
+        preliminarySignals.visibleText.length < 80 &&
+        !preliminarySignals.title &&
+        !preliminarySignals.description &&
+        !preliminarySignals.isLikelyClientRendered
+      ) {
         return jsonResponse(
           { error: "Le site ne fournit pas assez de contenu lisible pour un diagnostic fiable. Aucun rapport n'a été simulé." },
           422,
@@ -354,6 +487,7 @@ Réponse à la question "avez-vous déjà un site" : ${hasSite || "non précisé
 Analyse vraiment le HTML fourni et les signaux extraits. Tu dois agir comme un audit consultant, pas comme un générateur de texte.
 Identifie les vrais problèmes de clarté, crédibilité, hiérarchie, réassurance, conversion, SEO local, copywriting et orientation business.
 Chaque problème doit être relié à une observation concrète issue des signaux fournis : title, meta description, H1/H2, CTA, formulaires, liens, images sans alt ou texte visible.
+Si auditScope vaut "html_server_limited_client_rendered", explique clairement que l'audit vérifie le HTML serveur et les signaux accessibles sans navigateur rendu. Ne conclus pas que la page rendue n'a aucun CTA ou aucun H1 : formule plutôt "le HTML serveur ne les expose pas clairement, à confirmer sur le rendu visuel".
 Rédige un brief copywriting exploitable : message à clarifier, preuve à ajouter, CTA à renforcer, ordre des sections à corriger.
 Sois honnête, utile et concret. Pas de phrases génériques, pas de promesse inventée, pas de faux avis, pas de fausses statistiques.
 Adapte la recommandation à l'objectif et au budget.
@@ -366,8 +500,9 @@ ${JSON.stringify(htmlSignals, null, 2)}
 HTML brut limite :
 ${htmlContent.slice(0, 4500)}
 
-Renseigne site_accessible=true, analysis_source="live_url_audit", tested_url="${parsedUrl.toString()}", audit_brief, expertise_angle, how_pixelrises_helps et manual_checks.
+Renseigne site_accessible=true, analysis_source="live_url_audit", tested_url="${parsedUrl.toString()}", audit_brief, expertise_angle, how_pixelrises_helps, manual_checks, evidence, conversion_brief, copy_angle, audit_limitations et confidence_level.
 Le rapport doit expliquer les soucis réels du site, comment les corriger, quelle logique de copy appliquer, et pourquoi l'expertise Pixelrises aide à transformer le site en outil de confiance et conversion.
+Dans evidence, cite 3 à 5 signaux observés précisément. Dans audit_limitations, indique sobrement le périmètre vérifié si le rendu client n'est pas visible depuis le HTML serveur.
 
 Réponds en respectant cette structure :
 ${DIAGNOSIS_JSON_SCHEMA}`);
@@ -376,7 +511,7 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
       return jsonResponse({ error: "Le diagnostic n'a pas pu être structuré correctement." }, 502);
     }
 
-    return jsonResponse({ diagnosis });
+    return jsonResponse({ diagnosis: enforceBudgetRecommendation(diagnosis, budget) });
   } catch (error) {
     console.error("analyze-url error:", redactLogValue(error));
 
