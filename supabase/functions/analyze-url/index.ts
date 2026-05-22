@@ -31,6 +31,14 @@ const redactLogValue = (value: unknown) => {
 
 const DIAGNOSIS_JSON_SCHEMA = `{
   "score_global": 1,
+  "expert_score": 72,
+  "category_scores": {
+    "seo": 68,
+    "conversion": 74,
+    "trust": 61,
+    "performance": 78,
+    "responsive": 70
+  },
   "situation": "2 phrases maximum décrivant la situation actuelle et son impact business",
   "problemes": [
     "problème concret 1",
@@ -40,6 +48,10 @@ const DIAGNOSIS_JSON_SCHEMA = `{
   "points_forts": [
     "point fort si pertinent"
   ],
+  "missing_elements": [
+    "element concret manquant pour un site plus credible, visible ou vendeur"
+  ],
+  "expert_verdict": "Verdict expert court, nuance et actionnable",
   "plan_action": [
     "action concrète 1",
     "action concrète 2",
@@ -72,9 +84,19 @@ const DIAGNOSIS_JSON_SCHEMA = `{
 
 type Diagnosis = {
   score_global: number;
+  expert_score?: number;
+  category_scores?: {
+    seo: number;
+    conversion: number;
+    trust: number;
+    performance: number;
+    responsive: number;
+  };
   situation: string;
   problemes: string[];
   points_forts?: string[];
+  missing_elements?: string[];
+  expert_verdict?: string;
   plan_action: string[];
   resultat_attendu: string;
   recommandation_offre: "Essentiel" | "Professionnel" | "Premium";
@@ -203,6 +225,25 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
+function clampScore(value: unknown, fallback: number, min = 1, max = 100) {
+  const score = Number(value);
+  if (!Number.isFinite(score)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(score)));
+}
+
+function parseCategoryScores(value: unknown): Diagnosis["category_scores"] | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const scores = value as Record<string, unknown>;
+
+  return {
+    seo: clampScore(scores.seo, 50),
+    conversion: clampScore(scores.conversion, 50),
+    trust: clampScore(scores.trust, 50),
+    performance: clampScore(scores.performance, 50),
+    responsive: clampScore(scores.responsive, 50),
+  };
+}
+
 function parseDiagnosis(content: string): Diagnosis | null {
   try {
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -215,11 +256,17 @@ function parseDiagnosis(content: string): Diagnosis | null {
 
     return {
       score_global: Math.min(10, Math.max(1, Number(parsed.score_global || 1))),
+      expert_score: clampScore(parsed.expert_score, Math.round(Number(parsed.score_global || 5) * 10)),
+      category_scores: parseCategoryScores(parsed.category_scores),
       situation: String(parsed.situation || ""),
       problemes: parsed.problemes.map(String).filter(Boolean).slice(0, 3),
       points_forts: Array.isArray(parsed.points_forts)
         ? parsed.points_forts.map(String).filter(Boolean).slice(0, 2)
         : [],
+      missing_elements: Array.isArray(parsed.missing_elements)
+        ? parsed.missing_elements.map(String).filter(Boolean).slice(0, 8)
+        : [],
+      expert_verdict: typeof parsed.expert_verdict === "string" ? parsed.expert_verdict : "",
       plan_action: parsed.plan_action.map(String).filter(Boolean).slice(0, 3),
       resultat_attendu: String(parsed.resultat_attendu || ""),
       recommandation_offre: ["Essentiel", "Professionnel", "Premium"].includes(parsed.recommandation_offre)
@@ -265,7 +312,7 @@ async function generateStructuredDiagnosis(prompt: string): Promise<Diagnosis | 
   const response = await createAIChatCompletion({
     model,
     temperature: 0.2,
-    max_tokens: 1100,
+    max_tokens: 1500,
     messages: [
       {
         role: "system",
@@ -326,18 +373,27 @@ function collectHtmlText(html: string, pattern: RegExp, limit = 8) {
   return results;
 }
 
-function extractHtmlSignals(html: string) {
+type UrlResponseMeta = {
+  responseTimeMs?: number;
+  statusCode?: number;
+  contentType?: string;
+  htmlBytes?: number;
+};
+
+function extractHtmlSignals(html: string, meta: UrlResponseMeta = {}) {
   const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() || "";
   const description =
     html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)?.[1]?.trim() ||
     html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i)?.[1]?.trim() ||
     "";
   const canonical = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i)?.[1]?.trim() || "";
+  const viewport = html.match(/<meta[^>]+name=["']viewport["'][^>]*>/i)?.[0] || "";
   const h1Count = (html.match(/<h1\b/gi) || []).length;
   const h2Count = (html.match(/<h2\b/gi) || []).length;
   const formCount = (html.match(/<form\b/gi) || []).length;
   const buttonCount = (html.match(/<button\b|role=["']button["']/gi) || []).length;
   const linkCount = (html.match(/<a\b/gi) || []).length;
+  const imageCount = (html.match(/<img\b/gi) || []).length;
   const imageWithoutAltCount = (html.match(/<img(?![^>]*\balt=)/gi) || []).length;
   const visibleText = stripHtml(html).slice(0, 3500);
   const h1Texts = collectHtmlText(html, /<h1[^>]*>([\s\S]*?)<\/h1>/gi, 4);
@@ -348,8 +404,12 @@ function extractHtmlSignals(html: string) {
     .filter((item) => /(contact|devis|appel|audit|diagnostic|rendez|reserver|réserver|acheter|commander|start|book|call|quote|buy)/i.test(item))
     .slice(0, 8);
   const hasContactSignal = /(mailto:|tel:|wa\.me|whatsapp|contact|prendre rendez|devis)/i.test(html);
+  const hasTrustProofSignal = /(avis|temoignage|témoignage|client|cas client|reference|référence|portfolio|realisation|réalisation|garantie|certification|google reviews?|etoile|étoile)/i.test(visibleText);
+  const hasLocalSeoSignal = /(paris|lyon|marseille|lille|bordeaux|nantes|rennes|toulouse|nice|montpellier|ville|local|proximite|proximité)/i.test(visibleText);
+  const hasLegalTrustSignal = /(mentions legales|mentions légales|politique de confidentialite|politique de confidentialité|cgv|cgu|siret|siren)/i.test(visibleText);
   const hasStructuredData = /application\/ld\+json/i.test(html);
   const hasOpenGraph = /property=["']og:/i.test(html);
+  const hasViewportMeta = Boolean(viewport);
   const isLikelyClientRendered =
     visibleText.length < 700 &&
     (/<div[^>]+id=["']root["']/i.test(html) ||
@@ -362,6 +422,7 @@ function extractHtmlSignals(html: string) {
     title,
     description,
     canonical,
+    hasViewportMeta,
     h1Count,
     h2Count,
     h1Texts,
@@ -369,14 +430,206 @@ function extractHtmlSignals(html: string) {
     formCount,
     buttonCount,
     linkCount,
+    imageCount,
     ctaTexts,
     hasContactSignal,
+    hasTrustProofSignal,
+    hasLocalSeoSignal,
+    hasLegalTrustSignal,
     hasStructuredData,
     hasOpenGraph,
     imageWithoutAltCount,
+    responseTimeMs: meta.responseTimeMs || 0,
+    statusCode: meta.statusCode || 0,
+    contentType: meta.contentType || "",
+    htmlBytes: meta.htmlBytes || html.length,
     textLength: visibleText.length,
     isLikelyClientRendered,
     visibleText,
+  };
+}
+
+type HtmlSignals = ReturnType<typeof extractHtmlSignals>;
+
+function addUnique(items: string[], value: string) {
+  if (!items.includes(value)) items.push(value);
+}
+
+function buildExpertAuditMetrics(signals: HtmlSignals) {
+  const missingElements: string[] = [];
+  const evidence: string[] = [];
+  const limitations: string[] = [];
+
+  let seo = 20;
+  if (signals.title) {
+    seo += signals.title.length >= 25 && signals.title.length <= 70 ? 18 : 10;
+    evidence.push(`Title detecte : "${signals.title.slice(0, 90)}"`);
+  } else {
+    addUnique(missingElements, "Un title SEO clair avec activite, zone et benefice principal.");
+  }
+
+  if (signals.description) {
+    seo += signals.description.length >= 70 && signals.description.length <= 170 ? 16 : 9;
+    evidence.push(`Meta description detectee : "${signals.description.slice(0, 120)}"`);
+  } else {
+    addUnique(missingElements, "Une meta description orientee clic, promesse et preuve.");
+  }
+
+  if (signals.h1Count > 0) {
+    seo += 14;
+    evidence.push(`H1 detecte(s) : ${signals.h1Texts.slice(0, 2).join(" | ") || signals.h1Count}`);
+  } else if (signals.isLikelyClientRendered) {
+    addUnique(missingElements, "Un H1 visible dans le rendu et idealement expose clairement au HTML serveur.");
+  } else {
+    addUnique(missingElements, "Un H1 unique qui annonce clairement l'offre.");
+  }
+
+  if (signals.h2Count >= 2) seo += 8;
+  else addUnique(missingElements, "Des H2 structures pour presenter problemes, solution, preuves, FAQ et action.");
+
+  if (signals.canonical) seo += 6;
+  else addUnique(missingElements, "Une URL canonique pour clarifier l'indexation Google.");
+
+  if (signals.hasStructuredData) seo += 10;
+  else addUnique(missingElements, "Des donnees structurees Schema.org pour aider Google a comprendre l'activite.");
+
+  if (signals.hasOpenGraph) seo += 5;
+  else addUnique(missingElements, "Des balises Open Graph propres pour les partages sociaux et la credibilite.");
+
+  if (signals.imageCount > 0 && signals.imageWithoutAltCount === 0) seo += 9;
+  if (signals.imageWithoutAltCount > 0) {
+    addUnique(missingElements, `${signals.imageWithoutAltCount} image(s) sans alt descriptif pour l'accessibilite et le SEO.`);
+  }
+
+  let conversion = 18;
+  if (signals.ctaTexts.length > 0) {
+    conversion += 24;
+    evidence.push(`CTA detecte(s) : ${signals.ctaTexts.slice(0, 4).join(" | ")}`);
+  } else {
+    addUnique(missingElements, "Un CTA principal visible et coherent avec l'objectif commercial.");
+  }
+  if (signals.formCount > 0 || signals.hasContactSignal) conversion += 18;
+  else addUnique(missingElements, "Un chemin de contact simple : formulaire, telephone, WhatsApp ou prise de rendez-vous.");
+  if (signals.visibleText.length >= 900) conversion += 10;
+  else addUnique(missingElements, "Un contenu plus explicite sur le probleme client, la methode et le resultat attendu.");
+  if (signals.h1Texts.length > 0 && signals.h2Texts.length > 1) conversion += 10;
+  if (signals.hasTrustProofSignal) conversion += 10;
+  else addUnique(missingElements, "Des preuves visibles : avis, cas clients, references, realisations ou garanties.");
+
+  let trust = 18;
+  if (signals.hasContactSignal) trust += 22;
+  else addUnique(missingElements, "Des informations de contact rassurantes et faciles a trouver.");
+  if (signals.hasTrustProofSignal) trust += 24;
+  if (signals.hasLegalTrustSignal) trust += 12;
+  else addUnique(missingElements, "Des signaux de confiance : mentions legales, politique de confidentialite ou informations entreprise.");
+  if (signals.hasStructuredData) trust += 10;
+  if (signals.hasOpenGraph) trust += 8;
+
+  let performance = 45;
+  if (signals.responseTimeMs && signals.responseTimeMs < 800) performance += 28;
+  else if (signals.responseTimeMs && signals.responseTimeMs < 1800) performance += 18;
+  else if (signals.responseTimeMs) {
+    performance += 8;
+    addUnique(missingElements, "Un temps de reponse serveur plus rapide pour limiter la friction avant lecture.");
+  }
+  if (signals.htmlBytes < 180000) performance += 12;
+  else addUnique(missingElements, "Un HTML initial plus leger ou mieux optimise pour reduire le poids percu.");
+  if (!signals.isLikelyClientRendered) performance += 8;
+  else {
+    limitations.push("Le site semble rendu cote client : l'audit automatique lit le HTML serveur et les signaux accessibles, pas un Lighthouse complet.");
+  }
+
+  let responsive = 35;
+  if (signals.hasViewportMeta) responsive += 35;
+  else addUnique(missingElements, "Une balise viewport mobile pour garantir une base responsive correcte.");
+  if (signals.ctaTexts.length > 0) responsive += 10;
+  if (signals.visibleText.length >= 500) responsive += 8;
+  limitations.push("Le responsive et les Core Web Vitals doivent etre confirmes par un test navigateur/Lighthouse avant affirmation definitive.");
+
+  if (signals.hasLocalSeoSignal) {
+    seo += 6;
+    evidence.push("Signal local detecte dans le contenu.");
+  }
+
+  if (signals.responseTimeMs) {
+    evidence.push(`Reponse HTTP ${signals.statusCode || "OK"} en ${signals.responseTimeMs} ms, HTML lu : ${signals.htmlBytes} octets.`);
+  }
+
+  const categoryScores = {
+    seo: clampScore(seo, 50),
+    conversion: clampScore(conversion, 50),
+    trust: clampScore(trust, 50),
+    performance: clampScore(performance, 50),
+    responsive: clampScore(responsive, 50),
+  };
+  const expertScore = clampScore(
+    Math.round(
+      categoryScores.seo * 0.22 +
+        categoryScores.conversion * 0.28 +
+        categoryScores.trust * 0.2 +
+        categoryScores.performance * 0.15 +
+        categoryScores.responsive * 0.15,
+    ),
+    55,
+  );
+
+  return {
+    expertScore,
+    categoryScores,
+    missingElements: missingElements.slice(0, 8),
+    evidence: evidence.slice(0, 5),
+    limitations: limitations.slice(0, 3),
+  };
+}
+
+function dedupeDiagnosticList(items: string[], limit: number) {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const item of items) {
+    const key = item
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/["'`]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 84);
+
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+    if (result.length >= limit) break;
+  }
+
+  return result;
+}
+
+function applyExpertMetrics(diagnosis: Diagnosis, metrics: ReturnType<typeof buildExpertAuditMetrics>): Diagnosis {
+  const mergedEvidence = dedupeDiagnosticList(
+    [...metrics.evidence, ...(diagnosis.evidence || [])].filter(Boolean),
+    5,
+  );
+  const mergedLimitations = dedupeDiagnosticList(
+    [...metrics.limitations, ...(diagnosis.audit_limitations || [])].filter(Boolean),
+    3,
+  );
+  const mergedMissingElements = dedupeDiagnosticList(
+    [...metrics.missingElements, ...(diagnosis.missing_elements || [])].filter(Boolean),
+    8,
+  );
+
+  return {
+    ...diagnosis,
+    expert_score: metrics.expertScore,
+    score_global: Math.max(1, Math.min(10, Math.round(metrics.expertScore / 10))),
+    category_scores: metrics.categoryScores,
+    missing_elements: mergedMissingElements,
+    evidence: mergedEvidence,
+    audit_limitations: mergedLimitations,
+    expert_verdict:
+      diagnosis.expert_verdict ||
+      "Le site possede une base exploitable, mais il doit renforcer sa promesse, ses preuves et son parcours de conversion pour gagner en credibilite.",
   };
 }
 
@@ -437,7 +690,11 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
     }
 
     let htmlContent = "";
+    let responseTimeMs = 0;
+    let statusCode = 0;
+    let contentType = "";
     try {
+      const fetchStartedAt = Date.now();
       const response = await fetch(parsedUrl.toString(), {
         headers: {
           "User-Agent": "Pixelrises-Analyzer/1.0 (+https://pixelrises.fr)",
@@ -446,6 +703,9 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
         redirect: "follow",
         signal: AbortSignal.timeout(15000),
       });
+      responseTimeMs = Date.now() - fetchStartedAt;
+      statusCode = response.status;
+      contentType = response.headers.get("content-type") || "";
 
       if (!response.ok) {
         return jsonResponse(
@@ -456,7 +716,12 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
 
       htmlContent = await response.text();
       htmlContent = htmlContent.substring(0, 8000);
-      const preliminarySignals = extractHtmlSignals(htmlContent);
+      const preliminarySignals = extractHtmlSignals(htmlContent, {
+        responseTimeMs,
+        statusCode,
+        contentType,
+        htmlBytes: htmlContent.length,
+      });
       if (
         preliminarySignals.visibleText.length < 80 &&
         !preliminarySignals.title &&
@@ -475,7 +740,13 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
       );
     }
 
-    const htmlSignals = extractHtmlSignals(htmlContent);
+    const htmlSignals = extractHtmlSignals(htmlContent, {
+      responseTimeMs,
+      statusCode,
+      contentType,
+      htmlBytes: htmlContent.length,
+    });
+    const expertMetrics = buildExpertAuditMetrics(htmlSignals);
 
     const diagnosis = await generateStructuredDiagnosis(`Tu es un consultant digital senior de Pixelrises, une agence web premium orientée conversion.
 
@@ -485,8 +756,10 @@ Budget : ${budget || "non précisé"}
 Réponse à la question "avez-vous déjà un site" : ${hasSite || "non précisé"}
 
 Analyse vraiment le HTML fourni et les signaux extraits. Tu dois agir comme un audit consultant, pas comme un générateur de texte.
-Identifie les vrais problèmes de clarté, crédibilité, hiérarchie, réassurance, conversion, SEO local, copywriting et orientation business.
+Identifie les vrais problèmes de clarté, crédibilité, hiérarchie, réassurance, conversion, SEO local, copywriting, performance observable, responsive et orientation business.
 Chaque problème doit être relié à une observation concrète issue des signaux fournis : title, meta description, H1/H2, CTA, formulaires, liens, images sans alt ou texte visible.
+Tu dois produire une note expert sur 100, des notes par domaine (seo, conversion, trust, performance, responsive) et une liste "missing_elements" avec les éléments manquants pour se rapprocher d'un site optimisé, crédible, visible sur Google et capable de convertir.
+Les scores automatiques ci-dessous sont la base de vérité : tu peux les expliquer, mais pas les contredire ni inventer de mesure Lighthouse/Core Web Vitals.
 Si auditScope vaut "html_server_limited_client_rendered", explique clairement que l'audit vérifie le HTML serveur et les signaux accessibles sans navigateur rendu. Ne conclus pas que la page rendue n'a aucun CTA ou aucun H1 : formule plutôt "le HTML serveur ne les expose pas clairement, à confirmer sur le rendu visuel".
 Rédige un brief copywriting exploitable : message à clarifier, preuve à ajouter, CTA à renforcer, ordre des sections à corriger.
 Sois honnête, utile et concret. Pas de phrases génériques, pas de promesse inventée, pas de faux avis, pas de fausses statistiques.
@@ -494,13 +767,16 @@ Adapte la recommandation à l'objectif et au budget.
 
 Site analysé : ${parsedUrl.hostname}
 
+Scores et manques calculés automatiquement :
+${JSON.stringify(expertMetrics, null, 2)}
+
 Signaux techniques extraits :
 ${JSON.stringify(htmlSignals, null, 2)}
 
 HTML brut limite :
 ${htmlContent.slice(0, 4500)}
 
-Renseigne site_accessible=true, analysis_source="live_url_audit", tested_url="${parsedUrl.toString()}", audit_brief, expertise_angle, how_pixelrises_helps, manual_checks, evidence, conversion_brief, copy_angle, audit_limitations et confidence_level.
+Renseigne site_accessible=true, analysis_source="live_url_audit", tested_url="${parsedUrl.toString()}", expert_score, category_scores, missing_elements, expert_verdict, audit_brief, expertise_angle, how_pixelrises_helps, manual_checks, evidence, conversion_brief, copy_angle, audit_limitations et confidence_level.
 Le rapport doit expliquer les soucis réels du site, comment les corriger, quelle logique de copy appliquer, et pourquoi l'expertise Pixelrises aide à transformer le site en outil de confiance et conversion.
 Dans evidence, cite 3 à 5 signaux observés précisément. Dans audit_limitations, indique sobrement le périmètre vérifié si le rendu client n'est pas visible depuis le HTML serveur.
 
@@ -511,7 +787,8 @@ ${DIAGNOSIS_JSON_SCHEMA}`);
       return jsonResponse({ error: "Le diagnostic n'a pas pu être structuré correctement." }, 502);
     }
 
-    return jsonResponse({ diagnosis: enforceBudgetRecommendation(diagnosis, budget) });
+    const diagnosisWithMetrics = applyExpertMetrics(diagnosis, expertMetrics);
+    return jsonResponse({ diagnosis: enforceBudgetRecommendation(diagnosisWithMetrics, budget) });
   } catch (error) {
     console.error("analyze-url error:", redactLogValue(error));
 

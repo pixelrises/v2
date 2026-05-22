@@ -31,9 +31,19 @@ type ResultMode = "idle" | "real" | "estimate" | "unavailable";
 
 type Diagnosis = {
   score_global: number;
+  expert_score?: number;
+  category_scores?: {
+    seo: number;
+    conversion: number;
+    trust: number;
+    performance: number;
+    responsive: number;
+  };
   situation: string;
   problemes: string[];
   points_forts?: string[];
+  missing_elements?: string[];
+  expert_verdict?: string;
   plan_action: string[];
   resultat_attendu: string;
   recommandation_offre: string;
@@ -164,6 +174,14 @@ const RecommendationModule = () => {
 
     return {
       score_global: hasWebsite ? 7 : 8,
+      expert_score: hasWebsite ? 68 : 74,
+      category_scores: {
+        seo: hasWebsite ? 62 : 70,
+        conversion: hasWebsite ? 68 : 74,
+        trust: hasWebsite ? 64 : 72,
+        performance: hasWebsite ? 70 : 74,
+        responsive: hasWebsite ? 66 : 72,
+      },
       site_accessible: source === "live_url_audit",
       analysis_source: source,
       tested_url: testedUrl,
@@ -198,6 +216,22 @@ const RecommendationModule = () => {
             "Your goal is clear enough to turn the diagnosis into a concrete action plan.",
             "Pixelrises can translate this framing into page structure, copywriting, design and conversion flow.",
           ],
+      missing_elements: isFr
+        ? [
+            "Une promesse plus directe : cible, bénéfice, preuve et action principale.",
+            "Des preuves visibles : avis, réalisations, références, garanties ou éléments de réassurance.",
+            "Un parcours de conversion plus simple avec un CTA principal mesurable.",
+            "Une structure SEO claire : title, H1, sections utiles, FAQ et maillage interne.",
+          ]
+        : [
+            "A more direct promise: target, benefit, proof and primary action.",
+            "Visible proof: reviews, work examples, references, guarantees or reassurance.",
+            "A simpler conversion path with one measurable primary CTA.",
+            "A clear SEO structure: title, H1, useful sections, FAQ and internal links.",
+          ],
+      expert_verdict: isFr
+        ? "Le potentiel est là, mais il faut transformer le message en parcours de confiance et de conversion."
+        : "The potential is there, but the message needs to become a trust and conversion journey.",
       plan_action: isFr
         ? [
             "Faire un audit express du hero : promesse, cible, offre, preuve et CTA principal.",
@@ -499,6 +533,48 @@ const RecommendationModule = () => {
           "Proof, objections and reassurance elements should appear earlier on the page.",
         ]
     : diagnosis?.problemes || [];
+  const publicMissingElements = (diagnosis?.missing_elements || []).filter(Boolean).slice(0, 8);
+  const expertScore =
+    diagnosis?.expert_score ||
+    (diagnosis?.score_global ? Math.max(1, Math.min(100, Math.round(diagnosis.score_global * 10))) : 0);
+  const categoryScores = diagnosis?.category_scores;
+  const expertScoreLabel = expertScore
+    ? `${expertScore}/100`
+    : isFr
+      ? "À cadrer"
+      : "To frame";
+  const categoryScoreCards = [
+    {
+      key: "seo",
+      label: isFr ? "SEO / Google" : "SEO / Google",
+      score: categoryScores?.seo,
+      description: isFr ? "Title, H1, meta, structure et signaux d'indexation." : "Title, H1, meta, structure and indexation signals.",
+    },
+    {
+      key: "conversion",
+      label: isFr ? "Conversion" : "Conversion",
+      score: categoryScores?.conversion,
+      description: isFr ? "Promesse, CTA, parcours et friction avant contact." : "Promise, CTA, flow and friction before contact.",
+    },
+    {
+      key: "trust",
+      label: isFr ? "Crédibilité" : "Credibility",
+      score: categoryScores?.trust,
+      description: isFr ? "Preuves, références, contact et réassurance." : "Proof, references, contact and reassurance.",
+    },
+    {
+      key: "performance",
+      label: isFr ? "Performance" : "Performance",
+      score: categoryScores?.performance,
+      description: isFr ? "Réponse HTTP et poids HTML observables." : "Observable HTTP response and HTML weight.",
+    },
+    {
+      key: "responsive",
+      label: isFr ? "Mobile" : "Mobile",
+      score: categoryScores?.responsive,
+      description: isFr ? "Base responsive observable et points à confirmer." : "Observable responsive base and checks to confirm.",
+    },
+  ].filter((item) => typeof item.score === "number");
   const publicAuditBrief = isPreDiagnosis
     ? isFr
       ? "Lecture stratégique : on part de vos réponses pour cadrer ce qui vend vraiment, puis on transforme ce cadrage en structure de page, messages, preuves et CTA."
@@ -810,16 +886,23 @@ const RecommendationModule = () => {
                   >
                     <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
                     <div className="relative flex items-center gap-5">
-                      <div className="relative flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5">
-                        <span className="text-2xl font-extrabold text-primary">
-                          {isRealDiagnosis ? (
-                            <Search className="h-8 w-8 text-primary" />
-                          ) : hasDiagnosticBrief ? (
-                            <Sparkles className="h-8 w-8 text-primary" />
-                          ) : (
-                            <Target className="h-7 w-7 text-primary" />
-                          )}
-                        </span>
+                      <div className="relative flex h-24 w-24 flex-shrink-0 flex-col items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-center">
+                        {hasDiagnosticBrief ? (
+                          <>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                              {isFr ? "Note" : "Score"}
+                            </span>
+                            <span className="mt-1 text-2xl font-extrabold text-primary">{expertScoreLabel}</span>
+                          </>
+                        ) : (
+                          <span className="text-2xl font-extrabold text-primary">
+                            {isRealDiagnosis ? (
+                              <Search className="h-8 w-8 text-primary" />
+                            ) : (
+                              <Target className="h-7 w-7 text-primary" />
+                            )}
+                          </span>
+                        )}
                       </div>
                       <div>
                         <p className="mb-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
@@ -838,15 +921,15 @@ const RecommendationModule = () => {
                         <h3 className="text-2xl font-bold">
                           {hasDiagnosticBrief
                             ? isFr
-                              ? "Votre plan prioritaire"
-                              : "Your priority plan"
+                              ? "Votre diagnostic expert"
+                              : "Your expert diagnosis"
                             : isFr
                               ? "Votre meilleure prochaine étape"
                               : "Your best next step"}
                         </h3>
                         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                           {hasDiagnosticBrief
-                            ? publicSituation
+                            ? diagnosis?.expert_verdict || publicSituation
                             : resultMessage ||
                               (isFr
                                 ? "On vous guide vers l'offre la plus logique sans afficher de faux audit."
@@ -889,6 +972,47 @@ const RecommendationModule = () => {
                           </p>
                         </div>
                       </motion.div>
+
+                      {categoryScoreCards.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 18 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.065 }}
+                          className="glass-card p-7 sm:p-8"
+                        >
+                          <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                            <BarChart3 className="h-3.5 w-3.5 text-primary" />
+                            {isFr ? "Note experte par domaine" : "Expert score by area"}
+                          </p>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {categoryScoreCards.map((item) => (
+                              <div
+                                key={item.key}
+                                className="rounded-2xl border border-primary/10 bg-primary/[0.03] p-4"
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                                  <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+                                    {item.score}/100
+                                  </span>
+                                </div>
+                                <div className="mt-3 h-2 rounded-full bg-secondary/60">
+                                  <div
+                                    className="h-2 rounded-full bg-primary"
+                                    style={{ width: `${Math.max(8, Math.min(100, item.score || 0))}%` }}
+                                  />
+                                </div>
+                                <p className="mt-3 text-xs leading-5 text-muted-foreground">{item.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="mt-4 text-xs leading-5 text-muted-foreground">
+                            {isFr
+                              ? "La performance indique les signaux observables depuis l'audit serveur. Les Core Web Vitals doivent être confirmés par un test navigateur."
+                              : "Performance is based on observable server audit signals. Core Web Vitals should be confirmed with a browser test."}
+                          </p>
+                        </motion.div>
+                      )}
 
                       {publicEvidence.length > 0 && (
                         <motion.div
@@ -933,6 +1057,33 @@ const RecommendationModule = () => {
                           ))}
                         </div>
                       </motion.div>
+
+                      {publicMissingElements.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 18 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 }}
+                          className="glass-card border-primary/20 bg-primary/[0.02] p-7 sm:p-8"
+                        >
+                          <p className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-primary">
+                            <Target className="h-3.5 w-3.5" />
+                            {isFr ? "Éléments manquants pour vendre mieux" : "Missing elements to sell better"}
+                          </p>
+                          <h4 className="mb-4 text-xl font-bold">
+                            {isFr
+                              ? "Ce qu'il faut ajouter pour se rapprocher d'un site optimisé"
+                              : "What to add to get closer to an optimized website"}
+                          </h4>
+                          <div className="grid gap-3">
+                            {publicMissingElements.map((item) => (
+                              <div key={item} className="flex items-start gap-3 rounded-2xl border border-border bg-background/35 p-4">
+                                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                                <p className="text-sm leading-6 text-muted-foreground">{item}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
 
                       {(publicAuditBrief || diagnosis?.expertise_angle || (diagnosis?.points_forts || []).length > 0) && (
                         <motion.div

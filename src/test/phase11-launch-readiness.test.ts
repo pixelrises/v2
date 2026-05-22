@@ -141,6 +141,11 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(analyzeUrl).toContain("html_server_limited_client_rendered");
     expect(analyzeUrl).toContain("conversion_brief");
     expect(analyzeUrl).toContain("audit_limitations");
+    expect(analyzeUrl).toContain("expert_score");
+    expect(analyzeUrl).toContain("category_scores");
+    expect(analyzeUrl).toContain("missing_elements");
+    expect(analyzeUrl).toContain("buildExpertAuditMetrics");
+    expect(analyzeUrl).toContain("Core Web Vitals");
     expect(analyzeUrl).toContain("enforceBudgetRecommendation");
     expect(analyzeUrl).toContain("DEFAULT_RATE_LIMIT = 60");
     expect(analyzeUrl).toContain("ANALYZE_URL_RATE_LIMIT");
@@ -156,6 +161,13 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(recommendationModule).toContain("Diagnostic & méthode Pixelrises");
     expect(recommendationModule).toContain("Contrôles qualité inclus");
     expect(recommendationModule).toContain("Signaux réellement utilisés");
+    expect(recommendationModule).toContain("Note experte par domaine");
+    expect(recommendationModule).toContain("Éléments manquants pour vendre mieux");
+    expect(recommendationModule).toContain("SEO / Google");
+    expect(recommendationModule).toContain("Conversion");
+    expect(recommendationModule).toContain("Crédibilité");
+    expect(recommendationModule).toContain("Performance");
+    expect(recommendationModule).toContain("Mobile");
     expect(recommendationModule).toContain("Brief conversion");
     expect(recommendationModule).toContain("Périmètre vérifié");
     expect(recommendationModule).toContain("OFFER_RANK");
