@@ -137,6 +137,8 @@ describe("Phase 11 launch-readiness guardrails", () => {
     expect(analyzeUrl).toContain("signal: AbortSignal.timeout(15000)");
     expect(analyzeUrl).toContain("extractHtmlSignals");
     expect(analyzeUrl).toContain("Analyse vraiment le HTML fourni");
+    expect(analyzeUrl).toContain("DEFAULT_RATE_LIMIT = 60");
+    expect(analyzeUrl).toContain("ANALYZE_URL_RATE_LIMIT");
     expect(analyzeUrl).toContain("createAIChatCompletion");
     expect(analyzeUrl).toContain("AI_GATEWAY_DIAGNOSTIC_MODEL");
     expect(analyzeUrl).toContain("Aucun diagnostic automatique n'a été généré");

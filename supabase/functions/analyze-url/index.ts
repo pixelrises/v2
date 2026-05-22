@@ -8,8 +8,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const RATE_LIMIT = 5;
+const DEFAULT_RATE_LIMIT = 60;
 const RATE_WINDOW_HOURS = 1;
+
+const getRateLimit = () => {
+  const configuredLimit = Number(Deno.env.get("ANALYZE_URL_RATE_LIMIT") || "");
+  if (Number.isFinite(configuredLimit) && configuredLimit >= 10 && configuredLimit <= 300) {
+    return Math.floor(configuredLimit);
+  }
+
+  return DEFAULT_RATE_LIMIT;
+};
 
 const redactLogValue = (value: unknown) => {
   const message = value instanceof Error ? value.message : String(value ?? "unknown_error");
@@ -95,7 +104,7 @@ async function isRateLimited(ip: string): Promise<boolean> {
     return false;
   }
 
-  if (data.request_count >= RATE_LIMIT) {
+  if (data.request_count >= getRateLimit()) {
     return true;
   }
 
