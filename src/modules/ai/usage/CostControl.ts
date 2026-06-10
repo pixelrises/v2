@@ -23,7 +23,14 @@ export class CostControl {
 
   estimateCost(input: string, provider: AIProviderId) {
     const tokens = this.estimateTokens(input);
-    const multiplier = provider === "mock" ? 0 : provider === "mistral" ? 0.0000005 : 0.000001;
+    const multiplier =
+      provider === "mock"
+        ? 0
+        : provider === "pollojourney"
+          ? 0.000012
+          : provider === "mistral"
+            ? 0.0000005
+            : 0.000001;
     return Number((tokens * multiplier).toFixed(6));
   }
 

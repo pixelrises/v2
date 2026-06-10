@@ -8,6 +8,7 @@ import { geminiMultiAIProviderAdapter } from "./GeminiProviderAdapter";
 import { mistralProviderAdapter } from "./MistralProviderAdapter";
 import { mockProviderAdapter } from "./MockProviderAdapter";
 import { openAIProviderAdapter } from "./OpenAIProviderAdapter";
+import { pollojourneyProviderAdapter } from "./PollojourneyProviderAdapter";
 import { vercelGatewayProviderAdapter } from "./VercelGatewayProviderAdapter";
 
 export * from "./BaseProviderAdapter";
@@ -19,6 +20,7 @@ export * from "./CloudDesignProviderAdapter";
 export * from "./CloudCodeProviderAdapter";
 export * from "./MistralProviderAdapter";
 export * from "./MockProviderAdapter";
+export * from "./PollojourneyProviderAdapter";
 export * from "./FutureProviderAdapter";
 
 export const aiProviderAdapters: Record<AIProviderId, AIProviderAdapter> = {
@@ -29,6 +31,7 @@ export const aiProviderAdapters: Record<AIProviderId, AIProviderAdapter> = {
   "cloud-design": cloudDesignProviderAdapter,
   "cloud-code": cloudCodeProviderAdapter,
   mistral: mistralProviderAdapter,
+  pollojourney: pollojourneyProviderAdapter,
   mock: mockProviderAdapter,
   future: futureProviderAdapter,
 };

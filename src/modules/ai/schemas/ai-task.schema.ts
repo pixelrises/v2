@@ -29,6 +29,10 @@ export type AITaskType =
   | "integration_mapping"
   | "dashboard_recommendations"
   | "analytics_insights"
+  | "creator_image_concept"
+  | "creator_premium_image"
+  | "creator_avatar_video"
+  | "creator_ad_creative"
   | "code_generation"
   | "code_review"
   | "bug_fix"
@@ -45,6 +49,7 @@ export type AIProviderId =
   | "cloud-design"
   | "cloud-code"
   | "mistral"
+  | "pollojourney"
   | "mock"
   | "future";
 
