@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -41,7 +42,19 @@ type PricingCard = {
 const Pricing = () => {
   const { locale } = useTranslation();
   const isFr = locale === "fr";
-  const [view, setView] = useState<View>("service");
+  const [searchParams] = useSearchParams();
+  const requestedMode = searchParams.get("mode");
+  const initialView: View =
+    requestedMode === "ai" || requestedMode === "maintenance" || requestedMode === "service"
+      ? requestedMode
+      : "service";
+  const [view, setView] = useState<View>(initialView);
+
+  useEffect(() => {
+    if (requestedMode === "ai" || requestedMode === "maintenance" || requestedMode === "service") {
+      setView(requestedMode);
+    }
+  }, [requestedMode]);
 
   const servicePlans: PricingCard[] = [
     {
@@ -356,7 +369,7 @@ const Pricing = () => {
         </AnimatedSection>
 
         <div className={cn("mx-auto mt-14 grid gap-5", columnsClass)}>
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             {activeCards.map((card, index) => (
               <motion.div
                 key={`${view}-${card.name}`}

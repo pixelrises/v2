@@ -95,7 +95,7 @@ const HowItWorks = () => {
         <AnimatedSection delay={0.5}>
           <div className="mt-8 text-center">
             <Button asChild size="lg" className="glow-primary">
-              <a href="#diagnostic">
+              <a href="/agence/diagnostic">
                 {isFr ? "Lancer mon diagnostic" : "Start my diagnostic"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>

@@ -1,9 +1,12 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2,
+  Circle,
   History,
   Loader2,
   MessageSquareText,
@@ -26,6 +29,379 @@ const toolStatusLabel: Record<BuilderTool["status"], string> = {
 
 export function BuilderModeToggle({ className }: { className?: string }) {
   return <InterfaceModeToggle compact className={className} />;
+}
+
+export type BuilderPlanStepState = "done" | "active" | "pending" | "blocked";
+
+export type BuilderPlanStep = {
+  title: string;
+  description?: string;
+  status?: string;
+  state?: BuilderPlanStepState;
+  items?: { label: string; state?: BuilderPlanStepState }[];
+};
+
+export type BuilderPlan = {
+  id?: string;
+  title: string;
+  subtitle?: string;
+  summary?: string;
+  questions?: string[];
+  sections?: { label: string; value?: string; items?: string[] }[];
+};
+
+export type BuilderGenerationMode = "direct" | "plan";
+
+export function BuilderGenerationModeSelector({
+  value,
+  onChange,
+  className,
+}: {
+  value: BuilderGenerationMode;
+  onChange: (value: BuilderGenerationMode) => void;
+  className?: string;
+}) {
+  const modes: {
+    id: BuilderGenerationMode;
+    title: string;
+    description: string;
+    microcopy?: string;
+  }[] = [
+    {
+      id: "direct",
+      title: "Mode Direct",
+      description: "Génération immédiate à partir de votre prompt.",
+    },
+    {
+      id: "plan",
+      title: "Mode Plan",
+      description: "Pixelrises prépare un plan avant de générer.",
+      microcopy:
+        "Idéal si vous voulez un résultat plus précis. Pixelrises explique les étapes avant de lancer la génération.",
+    },
+  ];
+
+  return (
+    <div
+      data-testid="builder-generation-mode-selector"
+      className={cn(
+        "grid gap-2 rounded-[18px] border border-[#F5C542]/14 bg-black/24 p-2 sm:grid-cols-2",
+        className,
+      )}
+    >
+      {modes.map((mode) => {
+        const isSelected = value === mode.id;
+
+        return (
+          <button
+            key={mode.id}
+            type="button"
+            aria-pressed={isSelected}
+            onClick={() => onChange(mode.id)}
+            className={cn(
+              "rounded-[14px] border p-3 text-left transition",
+              isSelected
+                ? "border-[#F5C542]/45 bg-[#F5C542]/12 shadow-[0_16px_44px_-32px_rgba(245,197,66,0.95)]"
+                : "border-white/[0.08] bg-white/[0.025] hover:border-[#F5C542]/24 hover:bg-[#F5C542]/[0.045]",
+            )}
+          >
+            <span className={cn("block text-xs font-semibold uppercase tracking-[0.18em]", isSelected ? "text-[#F5C542]" : "text-white/58")}>
+              {mode.title}
+            </span>
+            <span className="mt-2 block text-sm leading-5 text-white/72">{mode.description}</span>
+            {mode.microcopy ? <span className="mt-2 block text-xs leading-5 text-white/46">{mode.microcopy}</span> : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const planStepLabel: Record<BuilderPlanStepState, string> = {
+  done: "validé",
+  active: "en cours",
+  pending: "en attente",
+  blocked: "à valider",
+};
+
+const getPlanFileName = (plan: BuilderPlan) => {
+  const rawId = plan.id?.trim();
+  if (!rawId) return "plan-en-cours.md";
+  if (rawId.endsWith(".md")) return rawId;
+  return `plan-${rawId}.md`;
+};
+
+const getPlanStepTone = (state: BuilderPlanStepState = "pending") => {
+  if (state === "done") return "border-emerald-300/35 bg-emerald-300/10 text-emerald-200";
+  if (state === "active") return "border-[#F5C542]/45 bg-[#F5C542]/12 text-[#F5C542]";
+  if (state === "blocked") return "border-red-300/30 bg-red-300/10 text-red-200";
+  return "border-white/20 bg-white/[0.04] text-white/45";
+};
+
+export function BuilderPlanTool({
+  state = "idle",
+  plan,
+  approved = false,
+  approveLabel = "Valider le plan",
+  editPromptLabel = "Modifier mon prompt",
+  editPreferencesLabel = "Modifier mes préférences",
+  generateLabel = "Générer avec ce plan",
+  onApprove,
+  onEditPrompt,
+  onEditPreferences,
+  onGenerate,
+  className,
+}: {
+  state?: "idle" | "pending";
+  plan: BuilderPlan;
+  approved?: boolean;
+  approveLabel?: string;
+  editPromptLabel?: string;
+  editPreferencesLabel?: string;
+  generateLabel?: string;
+  onApprove?: () => void;
+  onEditPrompt?: () => void;
+  onEditPreferences?: () => void;
+  onGenerate?: () => void;
+  className?: string;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [localApproved, setLocalApproved] = useState(false);
+  const isPending = state === "pending";
+  const isApproved = approved || localApproved;
+  const fileName = getPlanFileName(plan);
+  const planSections = plan.sections?.length
+    ? plan.sections
+    : [{ label: "Résumé du projet", value: plan.summary || "Aucun résumé de plan disponible" }];
+  const visibleSections = isExpanded ? planSections : planSections.slice(0, 5);
+  const statusLabel = isPending ? "Plan en préparation" : isApproved ? "Plan validé" : "Plan à valider";
+
+  useEffect(() => {
+    if (!approved) setLocalApproved(false);
+  }, [approved, plan.id, plan.title]);
+
+  const handleApprove = () => {
+    if (isApproved) return;
+    setLocalApproved(true);
+    onApprove?.();
+  };
+
+  return (
+    <section
+      data-testid="builder-plan-tool"
+      className={cn(
+        "overflow-hidden rounded-[22px] border border-[#F5C542]/18 bg-[radial-gradient(circle_at_top_right,rgba(245,197,66,0.12),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.025))] shadow-[0_28px_90px_-72px_rgba(245,197,66,0.95)]",
+        className,
+      )}
+    >
+      <div className="flex min-h-12 items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          {isPending ? (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#F5C542]" />
+          ) : (
+            <Sparkles className="h-4 w-4 shrink-0 text-[#F5C542]" />
+          )}
+          <span className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-white/48">{fileName}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsExpanded((current) => !current)}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.08] bg-black/25 text-white/54 transition hover:border-[#F5C542]/35 hover:text-[#F5C542]"
+          aria-label={isExpanded ? "Réduire le plan" : "Lire le plan détaillé"}
+        >
+          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+      </div>
+
+      <div className="p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Plan IA à valider</p>
+            <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-white">{plan.title}</h3>
+            <p className="mt-2 text-sm leading-6 text-white/58">
+              {plan.subtitle ?? "Vérifiez ce que l'IA va créer avant de lancer la génération."}
+            </p>
+          </div>
+          <span
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-xs font-semibold",
+              isApproved ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-200" : "border-[#F5C542]/25 bg-[#F5C542]/10 text-[#F5C542]",
+            )}
+          >
+            {statusLabel}
+          </span>
+        </div>
+
+        <div className="mt-4 rounded-[18px] border border-[#F5C542]/14 bg-[#F5C542]/[0.045] p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#F5C542]">Résumé du plan</p>
+          <p className="mt-2 text-sm leading-6 text-white/64">{plan.summary || "Aucun résumé de plan disponible"}</p>
+        </div>
+
+        {plan.questions?.length ? (
+          <div className="mt-4 rounded-[16px] border border-white/[0.08] bg-black/24 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/42">Questions / préférences</p>
+            <div className="mt-2 grid gap-2">
+              {plan.questions.map((question) => (
+                <p key={question} className="flex gap-2 text-xs leading-5 text-white/58">
+                  <Circle className="mt-1 h-3 w-3 shrink-0 text-[#F5C542]" />
+                  {question}
+                </p>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="mt-5 grid gap-3">
+          {visibleSections.map((section) => (
+            <article key={section.label} className="rounded-[16px] border border-white/[0.08] bg-black/22 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#F5C542]">{section.label}</p>
+              {section.value ? <p className="mt-2 text-sm leading-6 text-white/62">{section.value}</p> : null}
+              {section.items?.length ? (
+                <div className="mt-2 grid gap-1.5">
+                  {section.items.map((item) => (
+                    <p key={item} className="flex items-center gap-2 text-xs leading-5 text-white/56">
+                      <Circle className="h-3 w-3 shrink-0 text-[#F5C542]" />
+                      {item}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-5 flex flex-col gap-3 border-t border-white/[0.08] pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <button
+            type="button"
+            onClick={() => setIsExpanded((current) => !current)}
+            className="text-left text-xs font-semibold text-white/50 transition hover:text-[#F5C542]"
+          >
+            {isExpanded ? "Masquer le plan" : "Lire le plan détaillé"}
+          </button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onEditPrompt}
+              disabled={isPending}
+              className="rounded-[14px] border-white/[0.10] bg-black/20 font-semibold text-white/74 hover:border-[#F5C542]/28 hover:bg-[#F5C542]/[0.06] hover:text-[#F5C542]"
+            >
+              <MessageSquareText className="h-4 w-4" />
+              {editPromptLabel}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onEditPreferences}
+              disabled={isPending}
+              className="rounded-[14px] border-white/[0.10] bg-black/20 font-semibold text-white/74 hover:border-[#F5C542]/28 hover:bg-[#F5C542]/[0.06] hover:text-[#F5C542]"
+            >
+              <PanelRight className="h-4 w-4" />
+              {editPreferencesLabel}
+            </Button>
+            <Button
+              type="button"
+              onClick={handleApprove}
+              disabled={isApproved || isPending}
+              className={cn(
+                "rounded-[14px] font-semibold",
+                isApproved
+                  ? "border border-emerald-300/20 bg-emerald-300/10 text-emerald-100 hover:bg-emerald-300/10"
+                  : "bg-[#F5C542] text-black hover:bg-[#FFD766]",
+              )}
+            >
+              {isApproved ? <CheckCircle2 className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
+              {isApproved ? "Plan validé" : approveLabel}
+            </Button>
+            <Button
+              type="button"
+              onClick={onGenerate}
+              disabled={!isApproved || isPending}
+              className={cn(
+                "rounded-[14px] font-semibold",
+                isApproved
+                  ? "bg-[#F5C542] text-black hover:bg-[#FFD766]"
+                  : "border border-white/[0.08] bg-white/[0.035] text-white/35 hover:bg-white/[0.035]",
+              )}
+            >
+              <ArrowRight className="h-4 w-4" />
+              {isApproved ? generateLabel : `${generateLabel} après validation`}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function BuilderGenerationTimeline({
+  steps,
+  className,
+}: {
+  steps: BuilderPlanStep[];
+  className?: string;
+}) {
+  return (
+    <section
+      data-testid="builder-generation-timeline"
+      className={cn(
+        "rounded-[22px] border border-white/[0.08] bg-white/[0.035] p-4 shadow-[0_28px_90px_-78px_rgba(245,197,66,0.8)]",
+        className,
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F5C542]">Progression de génération</p>
+          <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-white">Timeline de génération</h3>
+          <p className="mt-2 text-sm leading-6 text-white/52">
+            Pixelrises suit les étapes nécessaires pour produire un résultat propre.
+          </p>
+        </div>
+        <span className="rounded-full border border-[#F5C542]/20 bg-[#F5C542]/10 px-3 py-1.5 text-xs font-semibold text-[#F5C542]">
+          suivi d'étapes
+        </span>
+      </div>
+
+      <div className="mt-5 space-y-4">
+        {steps.map((step, index) => {
+          const stepState = step.state ?? "pending";
+
+          return (
+            <article key={`${step.title}-${index}`} className="relative grid grid-cols-[28px_1fr] gap-3">
+              {index < steps.length - 1 ? <span className="absolute left-[13px] top-8 h-[calc(100%+0.5rem)] w-px bg-[#F5C542]/18" /> : null}
+              <span
+                className={cn(
+                  "relative z-10 flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-bold",
+                  getPlanStepTone(stepState),
+                )}
+              >
+                {stepState === "done" ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+              </span>
+              <div className="min-w-0 rounded-[16px] border border-white/[0.08] bg-black/22 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-white">{step.title}</p>
+                  <span className={cn("rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]", getPlanStepTone(stepState))}>
+                    {step.status ?? planStepLabel[stepState]}
+                  </span>
+                </div>
+                {step.description ? <p className="mt-2 text-xs leading-5 text-white/48">{step.description}</p> : null}
+                {step.items?.length ? (
+                  <div className="mt-3 grid gap-1.5">
+                    {step.items.map((item) => (
+                      <p key={item.label} className="flex items-center gap-2 text-xs text-white/52">
+                        <span className={cn("h-1.5 w-1.5 rounded-full", item.state === "done" ? "bg-emerald-300" : item.state === "active" ? "bg-[#F5C542]" : "bg-white/25")} />
+                        {item.label}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 export function BuilderToolbar({

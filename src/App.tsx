@@ -1,9 +1,9 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import PixelrisesErrorBoundary from "@/components/PixelrisesErrorBoundary";
 import Dashboard from "./pages/Dashboard";
@@ -17,10 +17,16 @@ const Confidentialite = lazy(() => import("./pages/Confidentialite"));
 const Cookies = lazy(() => import("./pages/Cookies"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const PixelrisesAI = lazy(() => import("./pages/PixelrisesAI"));
+const Demo = lazy(() => import("./pages/Demo"));
+const EspaceIA = lazy(() => import("./pages/EspaceIA"));
+const PublicAISpace = lazy(() => import("./pages/PublicAISpace"));
 const AISpaces = lazy(() => import("./pages/AISpaces"));
 const AISpaceDetail = lazy(() => import("./pages/AISpaceDetail"));
 const Auth = lazy(() => import("./pages/Auth"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const Agence = lazy(() => import("./pages/Agence"));
+const Realisations = lazy(() => import("./pages/Realisations"));
+const Diagnostic = lazy(() => import("./pages/Diagnostic"));
 const Create = lazy(() => import("./pages/Create"));
 const SiteBuilder = lazy(() => import("./pages/SiteBuilder"));
 const AgentBuilder = lazy(() => import("./pages/AgentBuilder"));
@@ -49,7 +55,7 @@ const CustomConnectorPage = lazy(() => import("./pages/UtilityPages").then((mod)
 const WebhooksPage = lazy(() => import("./pages/UtilityPages").then((mod) => ({ default: mod.WebhooksPage })));
 const WorkspacePage = lazy(() => import("./pages/UtilityPages").then((mod) => ({ default: mod.WorkspacePage })));
 const BuilderToolPage = lazy(() => import("./pages/UtilityPages").then((mod) => ({ default: mod.BuilderToolPage })));
-const PricingPage = lazy(() => import("./pages/BillingPages").then((mod) => ({ default: mod.PricingPage })));
+const PublicPricing = lazy(() => import("./pages/PublicPricing"));
 const BillingPage = lazy(() => import("./pages/BillingPages").then((mod) => ({ default: mod.BillingPage })));
 const CreditsPage = lazy(() => import("./pages/BillingPages").then((mod) => ({ default: mod.CreditsPage })));
 const AdminBillingPage = lazy(() => import("./pages/BillingPages").then((mod) => ({ default: mod.AdminBillingPage })));
@@ -63,6 +69,28 @@ const RouteFallback = () => (
   </div>
 );
 
+const HashScroll = () => {
+  const { hash, pathname } = useLocation();
+
+  useEffect(() => {
+    if (!hash) return;
+
+    const targetId = decodeURIComponent(hash.slice(1));
+    const scrollToTarget = () => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    const frame = window.requestAnimationFrame(() => {
+      scrollToTarget();
+      window.setTimeout(scrollToTarget, 250);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [hash, pathname]);
+
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <I18nProvider>
@@ -71,11 +99,16 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
+            <HashScroll />
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/ai" element={<PixelrisesAI />} />
+                <Route path="/demo" element={<Navigate to="/dashboard-demo" replace />} />
+                <Route path="/dashboard-demo" element={<Demo />} />
                 <Route path="/ai-center" element={<Navigate to="/ai-spaces" replace />} />
+                <Route path="/espace-ia" element={<EspaceIA />} />
+                <Route path="/espace-ia/:spaceSlug" element={<PublicAISpace />} />
                 <Route path="/general-ai" element={<Navigate to="/ai-spaces/general" replace />} />
                 <Route path="/business-ai" element={<Navigate to="/ai-spaces/business" replace />} />
                 <Route path="/student-ai" element={<Navigate to="/ai-spaces/student" replace />} />
@@ -85,7 +118,16 @@ const App = () => (
                 <Route path="/ai-spaces" element={<AISpaces />} />
                 <Route path="/ai-spaces/:spaceId" element={<AISpaceDetail />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/signin" element={<Navigate to="/auth" replace />} />
+                <Route path="/signup" element={<Navigate to="/auth" replace />} />
+                <Route path="/login" element={<Navigate to="/auth" replace />} />
+                <Route path="/connexion" element={<Navigate to="/auth" replace />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/agence" element={<Agence />} />
+                <Route path="/agence/:section" element={<Agence />} />
+                <Route path="/realisations" element={<Realisations />} />
+                <Route path="/realisations/:section" element={<Realisations />} />
+                <Route path="/diagnostic" element={<Diagnostic />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/cockpit" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/create" element={<Create />} />
@@ -123,7 +165,7 @@ const App = () => (
                 <Route path="/workspace" element={<WorkspacePage />} />
                 <Route path="/security" element={<SecurityPage />} />
                 <Route path="/roadmap" element={<RoadmapPage />} />
-                <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/pricing" element={<PublicPricing />} />
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/credits" element={<CreditsPage />} />
                 <Route path="/admin" element={<Admin />} />

@@ -16,6 +16,15 @@ Ce backlog est maintenu par le Product Lab. Les changements sensibles restent en
 
 ## Important
 
+- **Corriger les textes casses runtime**
+  - Module: UX/UI
+  - Impact: Moyen (18/30)
+  - Risque: Faible
+  - Difficulte: Faible
+  - Priorite: Important
+  - Statut: A faire
+  - Source inspiration: Shopify Admin
+  - Decision: auto_safe
 - **Renforcer le dashboard avec donnees V2 reelles**
   - Module: Dashboard
   - Impact: Eleve (24/30)

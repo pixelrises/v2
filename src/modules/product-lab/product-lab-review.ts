@@ -942,6 +942,101 @@ export const exportProductLabDecisions = (decisions: ProductLabDecisionMap) =>
     2,
   );
 
+export const canSyncProductLabDecisionsToLocalRunner = () => {
+  if (typeof window === "undefined") return false;
+  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+};
+
+export const buildProductLabLocalRunnerPayload = (
+  decisions: ProductLabDecisionMap,
+  queue: ProductLabReviewQueue,
+  scope: ProductLabScope = "v2",
+) => {
+  const itemsById = new Map(queue.items.map((item) => [item.id, item]));
+  const visibleDecisions = getUnsyncedProductLabDecisions(decisions, queue);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    scope,
+    source: "local-admin-bypass",
+    decisions: visibleDecisions.map((decision) => {
+      const item = itemsById.get(decision.itemId);
+      const sourceRun = item?.sourceRun ?? queue.sourceRun;
+
+      return {
+        ...decision,
+        title: item?.title ?? decision.itemId,
+        originalTitle: item?.title ?? decision.itemId,
+        module: item?.module ?? "Product Lab",
+        priority: item?.priority,
+        impact: item?.impact,
+        risk: item?.risk,
+        difficulty: item?.difficulty,
+        inspiration: item?.inspiration,
+        description: item?.description,
+        beforeState: item?.beforeState,
+        afterState: item?.afterState,
+        concernedFiles: item?.concernedFiles ?? [],
+        sourceRun,
+        sourceRunKey: item ? getProductLabItemRunKey(item, queue) : decision.sourceRunKey,
+        reviewItem: item ?? {},
+      };
+    }),
+  };
+};
+
+export const syncProductLabDecisionsToLocalRunner = async (
+  decisions: ProductLabDecisionMap,
+  queue: ProductLabReviewQueue,
+  scope: ProductLabScope = "v2",
+): Promise<{ synced: boolean; count: number; path?: string; error?: string }> => {
+  if (!canSyncProductLabDecisionsToLocalRunner()) {
+    return {
+      synced: false,
+      count: 0,
+      error: "Pont Product Lab local disponible uniquement sur localhost.",
+    };
+  }
+
+  const payload = buildProductLabLocalRunnerPayload(decisions, queue, scope);
+  if (!payload.decisions.length) {
+    return {
+      synced: false,
+      count: 0,
+      error: "Aucune decision locale visible a transmettre au runner Product Lab.",
+    };
+  }
+
+  try {
+    const response = await fetch("/__pixelrises/product-lab-decisions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const result = (await response.json()) as { ok?: boolean; count?: number; path?: string; error?: string };
+
+    if (!response.ok || !result.ok) {
+      return {
+        synced: false,
+        count: 0,
+        error: result.error || "Pont Product Lab local indisponible.",
+      };
+    }
+
+    return {
+      synced: true,
+      count: Number(result.count ?? payload.decisions.length),
+      path: result.path,
+    };
+  } catch (error) {
+    return {
+      synced: false,
+      count: 0,
+      error: error instanceof Error ? error.message : "Pont Product Lab local indisponible.",
+    };
+  }
+};
+
 const normalizeDecisionStatus = (status: unknown): ProductLabDecisionStatus => {
   if (status === "approved" || status === "rejected" || status === "needs_review") return status;
   return "pending";

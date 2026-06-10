@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { aiSpacesList, aiSpacesRegistry, runAISpaceAssistant } from "@/modules/ai-spaces";
+import { businessCommands, detectBusinessIntent, getBusinessExperts } from "@/modules/ai-spaces/business-orchestrator";
 
 describe("AI Spaces registry", () => {
   it("defines the six official Pixelrises AI Spaces", () => {
@@ -32,9 +33,35 @@ describe("AI Spaces registry", () => {
 
   it("documents the real workspace boundaries for connected tools", () => {
     expect(JSON.stringify(aiSpacesRegistry.student.workspace)).toContain("Recherche Google préparée");
+    expect(JSON.stringify(aiSpacesRegistry.student.workspace)).toContain("Site web de projet");
+    expect(JSON.stringify(aiSpacesRegistry.student.workspace)).toContain("Mini-jeu éducatif");
+    expect(JSON.stringify(aiSpacesRegistry.student.workspace)).toContain("Agent IA étudiant");
     expect(JSON.stringify(aiSpacesRegistry.management.workspace)).toContain("Import Excel / CSV");
     expect(JSON.stringify(aiSpacesRegistry.enterprise.workspace)).toContain("Aucun fichier local");
     expect(aiSpacesRegistry.enterprise.workspace.sections[1].items.some((item) => item.status === "requires-connection")).toBe(true);
+  });
+
+  it("keeps Student AI compatible with study outputs and Pixelrises builders", () => {
+    expect(aiSpacesRegistry.student.capabilities).toEqual(
+      expect.arrayContaining([
+        "Créer un diaporama",
+        "Préparer une recherche fiable",
+        "Préparer un site, une app ou un prototype",
+        "Créer un mini-jeu éducatif",
+        "Créer un agent IA étudiant",
+      ]),
+    );
+    expect(aiSpacesRegistry.student.quickActions.map((action) => action.id)).toEqual(
+      expect.arrayContaining(["slides", "correction", "student-project"]),
+    );
+    expect(aiSpacesRegistry.student.builderLinks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ href: "/builder/site", status: "ready" }),
+        expect.objectContaining({ href: "/builder/agent", status: "ready" }),
+        expect.objectContaining({ href: "/builder/game", status: "ready" }),
+      ]),
+    );
+    expect(aiSpacesRegistry.student.safetyRules.join(" ")).toMatch(/source|publication|validation/i);
   });
 
   it("keeps Business AI universal and General AI cost-controlled", () => {
@@ -53,6 +80,34 @@ describe("AI Spaces registry", () => {
     expect(response.success).toBe(true);
     expect(response.source).toBe("mock-fallback");
     expect(response.answer).toContain("Mode secours Pixelrises");
+    expect(response.provider).toBeUndefined();
+    expect(response.model).toBeUndefined();
     expect(JSON.stringify(response)).not.toContain("AI_GATEWAY_API_KEY");
+  });
+
+  it("defines the Business AI command palette and expert router", () => {
+    expect(businessCommands.map((command) => command.prefix)).toEqual([
+      "/app",
+      "/site",
+      "/landing",
+      "/prototype",
+      "/offre",
+      "/marche",
+      "/concurrence",
+      "/prospection",
+      "/image",
+      "/pricing",
+      "/tunnel",
+      "/seo",
+      "/ads",
+      "/email",
+      "/script",
+      "/brand",
+    ]);
+
+    expect(detectBusinessIntent("Crée-moi un site pour un restaurant")).toBe("site");
+    expect(getBusinessExperts("site")).toEqual(
+      expect.arrayContaining(["Business", "Site", "Landing", "Copywriting", "UI/UX", "SEO", "Qualite"]),
+    );
   });
 });

@@ -1,114 +1,62 @@
 {
-  "generatedAt": "2026-05-17T15:37:03.905+00:00",
+  "generatedAt": "2026-06-08T19:23:56.209Z",
   "sourceRun": {
-    "date": "2026-05-17",
-    "week": "2026-W20",
-    "runId": "2026-05-17-audit-roadmap-2026-05-17t15-37-03-469z",
-    "theme": "Audit Global / Refactor / Tests / Roadmap",
-    "reportPath": "reports/product-lab/daily/daily-2026-05-17.md"
+    "date": "2026-06-08",
+    "week": "2026-W24",
+    "theme": "UX / Dashboard / Onboarding",
+    "reportPath": "reports/product-lab/daily/daily-2026-06-08.md",
+    "runId": "2026-06-08-dashboard-2026-06-08t19-23-56-207z"
   },
   "summary": {
     "total": 9,
-    "aiReview": {
-      "error": "Analyse IA indisponible pour ce run: credits ou acces AI Gateway a verifier.",
-      "model": "Pixelrises AI Gateway",
-      "status": "failed",
-      "generated": 0,
-      "generatedAt": "2026-05-17T15:37:04.819Z"
+    "actionableTotal": 9,
+    "rejectedVagueProposals": 2,
+    "maxAutoSafePatches": 2,
+    "sensitiveChangesRequireApproval": true,
+    "domainCoverage": {
+      "marketing": 0,
+      "systeme": 1,
+      "seo": 1,
+      "generateur": 1,
+      "ia": 6
     },
-    "research": {
-      "mode": "live",
-      "verifiedAt": "2026-05-17T03:32:46.838Z",
-      "totalSources": 4,
-      "verifiedSources": 4
-    },
+    "dailySummary": "Theme UX / Dashboard / Onboarding: 9 proposition(s) actionnable(s) a valider, modifier ou refuser avant application. Couverture: systeme, seo, generateur, ia. Objectif utile: 8-9 propositions max par run.",
+    "averageScore": 75,
     "lowestScore": {
       "name": "Analytics Score",
       "note": 68
     },
-    "averageScore": 76,
-    "dailySummary": "Backlog ouverte cumulee depuis Supabase: 9 proposition(s) a trancher sans doublons volontaires.",
-    "actionableTotal": 9,
-    "maxAutoSafePatches": 2,
-    "rejectedVagueProposals": 1,
-    "sensitiveChangesRequireApproval": true
+    "research": {
+      "mode": "live",
+      "verifiedSources": 7,
+      "totalSources": 7,
+      "verifiedAt": "2026-05-17T03:32:46.838Z"
+    }
   },
   "items": [
     {
-      "id": "2026-05-17-audit-roadmap-2026-05-17t15-37-03-469z-integrations-templates-rendre-integrations-et-templates-plus-actionnables-roadmap-semaine",
-      "risk": "Faible",
-      "title": "Rendre integrations et templates plus actionnables - roadmap semaine",
-      "domain": "marketing",
-      "impact": "Moyen",
-      "module": "Integrations / Templates",
-      "status": "Propose",
-      "decision": "auto_safe",
-      "priority": "Amelioration",
-      "runFocus": {
-        "id": "roadmap-week",
-        "short": "roadmap semaine",
-        "description": "classer les prochains chantiers par impact, risque et validation humaine"
-      },
-      "dataState": "real",
-      "afterState": "La prochaine iteration cible \"roadmap semaine\" avec une action concrete, mesurable et limitee au scope V2.",
-      "difficulty": "Faible",
-      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"roadmap semaine\" pour eviter les cartes repetitives.",
-      "description": "Transformer les cartes integrations/templates en prochaines actions claires sans pretendre que les connecteurs mockes sont actifs. Focus du run: classer les prochains chantiers par impact, risque et validation humaine.",
-      "inspiration": "21st.dev / Mobbin / Vercel",
-      "scoreImpact": 18,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
-      "originalTitle": "Rendre integrations et templates plus actionnables",
-      "simpleSummary": "Integrations / Templates: Transformer les cartes integrations/templates en prochaines actions claires sans pretendre que les connecteurs mockes sont actifs. Focus du run: classer les prochains chantiers par impact, risque et validation humaine. Impact moyen, risque faible.",
-      "concernedFiles": [
-        "src/pages/Integrations.tsx",
-        "src/pages/Templates.tsx",
-        "src/modules/registries/index.ts"
-      ],
-      "evidenceSources": [
-        {
-          "id": "github-actions-secrets",
-          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
-          "name": "GitHub Actions Secrets",
-          "authority": "official",
-          "checkedAt": "2026-05-17T03:32:46.371Z",
-          "verificationStatus": "verified"
-        }
-      ],
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "sourceRun": {
-        "date": "2026-05-17",
-        "week": "2026-W20",
-        "runId": "2026-05-17-audit-roadmap-2026-05-17t15-37-03-469z",
-        "theme": "Audit Global / Refactor / Tests / Roadmap",
-        "reportPath": "reports/product-lab/daily/daily-2026-05-17.md"
-      },
-      "generatedAt": "2026-05-17T15:37:03.905+00:00"
-    },
-    {
-      "id": "2026-05-17-audit-roadmap-25994201486-site-builder-mesurer-la-similarite-entre-previews-generees-ci-sans-surprise",
-      "risk": "Faible",
-      "title": "Mesurer la similarite entre previews generees - CI sans surprise",
-      "domain": "ia",
-      "impact": "Eleve",
+      "id": "2026-06-08-dashboard-2026-06-08t19-23-56-207z-site-builder-forcer-un-moteur-anti-site-generique-par-niche-score-decisionnel",
+      "title": "Forcer un moteur anti-site generique par niche - score decisionnel",
+      "originalTitle": "Forcer un moteur anti-site generique par niche",
       "module": "Site Builder",
-      "status": "A ajouter",
-      "decision": "auto_safe",
-      "priority": "Important",
-      "runFocus": {
-        "id": "ci-blockers",
-        "short": "CI sans surprise",
-        "description": "bloquer les PR Product Lab si lint, tests, build ou sync admin echouent"
-      },
-      "dataState": "real",
-      "afterState": "Le Product Lab remonte automatiquement les familles de sites trop semblables et propose un patch cible sur blueprint, prompt ou preview.",
+      "domain": "seo",
+      "simpleSummary": "Site Builder: Transformer les 20 tests generateur en signaux anti-template: layouts differents, preuves par niche, CTA contextuels, SEO local et sections non interchangeables. Focus du run: rendre les scores plus utiles pour prioriser site, agent, jeu et integrations. Impact eleve, risque faible.",
+      "priority": "Critique",
+      "impact": "Eleve",
+      "risk": "Faible",
       "difficulty": "Moyenne",
-      "beforeState": "Les tests verifient la qualite, mais ne transforment pas encore assez la similarite visuelle en proposition concrete.",
-      "description": "Ajouter un score de similarite pour detecter quand deux sites generes reutilisent trop la meme structure, les memes titres ou les memes layouts. Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent.",
-      "inspiration": "Mobbin / 21st.dev / Linear",
+      "status": "A renforcer",
+      "inspiration": "Lovable / v0 / Mobbin",
+      "decision": "auto_safe",
+      "description": "Transformer les 20 tests generateur en signaux anti-template: layouts differents, preuves par niche, CTA contextuels, SEO local et sections non interchangeables. Focus du run: rendre les scores plus utiles pour prioriser site, agent, jeu et integrations.",
       "scoreImpact": 30,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
-      "originalTitle": "Mesurer la similarite entre previews generees",
-      "simpleSummary": "Site Builder: Ajouter un score de similarite pour detecter quand deux sites generes reutilisent trop la meme structure, les memes titres ou les memes layouts. Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent. Impact eleve, risque faible.",
+      "runFocus": {
+        "id": "decision-score",
+        "short": "score decisionnel",
+        "description": "rendre les scores plus utiles pour prioriser site, agent, jeu et integrations"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-06-08.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "src/pages/SiteBuilder.tsx",
         "src/modules/creation-engine",
@@ -117,164 +65,180 @@
       "evidenceSources": [
         {
           "id": "github-actions-secrets",
-          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "name": "GitHub Actions Secrets",
-          "authority": "official",
-          "checkedAt": "2026-05-17T14:56:43.865Z",
-          "verificationStatus": "verified"
-        }
-      ],
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "sourceRun": {
-        "date": "2026-05-17",
-        "week": "2026-W20",
-        "runId": "2026-05-17-audit-roadmap-25994201486",
-        "theme": "Audit Global / Refactor / Tests / Roadmap",
-        "reportPath": "reports/product-lab/daily/daily-2026-05-17.md"
-      },
-      "generatedAt": "2026-05-17T14:56:45.998+00:00"
-    },
-    {
-      "id": "2026-05-17-audit-roadmap-25994201486-agent-builder-durcir-la-securite-des-actions-agents-dette-technique-utile",
-      "risk": "Moyen",
-      "title": "Durcir la securite des actions agents - dette technique utile",
-      "domain": "ia",
-      "impact": "Eleve",
-      "module": "Agent Builder",
-      "status": "Propose",
-      "decision": "human_validation",
-      "priority": "Important",
-      "runFocus": {
-        "id": "technical-debt",
-        "short": "dette technique utile",
-        "description": "cibler les refactors legers qui reduisent bugs et duplication"
-      },
-      "dataState": "real",
-      "afterState": "La prochaine iteration cible \"dette technique utile\" avec une action concrete, mesurable et limitee au scope V2.",
-      "difficulty": "Moyenne",
-      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"dette technique utile\" pour eviter les cartes repetitives.",
-      "description": "Toute action sensible agent doit rester validable et visible. Focus du run: cibler les refactors legers qui reduisent bugs et duplication.",
-      "inspiration": "Delos / Base44",
-      "scoreImpact": 24,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
-      "originalTitle": "Durcir la securite des actions agents",
-      "simpleSummary": "Agent Builder: Toute action sensible agent doit rester validable et visible. Focus du run: cibler les refactors legers qui reduisent bugs et duplication. Impact eleve, risque moyen.",
-      "concernedFiles": [
-        "src/pages/AgentBuilder.tsx",
-        "src/pages/Agents.tsx",
-        "src/modules/registries/index.ts"
-      ],
-      "evidenceSources": [
-        {
-          "id": "github-actions-secrets",
           "url": "https://docs.github.com/en/actions/concepts/security/secrets",
-          "name": "GitHub Actions Secrets",
           "authority": "official",
-          "checkedAt": "2026-05-17T14:56:43.865Z",
-          "verificationStatus": "verified"
-        }
-      ],
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "sourceRun": {
-        "date": "2026-05-17",
-        "week": "2026-W20",
-        "runId": "2026-05-17-audit-roadmap-25994201486",
-        "theme": "Audit Global / Refactor / Tests / Roadmap",
-        "reportPath": "reports/product-lab/daily/daily-2026-05-17.md"
-      },
-      "generatedAt": "2026-05-17T14:56:45.998+00:00"
-    },
-    {
-      "id": "2026-05-17-audit-roadmap-25994201486-multi-ia-systeme-durcir-le-routing-multi-ia-et-les-secours-ia-roadmap-semaine",
-      "risk": "Moyen",
-      "title": "Durcir le routing Multi-IA et les secours IA - roadmap semaine",
-      "domain": "ia",
-      "impact": "Eleve",
-      "module": "Multi-IA / Systeme",
-      "status": "A cadrer",
-      "decision": "human_validation",
-      "priority": "Important",
-      "runFocus": {
-        "id": "roadmap-week",
-        "short": "roadmap semaine",
-        "description": "classer les prochains chantiers par impact, risque et validation humaine"
-      },
-      "dataState": "real",
-      "afterState": "La prochaine iteration cible \"roadmap semaine\" avec une action concrete, mesurable et limitee au scope V2.",
-      "difficulty": "Moyenne",
-      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"roadmap semaine\" pour eviter les cartes repetitives.",
-      "description": "Verifier que chaque builder route vers le bon role IA, normalise la sortie et garde un mode de secours propre. Focus du run: classer les prochains chantiers par impact, risque et validation humaine.",
-      "inspiration": "Moteur IA Pixelrises / Base44",
-      "scoreImpact": 24,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
-      "originalTitle": "Durcir le routing Multi-IA et les secours IA",
-      "simpleSummary": "Multi-IA / Systeme: Verifier que chaque builder route vers le bon role IA, normalise la sortie et garde un mode de secours propre. Focus du run: classer les prochains chantiers par impact, risque et validation humaine. Impact eleve, risque moyen.",
-      "concernedFiles": [
-        "src/modules/ai",
-        "supabase/functions/ai-orchestrator/index.ts",
-        "scripts/product-lab-core.mjs"
-      ],
-      "evidenceSources": [
-        {
-          "id": "vercel-ai-gateway-models",
-          "url": "https://vercel.com/docs/ai-gateway/models-and-providers",
-          "name": "Modes IA Pixelrises",
-          "authority": "official",
-          "checkedAt": "2026-05-17T14:56:45.752Z",
-          "verificationStatus": "verified"
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
         },
+        {
+          "id": "nng-usability-heuristics",
+          "name": "Nielsen Norman Group Usability Heuristics",
+          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.537Z"
+        },
+        {
+          "id": "baymard-ecommerce-ux",
+          "name": "Baymard Ecommerce UX Research",
+          "url": "https://baymard.com/",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.837Z"
+        }
+      ],
+      "beforeState": "Le Site Builder possede deja des blueprints, mais certains runs peuvent encore produire une preview trop proche d'un template standard.",
+      "afterState": "Chaque niche force une recette de structure, une variation de layout, des preuves, objections et CTA differents avant validation.",
+      "successMetric": "Au prochain smoke generator, le brief cible passe sans contenu generique et avec un CTA/contextual SEO coherent.",
+      "validationSteps": [
+        "Relancer le smoke generator sur le brief concerne.",
+        "Verifier preview desktop/mobile sans JSON ni contenu generique.",
+        "Confirmer que credits et erreurs restent propres."
+      ],
+      "dataState": "real"
+    },
+    {
+      "id": "2026-06-08-dashboard-2026-06-08t19-23-56-207z-dashboard-renforcer-le-dashboard-avec-donnees-v2-reelles-empty-states-utiles",
+      "title": "Renforcer le dashboard avec donnees V2 reelles - empty states utiles",
+      "originalTitle": "Renforcer le dashboard avec donnees V2 reelles",
+      "module": "Dashboard",
+      "domain": "systeme",
+      "simpleSummary": "Dashboard: Augmenter les insights reels Supabase sans supprimer les empty states. Focus du run: remplacer les zones vides par des actions simples et business-first. Impact eleve, risque moyen.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Moyen",
+      "difficulty": "Moyenne",
+      "status": "A cadrer",
+      "inspiration": "Shopify Admin / Base44",
+      "decision": "auto_safe",
+      "description": "Augmenter les insights reels Supabase sans supprimer les empty states. Focus du run: remplacer les zones vides par des actions simples et business-first.",
+      "scoreImpact": 24,
+      "runFocus": {
+        "id": "empty-states",
+        "short": "empty states utiles",
+        "description": "remplacer les zones vides par des actions simples et business-first"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-06-08.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/Dashboard.tsx",
+        "src/pages/Create.tsx"
+      ],
+      "evidenceSources": [
         {
           "id": "supabase-rls",
-          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
           "name": "Supabase Row Level Security",
+          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
           "authority": "official",
-          "checkedAt": "2026-05-17T14:56:43.640Z",
-          "verificationStatus": "verified"
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.441Z"
         },
         {
           "id": "github-actions-secrets",
-          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "authority": "official",
-          "checkedAt": "2026-05-17T14:56:43.865Z",
-          "verificationStatus": "verified"
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
+        },
+        {
+          "id": "nng-usability-heuristics",
+          "name": "Nielsen Norman Group Usability Heuristics",
+          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.537Z"
         }
       ],
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "sourceRun": {
-        "date": "2026-05-17",
-        "week": "2026-W20",
-        "runId": "2026-05-17-audit-roadmap-25994201486",
-        "theme": "Audit Global / Refactor / Tests / Roadmap",
-        "reportPath": "reports/product-lab/daily/daily-2026-05-17.md"
-      },
-      "generatedAt": "2026-05-17T14:56:45.998+00:00"
+      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"empty states utiles\" pour eviter les cartes repetitives.",
+      "afterState": "La prochaine iteration cible \"empty states utiles\" avec une action concrete, mesurable et limitee au scope V2.",
+      "successMetric": "La correction est verifiable par un test, un smoke ou une action admin explicite avant tout merge.",
+      "validationSteps": [
+        "Valider le comportement dans l'interface V2.",
+        "Lancer le test ou smoke le plus proche du module.",
+        "Confirmer que la proposition respecte les garde-fous sensibles."
+      ],
+      "dataState": "real"
     },
     {
-      "id": "2026-05-17-audit-roadmap-25994201486-ai-spaces-auditer-les-ai-spaces-comme-couche-d-accompagnement-roadmap-semaine",
-      "risk": "Faible",
-      "title": "Auditer les AI Spaces comme couche d'accompagnement - roadmap semaine",
+      "id": "2026-06-08-dashboard-2026-06-08t19-23-56-207z-product-vision-aligner-chaque-patch-sur-la-vision-idee-vers-projet-concret-ai-spaces-guides",
+      "title": "Aligner chaque patch sur la vision idee vers projet concret - AI Spaces guidés",
+      "originalTitle": "Aligner chaque patch sur la vision idee vers projet concret",
+      "module": "Product Vision",
       "domain": "ia",
-      "impact": "Eleve",
-      "module": "AI Spaces",
-      "status": "Propose",
-      "decision": "auto_safe",
+      "simpleSummary": "Product Vision: Verifier que chaque amelioration renforce la promesse Pixelrises: creer, ameliorer, publier, connecter ou analyser. Focus du run: clarifier le choix entre Builders et AI Spaces dans les 30 premières secondes. Impact eleve, risque faible.",
       "priority": "Important",
-      "runFocus": {
-        "id": "roadmap-week",
-        "short": "roadmap semaine",
-        "description": "classer les prochains chantiers par impact, risque et validation humaine"
-      },
-      "dataState": "real",
-      "afterState": "Chaque espace IA propose une aide specialisee, des actions rapides, des liens vers Builders et des protections adaptees.",
-      "difficulty": "Moyenne",
-      "beforeState": "Les Builders creent deja des projets, mais l'accompagnement par profil doit rester lisible et mesurable.",
-      "description": "Verifier prompts, quick actions, garde-fous, historique, conversion vers Builders et clarté entre Builders et AI Spaces. Focus du run: classer les prochains chantiers par impact, risque et validation humaine.",
-      "inspiration": "Delos / Base44 / ChatGPT-style workspaces",
+      "impact": "Eleve",
+      "risk": "Faible",
+      "difficulty": "Faible",
+      "status": "En continu",
+      "inspiration": "Lovable / Base44 / Linear",
+      "decision": "auto_safe",
+      "description": "Verifier que chaque amelioration renforce la promesse Pixelrises: creer, ameliorer, publier, connecter ou analyser. Focus du run: clarifier le choix entre Builders et AI Spaces dans les 30 premières secondes.",
       "scoreImpact": 30,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
+      "runFocus": {
+        "id": "ai-spaces-onboarding",
+        "short": "AI Spaces guidés",
+        "description": "clarifier le choix entre Builders et AI Spaces dans les 30 premières secondes"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-06-08.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "docs/product-lab-benchmark-targets.md",
+        "product-lab/backlog.md"
+      ],
+      "evidenceSources": [
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
+        },
+        {
+          "id": "linear-method",
+          "name": "Linear Method",
+          "url": "https://linear.app/method",
+          "authority": "product-practice",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.467Z"
+        }
+      ],
+      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"AI Spaces guidés\" pour eviter les cartes repetitives.",
+      "afterState": "La prochaine iteration cible \"AI Spaces guidés\" avec une action concrete, mesurable et limitee au scope V2.",
+      "successMetric": "La correction est verifiable par un test, un smoke ou une action admin explicite avant tout merge.",
+      "validationSteps": [
+        "Valider le comportement dans l'interface V2.",
+        "Lancer le test ou smoke le plus proche du module.",
+        "Confirmer que la proposition respecte les garde-fous sensibles."
+      ],
+      "dataState": "real"
+    },
+    {
+      "id": "2026-06-08-dashboard-2026-06-08t19-23-56-207z-ai-spaces-auditer-les-ai-spaces-comme-couche-d-accompagnement-activation-plus-claire",
+      "title": "Auditer les AI Spaces comme couche d'accompagnement - activation plus claire",
       "originalTitle": "Auditer les AI Spaces comme couche d'accompagnement",
-      "simpleSummary": "AI Spaces: Verifier prompts, quick actions, garde-fous, historique, conversion vers Builders et clarté entre Builders et AI Spaces. Focus du run: classer les prochains chantiers par impact, risque et validation humaine. Impact eleve, risque faible.",
+      "module": "AI Spaces",
+      "domain": "ia",
+      "simpleSummary": "AI Spaces: Verifier prompts, quick actions, garde-fous, historique, conversion vers Builders et clarté entre Builders et AI Spaces. Focus du run: mettre en avant la prochaine action qui transforme une idee en projet concret. Impact eleve, risque faible.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Faible",
+      "difficulty": "Moyenne",
+      "status": "Propose",
+      "inspiration": "Delos / Base44 / ChatGPT-style workspaces",
+      "decision": "auto_safe",
+      "description": "Verifier prompts, quick actions, garde-fous, historique, conversion vers Builders et clarté entre Builders et AI Spaces. Focus du run: mettre en avant la prochaine action qui transforme une idee en projet concret.",
+      "scoreImpact": 30,
+      "runFocus": {
+        "id": "activation-path",
+        "short": "activation plus claire",
+        "description": "mettre en avant la prochaine action qui transforme une idee en projet concret"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-06-08.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "src/pages/AISpaces.tsx",
         "src/pages/AISpaceDetail.tsx",
@@ -283,106 +247,54 @@
       "evidenceSources": [
         {
           "id": "github-actions-secrets",
-          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "authority": "official",
-          "checkedAt": "2026-05-17T14:56:43.865Z",
-          "verificationStatus": "verified"
-        }
-      ],
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "sourceRun": {
-        "date": "2026-05-17",
-        "week": "2026-W20",
-        "runId": "2026-05-17-audit-roadmap-25994201486",
-        "theme": "Audit Global / Refactor / Tests / Roadmap",
-        "reportPath": "reports/product-lab/daily/daily-2026-05-17.md"
-      },
-      "generatedAt": "2026-05-17T14:56:45.998+00:00"
-    },
-    {
-      "id": "2026-05-17-audit-roadmap-25994201486-analytics-transformer-analytics-en-recommandations-exploitables-dette-technique-utile",
-      "risk": "Moyen",
-      "title": "Transformer analytics en recommandations exploitables - dette technique utile",
-      "domain": "systeme",
-      "impact": "Eleve",
-      "module": "Analytics",
-      "status": "A cadrer",
-      "decision": "human_validation",
-      "priority": "Important",
-      "runFocus": {
-        "id": "technical-debt",
-        "short": "dette technique utile",
-        "description": "cibler les refactors legers qui reduisent bugs et duplication"
-      },
-      "dataState": "real",
-      "afterState": "La prochaine iteration cible \"dette technique utile\" avec une action concrete, mesurable et limitee au scope V2.",
-      "difficulty": "Moyenne",
-      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"dette technique utile\" pour eviter les cartes repetitives.",
-      "description": "Relier les evenements, projets et generations a des prochaines actions lisibles meme quand les donnees reelles sont partielles. Focus du run: cibler les refactors legers qui reduisent bugs et duplication.",
-      "inspiration": "Shopify Admin / Linear",
-      "scoreImpact": 24,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
-      "originalTitle": "Transformer analytics en recommandations exploitables",
-      "simpleSummary": "Analytics: Relier les evenements, projets et generations a des prochaines actions lisibles meme quand les donnees reelles sont partielles. Focus du run: cibler les refactors legers qui reduisent bugs et duplication. Impact eleve, risque moyen.",
-      "concernedFiles": [
-        "src/pages/Analytics.tsx",
-        "src/pages/Dashboard.tsx",
-        "src/modules/storage/project-storage-adapter.ts"
-      ],
-      "evidenceSources": [
-        {
-          "id": "supabase-rls",
-          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
-          "name": "Supabase Row Level Security",
-          "authority": "official",
-          "checkedAt": "2026-05-17T14:56:43.640Z",
-          "verificationStatus": "verified"
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
         },
         {
-          "id": "github-actions-secrets",
-          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
-          "name": "GitHub Actions Secrets",
-          "authority": "official",
-          "checkedAt": "2026-05-17T14:56:43.865Z",
-          "verificationStatus": "verified"
+          "id": "nng-usability-heuristics",
+          "name": "Nielsen Norman Group Usability Heuristics",
+          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.537Z"
         }
       ],
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "sourceRun": {
-        "date": "2026-05-17",
-        "week": "2026-W20",
-        "runId": "2026-05-17-audit-roadmap-25994201486",
-        "theme": "Audit Global / Refactor / Tests / Roadmap",
-        "reportPath": "reports/product-lab/daily/daily-2026-05-17.md"
-      },
-      "generatedAt": "2026-05-17T14:56:45.998+00:00"
+      "beforeState": "Les Builders creent deja des projets, mais l'accompagnement par profil doit rester lisible et mesurable.",
+      "afterState": "Chaque espace IA propose une aide specialisee, des actions rapides, des liens vers Builders et des protections adaptees.",
+      "successMetric": "La sortie IA reste normalisee, redacted et testable meme en fallback ou erreur provider.",
+      "validationSteps": [
+        "Valider le comportement dans l'interface V2.",
+        "Lancer le test ou smoke le plus proche du module.",
+        "Confirmer que la proposition respecte les garde-fous sensibles."
+      ],
+      "dataState": "real"
     },
     {
-      "id": "2026-05-17-audit-roadmap-25994201486-site-builder-ameliorer-le-flow-site-builder-preview-roadmap-semaine",
-      "risk": "Faible",
-      "title": "Ameliorer le flow Site Builder preview - roadmap semaine",
-      "domain": "generateur",
-      "impact": "Eleve",
+      "id": "2026-06-08-dashboard-2026-06-08t19-23-56-207z-site-builder-mesurer-la-similarite-entre-previews-generees-score-decisionnel",
+      "title": "Mesurer la similarite entre previews generees - score decisionnel",
+      "originalTitle": "Mesurer la similarite entre previews generees",
       "module": "Site Builder",
-      "status": "Propose",
-      "decision": "auto_safe",
-      "priority": "Amelioration",
-      "runFocus": {
-        "id": "roadmap-week",
-        "short": "roadmap semaine",
-        "description": "classer les prochains chantiers par impact, risque et validation humaine"
-      },
-      "dataState": "real",
-      "afterState": "La prochaine iteration cible \"roadmap semaine\" avec une action concrete, mesurable et limitee au scope V2.",
+      "domain": "ia",
+      "simpleSummary": "Site Builder: Ajouter un score de similarite pour detecter quand deux sites generes reutilisent trop la meme structure, les memes titres ou les memes layouts. Focus du run: rendre les scores plus utiles pour prioriser site, agent, jeu et integrations. Impact eleve, risque faible.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Faible",
       "difficulty": "Moyenne",
-      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"roadmap semaine\" pour eviter les cartes repetitives.",
-      "description": "Rendre le chemin idee -> preview -> amelioration plus fluide avec microcopy et actions rapides. Focus du run: classer les prochains chantiers par impact, risque et validation humaine.",
-      "inspiration": "Lovable / v0",
+      "status": "A ajouter",
+      "inspiration": "Mobbin / 21st.dev / Linear",
+      "decision": "auto_safe",
+      "description": "Ajouter un score de similarite pour detecter quand deux sites generes reutilisent trop la meme structure, les memes titres ou les memes layouts. Focus du run: rendre les scores plus utiles pour prioriser site, agent, jeu et integrations.",
       "scoreImpact": 30,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
-      "originalTitle": "Ameliorer le flow Site Builder preview",
-      "simpleSummary": "Site Builder: Rendre le chemin idee -> preview -> amelioration plus fluide avec microcopy et actions rapides. Focus du run: classer les prochains chantiers par impact, risque et validation humaine. Impact eleve, risque faible.",
+      "runFocus": {
+        "id": "decision-score",
+        "short": "score decisionnel",
+        "description": "rendre les scores plus utiles pour prioriser site, agent, jeu et integrations"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-06-08.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "src/pages/SiteBuilder.tsx",
         "src/modules/creation-engine",
@@ -391,48 +303,246 @@
       "evidenceSources": [
         {
           "id": "github-actions-secrets",
-          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "authority": "official",
-          "checkedAt": "2026-05-17T14:56:43.865Z",
-          "verificationStatus": "verified"
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
+        },
+        {
+          "id": "nng-usability-heuristics",
+          "name": "Nielsen Norman Group Usability Heuristics",
+          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.537Z"
+        },
+        {
+          "id": "baymard-ecommerce-ux",
+          "name": "Baymard Ecommerce UX Research",
+          "url": "https://baymard.com/",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.837Z"
         }
       ],
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "sourceRun": {
-        "date": "2026-05-17",
-        "week": "2026-W20",
-        "runId": "2026-05-17-audit-roadmap-25994201486",
-        "theme": "Audit Global / Refactor / Tests / Roadmap",
-        "reportPath": "reports/product-lab/daily/daily-2026-05-17.md"
-      },
-      "generatedAt": "2026-05-17T14:56:45.998+00:00"
+      "beforeState": "Les tests verifient la qualite, mais ne transforment pas encore assez la similarite visuelle en proposition concrete.",
+      "afterState": "Le Product Lab remonte automatiquement les familles de sites trop semblables et propose un patch cible sur blueprint, prompt ou preview.",
+      "successMetric": "Au prochain smoke generator, le brief cible passe sans contenu generique et avec un CTA/contextual SEO coherent.",
+      "validationSteps": [
+        "Relancer le smoke generator sur le brief concerne.",
+        "Verifier preview desktop/mobile sans JSON ni contenu generique.",
+        "Confirmer que credits et erreurs restent propres."
+      ],
+      "dataState": "real"
     },
     {
-      "id": "2026-05-17-audit-roadmap-25994201486-game-builder-conserver-le-game-builder-en-beta-explicite-ci-sans-surprise",
-      "risk": "Faible",
-      "title": "Conserver le Game Builder en beta explicite - CI sans surprise",
-      "domain": "generateur",
-      "impact": "Moyen",
-      "module": "Game Builder",
+      "id": "2026-06-08-dashboard-2026-06-08t19-23-56-207z-agent-builder-durcir-la-securite-des-actions-agents-empty-states-utiles",
+      "title": "Durcir la securite des actions agents - empty states utiles",
+      "originalTitle": "Durcir la securite des actions agents",
+      "module": "Agent Builder",
+      "domain": "ia",
+      "simpleSummary": "Agent Builder: Toute action sensible agent doit rester validable et visible. Focus du run: remplacer les zones vides par des actions simples et business-first. Impact eleve, risque moyen.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Moyen",
+      "difficulty": "Moyenne",
       "status": "Propose",
-      "decision": "auto_safe",
-      "priority": "Amelioration",
+      "inspiration": "Delos / Base44",
+      "decision": "human_validation",
+      "description": "Toute action sensible agent doit rester validable et visible. Focus du run: remplacer les zones vides par des actions simples et business-first.",
+      "scoreImpact": 24,
       "runFocus": {
-        "id": "ci-blockers",
-        "short": "CI sans surprise",
-        "description": "bloquer les PR Product Lab si lint, tests, build ou sync admin echouent"
+        "id": "empty-states",
+        "short": "empty states utiles",
+        "description": "remplacer les zones vides par des actions simples et business-first"
       },
-      "dataState": "real",
-      "afterState": "La prochaine iteration cible \"CI sans surprise\" avec une action concrete, mesurable et limitee au scope V2.",
-      "difficulty": "Faible",
-      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"CI sans surprise\" pour eviter les cartes repetitives.",
-      "description": "Les rapports doivent traquer toute promesse de publication automatique. Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent.",
-      "inspiration": "Roblox Creator Hub / UEFN",
-      "scoreImpact": 18,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
+      "sourceReport": "reports/product-lab/daily/daily-2026-06-08.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/AgentBuilder.tsx",
+        "src/pages/Agents.tsx",
+        "src/modules/registries/index.ts"
+      ],
+      "evidenceSources": [
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
+        },
+        {
+          "id": "nng-usability-heuristics",
+          "name": "Nielsen Norman Group Usability Heuristics",
+          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.537Z"
+        }
+      ],
+      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"empty states utiles\" pour eviter les cartes repetitives.",
+      "afterState": "La prochaine iteration cible \"empty states utiles\" avec une action concrete, mesurable et limitee au scope V2.",
+      "successMetric": "Chaque action agent sensible affiche une validation humaine obligatoire avant execution ou patch.",
+      "validationSteps": [
+        "Creer un agent test dans l'admin ou le builder.",
+        "Verifier permissions, chat test et validation humaine.",
+        "Confirmer qu'aucune action externe ne part sans accord."
+      ],
+      "dataState": "real"
+    },
+    {
+      "id": "2026-06-08-dashboard-2026-06-08t19-23-56-207z-multi-ia-systeme-durcir-le-routing-multi-ia-et-les-secours-ia-ai-spaces-guides",
+      "title": "Durcir le routing Multi-IA et les secours IA - AI Spaces guidés",
+      "originalTitle": "Durcir le routing Multi-IA et les secours IA",
+      "module": "Multi-IA / Systeme",
+      "domain": "ia",
+      "simpleSummary": "Multi-IA / Systeme: Verifier que chaque builder route vers le bon role IA, normalise la sortie et garde un mode de secours propre. Focus du run: clarifier le choix entre Builders et AI Spaces dans les 30 premières secondes. Impact eleve, risque moyen.",
+      "priority": "Important",
+      "impact": "Eleve",
+      "risk": "Moyen",
+      "difficulty": "Moyenne",
+      "status": "A cadrer",
+      "inspiration": "Moteur IA Pixelrises / Base44",
+      "decision": "human_validation",
+      "description": "Verifier que chaque builder route vers le bon role IA, normalise la sortie et garde un mode de secours propre. Focus du run: clarifier le choix entre Builders et AI Spaces dans les 30 premières secondes.",
+      "scoreImpact": 24,
+      "runFocus": {
+        "id": "ai-spaces-onboarding",
+        "short": "AI Spaces guidés",
+        "description": "clarifier le choix entre Builders et AI Spaces dans les 30 premières secondes"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-06-08.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/modules/ai",
+        "supabase/functions/ai-orchestrator/index.ts",
+        "scripts/product-lab-core.mjs"
+      ],
+      "evidenceSources": [
+        {
+          "id": "vercel-ai-gateway-models",
+          "name": "Modes IA Pixelrises",
+          "url": "https://vercel.com/docs/ai-gateway/models-and-providers",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.438Z"
+        },
+        {
+          "id": "supabase-rls",
+          "name": "Supabase Row Level Security",
+          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.441Z"
+        },
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
+        }
+      ],
+      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"AI Spaces guidés\" pour eviter les cartes repetitives.",
+      "afterState": "La prochaine iteration cible \"AI Spaces guidés\" avec une action concrete, mesurable et limitee au scope V2.",
+      "successMetric": "La sortie IA reste normalisee, redacted et testable meme en fallback ou erreur provider.",
+      "validationSteps": [
+        "Valider le comportement dans l'interface V2.",
+        "Lancer le test ou smoke le plus proche du module.",
+        "Confirmer que la proposition respecte les garde-fous sensibles."
+      ],
+      "dataState": "real"
+    },
+    {
+      "id": "2026-06-08-dashboard-2026-06-08t19-23-56-207z-site-builder-ameliorer-le-flow-site-builder-preview-activation-plus-claire",
+      "title": "Ameliorer le flow Site Builder preview - activation plus claire",
+      "originalTitle": "Ameliorer le flow Site Builder preview",
+      "module": "Site Builder",
+      "domain": "generateur",
+      "simpleSummary": "Site Builder: Rendre le chemin idee -> preview -> amelioration plus fluide avec microcopy et actions rapides. Focus du run: mettre en avant la prochaine action qui transforme une idee en projet concret. Impact eleve, risque faible.",
+      "priority": "Amelioration",
+      "impact": "Eleve",
+      "risk": "Faible",
+      "difficulty": "Moyenne",
+      "status": "Propose",
+      "inspiration": "Lovable / v0",
+      "decision": "auto_safe",
+      "description": "Rendre le chemin idee -> preview -> amelioration plus fluide avec microcopy et actions rapides. Focus du run: mettre en avant la prochaine action qui transforme une idee en projet concret.",
+      "scoreImpact": 30,
+      "runFocus": {
+        "id": "activation-path",
+        "short": "activation plus claire",
+        "description": "mettre en avant la prochaine action qui transforme une idee en projet concret"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-06-08.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
+      "concernedFiles": [
+        "src/pages/SiteBuilder.tsx",
+        "src/modules/creation-engine",
+        "supabase/functions/ai-orchestrator/index.ts"
+      ],
+      "evidenceSources": [
+        {
+          "id": "github-actions-secrets",
+          "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
+          "authority": "official",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
+        },
+        {
+          "id": "nng-usability-heuristics",
+          "name": "Nielsen Norman Group Usability Heuristics",
+          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.537Z"
+        },
+        {
+          "id": "baymard-ecommerce-ux",
+          "name": "Baymard Ecommerce UX Research",
+          "url": "https://baymard.com/",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.837Z"
+        }
+      ],
+      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"activation plus claire\" pour eviter les cartes repetitives.",
+      "afterState": "La prochaine iteration cible \"activation plus claire\" avec une action concrete, mesurable et limitee au scope V2.",
+      "successMetric": "Au prochain smoke generator, le brief cible passe sans contenu generique et avec un CTA/contextual SEO coherent.",
+      "validationSteps": [
+        "Relancer le smoke generator sur le brief concerne.",
+        "Verifier preview desktop/mobile sans JSON ni contenu generique.",
+        "Confirmer que credits et erreurs restent propres."
+      ],
+      "dataState": "real"
+    },
+    {
+      "id": "2026-06-08-dashboard-2026-06-08t19-23-56-207z-game-builder-conserver-le-game-builder-en-beta-explicite-score-decisionnel",
+      "title": "Conserver le Game Builder en beta explicite - score decisionnel",
       "originalTitle": "Conserver le Game Builder en beta explicite",
-      "simpleSummary": "Game Builder: Les rapports doivent traquer toute promesse de publication automatique. Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent. Impact moyen, risque faible.",
+      "module": "Game Builder",
+      "domain": "ia",
+      "simpleSummary": "Game Builder: Les rapports doivent traquer toute promesse de publication automatique. Focus du run: rendre les scores plus utiles pour prioriser site, agent, jeu et integrations. Impact moyen, risque faible.",
+      "priority": "Amelioration",
+      "impact": "Moyen",
+      "risk": "Faible",
+      "difficulty": "Faible",
+      "status": "Propose",
+      "inspiration": "Roblox Creator Hub / UEFN",
+      "decision": "auto_safe",
+      "description": "Les rapports doivent traquer toute promesse de publication automatique. Focus du run: rendre les scores plus utiles pour prioriser site, agent, jeu et integrations.",
+      "scoreImpact": 18,
+      "runFocus": {
+        "id": "decision-score",
+        "short": "score decisionnel",
+        "description": "rendre les scores plus utiles pour prioriser site, agent, jeu et integrations"
+      },
+      "sourceReport": "reports/product-lab/daily/daily-2026-06-08.md",
+      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
       "concernedFiles": [
         "src/pages/GameBuilder.tsx",
         "src/pages/Games.tsx",
@@ -441,87 +551,30 @@
       "evidenceSources": [
         {
           "id": "github-actions-secrets",
-          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "name": "GitHub Actions Secrets",
+          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
           "authority": "official",
-          "checkedAt": "2026-05-17T14:56:43.865Z",
-          "verificationStatus": "verified"
-        }
-      ],
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "sourceRun": {
-        "date": "2026-05-17",
-        "week": "2026-W20",
-        "runId": "2026-05-17-audit-roadmap-25994201486",
-        "theme": "Audit Global / Refactor / Tests / Roadmap",
-        "reportPath": "reports/product-lab/daily/daily-2026-05-17.md"
-      },
-      "generatedAt": "2026-05-17T14:56:45.998+00:00"
-    },
-    {
-      "id": "2026-05-17-audit-roadmap-25994201486-dashboard-renforcer-le-dashboard-avec-donnees-v2-reelles-ci-sans-surprise",
-      "risk": "Moyen",
-      "title": "Renforcer le dashboard avec donnees V2 reelles - CI sans surprise",
-      "domain": "systeme",
-      "impact": "Eleve",
-      "module": "Dashboard",
-      "status": "A cadrer",
-      "decision": "auto_safe",
-      "priority": "Important",
-      "runFocus": {
-        "id": "ci-blockers",
-        "short": "CI sans surprise",
-        "description": "bloquer les PR Product Lab si lint, tests, build ou sync admin echouent"
-      },
-      "dataState": "real",
-      "afterState": "La prochaine iteration cible \"CI sans surprise\" avec une action concrete, mesurable et limitee au scope V2.",
-      "difficulty": "Moyenne",
-      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"CI sans surprise\" pour eviter les cartes repetitives.",
-      "description": "Augmenter les insights reels Supabase sans supprimer les empty states. Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent.",
-      "inspiration": "Shopify Admin / Base44",
-      "scoreImpact": 24,
-      "sourceReport": "reports/product-lab/daily/daily-2026-05-17.md",
-      "originalTitle": "Renforcer le dashboard avec donnees V2 reelles",
-      "simpleSummary": "Dashboard: Augmenter les insights reels Supabase sans supprimer les empty states. Focus du run: bloquer les PR Product Lab si lint, tests, build ou sync admin echouent. Impact eleve, risque moyen.",
-      "concernedFiles": [
-        "src/pages/Dashboard.tsx",
-        "src/pages/Create.tsx"
-      ],
-      "evidenceSources": [
-        {
-          "id": "supabase-rls",
-          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
-          "name": "Supabase Row Level Security",
-          "authority": "official",
-          "checkedAt": "2026-05-17T14:56:43.640Z",
-          "verificationStatus": "verified"
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.371Z"
         },
         {
-          "id": "github-actions-secrets",
-          "url": "https://docs.github.com/en/actions/concepts/security/secrets",
-          "name": "GitHub Actions Secrets",
-          "authority": "official",
-          "checkedAt": "2026-05-17T14:56:43.865Z",
-          "verificationStatus": "verified"
-        },
-        {
-          "id": "linear-method",
-          "url": "https://linear.app/method",
-          "name": "Linear Method",
-          "authority": "product-practice",
-          "checkedAt": "2026-05-17T14:56:43.678Z",
-          "verificationStatus": "verified"
+          "id": "nng-usability-heuristics",
+          "name": "Nielsen Norman Group Usability Heuristics",
+          "url": "https://media.nngroup.com/media/articles/attachments/Heuristic_Summary1_A4_compressed.pdf",
+          "authority": "research",
+          "verificationStatus": "verified",
+          "checkedAt": "2026-05-17T03:32:46.537Z"
         }
       ],
-      "automationPolicy": "Validation humaine requise avant tout changement sensible. Le Product Lab ne doit pas appliquer cette decision automatiquement.",
-      "sourceRun": {
-        "date": "2026-05-17",
-        "week": "2026-W20",
-        "runId": "2026-05-17-audit-roadmap-25994201486",
-        "theme": "Audit Global / Refactor / Tests / Roadmap",
-        "reportPath": "reports/product-lab/daily/daily-2026-05-17.md"
-      },
-      "generatedAt": "2026-05-17T14:56:45.998+00:00"
+      "beforeState": "La proposition existe deja, mais elle doit etre reliee au focus quotidien \"score decisionnel\" pour eviter les cartes repetitives.",
+      "afterState": "La prochaine iteration cible \"score decisionnel\" avec une action concrete, mesurable et limitee au scope V2.",
+      "successMetric": "Le prototype ou package teste affiche une boucle jouable, une checklist claire et aucun statut de publication automatique.",
+      "validationSteps": [
+        "Generer un prototype web de test.",
+        "Verifier score, progression, restart et export.",
+        "Confirmer qu'aucune publication automatique n'est promise."
+      ],
+      "dataState": "real"
     }
   ]
 }

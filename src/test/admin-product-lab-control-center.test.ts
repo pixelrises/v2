@@ -61,4 +61,21 @@ describe("Admin Product Lab control center", () => {
     expect(adminSource).toContain("SEO");
     expect(adminSource).toContain("Generateur");
   });
+
+  it("keeps Product Lab proposals visible when admin decisions fall back locally", () => {
+    expect(adminSource).toContain("loadProductLabStateSafely");
+    expect(adminSource).toContain("Les propositions restent visibles");
+    expect(adminSource).not.toMatch(
+      /Promise\.all\(\[\s*loadProductLabReviewQueue\(scope\),\s*readProductLabDecisionsFromSupabase\(scope\),/,
+    );
+  });
+
+  it("sends localhost admin decisions to the local Product Lab runner bridge", () => {
+    expect(adminSource).toContain("syncProductLabDecisionsToLocalRunner");
+    expect(adminSource).toContain("Decision envoyee au Product Lab local");
+    expect(adminSource).toContain("Runner local actif");
+    expect(adminSource).not.toContain(
+      "Pour que l'automatisation les applique, il faudra synchroniser avec une vraie session admin Supabase.",
+    );
+  });
 });

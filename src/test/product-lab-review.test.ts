@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  buildProductLabLocalRunnerPayload,
   exportProductLabDecisions,
   fallbackProductLabReviewQueue,
   getProductLabItemRunKey,
@@ -85,6 +86,28 @@ describe("Product Lab admin review", () => {
     expect(decisions[item.id].automationAction).toBe("authorize_next_run");
     expect(decisions[item.id].applicationStatus).toBe("pending");
     expect(exported).toContain("OK avec garde-fous.");
+  });
+
+  it("builds local runner decisions enriched with the visible proposal", () => {
+    const item = fallbackProductLabReviewQueue.items[0];
+    const decisions = writeProductLabDecision({} as ProductLabDecisionMap, item.id, "approved", "OK local.", {
+      automationAction: "authorize_next_run",
+      sourceRunKey: v2RunKey,
+      sourceRun: fallbackProductLabReviewQueue.sourceRun,
+    });
+
+    const payload = buildProductLabLocalRunnerPayload(decisions, fallbackProductLabReviewQueue);
+
+    expect(payload.source).toBe("local-admin-bypass");
+    expect(payload.decisions).toHaveLength(1);
+    expect(payload.decisions[0].itemId).toBe(item.id);
+    expect(payload.decisions[0].title).toBe(item.title);
+    expect(payload.decisions[0].module).toBe(item.module);
+    expect(payload.decisions[0].reviewItem).toMatchObject({
+      id: item.id,
+      title: item.title,
+      module: item.module,
+    });
   });
 
   it("keeps PR-ready processing status visible in merged admin items", () => {

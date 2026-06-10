@@ -47,7 +47,6 @@ export type BackendAIOrchestratorResponse = {
   routingTrace?: Array<{
     taskType: string;
     role: string;
-    model: string;
     success: boolean;
     error?: string;
   }>;
@@ -76,14 +75,20 @@ const cleanResponse = (
     };
   }
 
+  const safeResponse: BackendAIOrchestratorResponse = { ...response };
+  delete safeResponse.provider;
+  delete safeResponse.model;
+
   return {
-    ...response,
+    ...safeResponse,
     projectType: response.projectType ?? request.projectType,
     mode: response.mode ?? request.mode ?? "build",
     source: response.source ?? "mock-fallback",
     errors: cleanErrors(response.errors),
     routingTrace: response.routingTrace?.map((task) => ({
-      ...task,
+      taskType: task.taskType,
+      role: task.role,
+      success: task.success,
       error: task.error ? cleanBackendMessage(task.error) : undefined,
     })),
   };

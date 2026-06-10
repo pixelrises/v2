@@ -185,7 +185,7 @@ const BeforeAfter = () => {
         <AnimatedSection delay={0.4}>
           <div className="mt-12 text-center">
             <Button asChild size="lg" className="group magnetic-glow bg-primary text-primary-foreground shadow-xl shadow-primary/20 transition-all hover:scale-[1.03] hover:bg-primary/90 hover:shadow-primary/40">
-              <a href="#exemples">
+              <a href="/realisations/portfolio">
                 {locale === "en" ? "See real results" : "Voir des résultats concrets"}
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>

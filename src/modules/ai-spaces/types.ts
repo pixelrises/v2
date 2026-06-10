@@ -145,6 +145,15 @@ export type AISpaceAssistantRequest = {
   conversationId?: string;
   history?: AISpaceMessage[];
   profileLevel?: "beginner" | "advanced";
+  intent?: string;
+  workflowMode?: "direct" | "plan";
+  expertRoute?: string[];
+  attachments?: Array<{
+    id?: string;
+    name: string;
+    type?: string;
+    size?: number;
+  }>;
 };
 
 export type AISpaceAssistantResponse = {

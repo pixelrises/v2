@@ -19,8 +19,20 @@ describe("AI Spaces integration contract", () => {
 
     expect(edgeFunction).toContain("createAIChatCompletion");
     expect(edgeFunction).toContain("AI_GATEWAY_OPENAI_MODEL");
+    expect(edgeFunction).toContain("AI_GATEWAY_STUDENT_MODEL");
+    expect(edgeFunction).toContain("site, app, jeu educatif et agent IA");
     expect(edgeFunction).toContain("source: \"mock-fallback\"");
     expect(edgeFunction).not.toContain("vck_");
+  });
+
+  it("keeps Edge AI orchestrator aligned with advanced builder Gateway tasks", () => {
+    const orchestrator = readProjectFile("supabase/functions/ai-orchestrator/index.ts");
+
+    expect(orchestrator).toContain('"game_research"');
+    expect(orchestrator).toContain('"game_platform_constraints"');
+    expect(orchestrator).toContain('"game_ui_ux"');
+    expect(orchestrator).toContain('"game_prototype_code"');
+    expect(orchestrator).toContain("game_prototype_code");
   });
 
   it("adds AI Spaces to Product Lab analysis", () => {

@@ -1,15 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 const notifications = [
-  "Un entrepreneur consulte nos offres",
-  "Un visiteur découvre nos réalisations",
-  "Un entrepreneur explore le Pack Signature",
-  "Un visiteur analyse nos projets",
-  "Quelqu'un consulte la page tarifs",
-  "Un visiteur regarde les avis clients",
-  "Un nouveau visiteur découvre Pixelrises",
-  "Un entrepreneur regarde le Pack Essentiel",
+  "Un entrepreneur compare les offres",
+  "Un visiteur regarde les réalisations",
+  "Quelqu'un teste l'espace IA",
+  "Un fondateur démarre un diagnostic",
+  "Un créateur explore les outils IA",
+  "Un étudiant découvre Student AI",
+  "Une équipe prépare une automatisation",
+  "Un visiteur imagine son premier site",
+  "Un indépendant consulte les tarifs",
+  "Quelqu'un ouvre le dashboard démo",
 ];
 
 const ActivityNotifications = () => {
@@ -37,7 +39,7 @@ const ActivityNotifications = () => {
   }, [showNotification]);
 
   return (
-    <div className="fixed bottom-6 left-6 z-30 max-w-[280px]">
+    <div className="fixed bottom-5 left-4 z-30 max-w-[300px] sm:bottom-6 sm:left-6">
       <AnimatePresence>
         {visible && current && (
           <motion.div
@@ -45,11 +47,16 @@ const ActivityNotifications = () => {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -100, opacity: 0 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
-            className="bg-card/95 backdrop-blur-sm border border-border rounded-lg px-4 py-3 shadow-lg"
+            className="rounded-2xl border border-primary/20 bg-black/85 px-4 py-3 shadow-[0_18px_55px_rgba(0,0,0,0.45)] backdrop-blur-xl"
           >
-            <div className="flex items-center gap-2.5">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse flex-shrink-0" />
-              <p className="text-xs text-muted-foreground leading-snug">{current}</p>
+            <div className="flex items-start gap-2.5">
+              <div className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-primary shadow-[0_0_18px_rgba(250,204,21,0.65)]" />
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary/85">
+                  Activité récente
+                </p>
+                <p className="mt-1 text-[12px] font-semibold leading-snug text-white/70">{current}</p>
+              </div>
             </div>
           </motion.div>
         )}

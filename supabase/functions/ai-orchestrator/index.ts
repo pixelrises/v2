@@ -67,10 +67,14 @@ type AITaskType =
   | "agent_prompt"
   | "agent_permissions"
   | "game_design"
+  | "game_research"
   | "game_mechanics"
   | "game_level_design"
+  | "game_platform_constraints"
   | "game_script"
   | "game_assets"
+  | "game_ui_ux"
+  | "game_prototype_code"
   | "game_publishing"
   | "integration_mapping"
   | "dashboard_recommendations"
@@ -174,24 +178,56 @@ const taskPlans: Record<ProjectType, Record<GenerationMode, AITaskType[]>> = {
     improve: ["brief_analysis", "agent_config", "agent_prompt", "agent_permissions", "quality_gate", "final_fusion"],
   },
   game: {
-    plan: ["brief_analysis", "game_design", "game_mechanics", "game_level_design", "game_publishing", "quality_gate", "final_fusion"],
-    build: [
+    plan: [
       "brief_analysis",
+      "game_research",
       "game_design",
       "game_mechanics",
+      "game_platform_constraints",
       "game_level_design",
+      "game_publishing",
+      "quality_gate",
+      "final_fusion",
+    ],
+    build: [
+      "brief_analysis",
+      "game_research",
+      "game_design",
+      "game_mechanics",
+      "game_platform_constraints",
+      "game_level_design",
+      "game_ui_ux",
       "game_script",
+      "game_prototype_code",
       "game_assets",
       "game_publishing",
       "quality_gate",
       "final_fusion",
     ],
-    improve: ["brief_analysis", "game_design", "game_mechanics", "game_script", "game_assets", "quality_gate", "final_fusion"],
+    improve: [
+      "brief_analysis",
+      "game_research",
+      "game_design",
+      "game_mechanics",
+      "game_script",
+      "game_prototype_code",
+      "game_assets",
+      "quality_gate",
+      "final_fusion",
+    ],
   },
 };
 
 const roleForTask = (taskType: AITaskType): AIRole => {
-  if (["project_type_detection", "brief_analysis", "integration_mapping", "dashboard_recommendations", "output_normalization", "final_fusion"].includes(taskType)) {
+  if ([
+    "project_type_detection",
+    "brief_analysis",
+    "game_research",
+    "integration_mapping",
+    "dashboard_recommendations",
+    "output_normalization",
+    "final_fusion",
+  ].includes(taskType)) {
     return "gemini";
   }
   if ([
@@ -213,15 +249,16 @@ const roleForTask = (taskType: AITaskType): AIRole => {
     "agent_permissions",
     "game_design",
     "game_mechanics",
+    "game_platform_constraints",
     "game_publishing",
     "quality_gate",
   ].includes(taskType)) {
     return "claude";
   }
-  if (["site_design", "design_system", "ui_layout", "component_suggestion", "game_level_design", "game_assets"].includes(taskType)) {
+  if (["site_design", "design_system", "ui_layout", "component_suggestion", "game_level_design", "game_assets", "game_ui_ux"].includes(taskType)) {
     return "cloud-design";
   }
-  if (["game_script", "code_generation", "code_review", "bug_fix", "refactor"].includes(taskType)) {
+  if (["game_script", "game_prototype_code", "code_generation", "code_review", "bug_fix", "refactor"].includes(taskType)) {
     return "cloud-code";
   }
   return "mistral";
@@ -251,13 +288,13 @@ const modelForRole = (role: AIRole) => {
 
 const taskMaxTokens = (taskType: AITaskType) => {
   if (taskType === "final_fusion") return 5200;
-  if (["site_copywriting", "site_structure", "game_script", "game_design"].includes(taskType)) return 2200;
-  if (["site_design", "game_assets", "game_level_design"].includes(taskType)) return 1700;
+  if (["site_copywriting", "site_structure", "game_script", "game_prototype_code", "game_design"].includes(taskType)) return 2200;
+  if (["site_design", "game_assets", "game_level_design", "game_ui_ux"].includes(taskType)) return 1700;
   return 1300;
 };
 
 const taskTemperature = (taskType: AITaskType) => {
-  if (["site_design", "game_assets", "game_level_design"].includes(taskType)) return 0.72;
+  if (["site_design", "game_assets", "game_level_design", "game_ui_ux"].includes(taskType)) return 0.72;
   if (["site_copywriting", "site_conversion", "offer_generation"].includes(taskType)) return 0.62;
   if (taskType === "quality_gate") return 0.2;
   if (taskType === "final_fusion") return 0.35;
@@ -349,10 +386,14 @@ const taskInstruction = (taskType: AITaskType, projectType: ProjectType) => {
     agent_prompt: "Redige les instructions systeme de l'agent, ses exemples d'actions et son style de reponse.",
     agent_permissions: "Definis permissions sures. Toute action sensible doit rester sous validation utilisateur.",
     game_design: "Cree le concept de jeu: pitch, univers, core fantasy, public, objectif joueur et contraintes de plateforme.",
+    game_research: "Prepare tendances, references utiles, objectifs pedagogiques et contraintes connues sans inventer de donnees live.",
     game_mechanics: "Definis gameplay loop, regles, progression, economie, recompenses, retention et equilibre.",
     game_level_design: "Prepare map structure, zones, flow, rythme, UI utile et assets visuels necessaires.",
+    game_platform_constraints: "Verifie ce qui est faisable sur Web, Roblox Studio, UEFN ou Minecraft. Rappelle les limites et validations humaines.",
     game_script: "Genere snippets de depart adaptes a la plateforme: Luau Roblox, JSON Minecraft, Verse UEFN ou JS web game. Explique les limites.",
     game_assets: "Liste assets, UI, prompts visuels, thumbnails, ambiance et priorites de production.",
+    game_ui_ux: "Prepare HUD, feedback, onboarding, menus et experience joueur lisible.",
+    game_prototype_code: "Prepare le prototype web jouable ou les snippets techniques de base sans pretendre publier automatiquement.",
     game_publishing: "Cree checklist de creation/publication sans promesse de publication automatique.",
     quality_gate: "Critique la sortie attendue: coherence, manque, risques, generique, placeholders, secrets, securite et validations obligatoires.",
     final_fusion: `Fusionne toutes les sorties en un JSON ${projectType} final conforme au schema Pixelrises. Le brief utilisateur est prioritaire. Supprime contradictions, doublons, placeholders, secrets et contenu generique.`,
@@ -388,6 +429,19 @@ const publicTaskResult = (result: MultiAITaskResult) => ({
   output: result.output,
   error: result.error ? redactSecretsForResponse(result.error) : undefined,
 });
+
+const publicExpertLabel = (role: AIRole) => {
+  const labels: Record<AIRole, string> = {
+    gemini: "Expert coherence",
+    openai: "Expert business",
+    claude: "Expert logique",
+    "cloud-design": "Expert design",
+    "cloud-code": "Expert code",
+    mistral: "Expert rapide",
+  };
+
+  return labels[role] ?? "Expert Pixelrises";
+};
 
 const getBriefValue = (
   request: OrchestratorRequest,
@@ -1323,13 +1377,10 @@ serve(async (request) => {
         generationId: persistence.generationId,
         projectId: persistence.projectId ?? projectId,
         persisted: persistence.persisted,
-        provider: execution.provider,
-        model: execution.model,
         source: execution.source,
-        routingTrace: execution.taskResults.map(({ taskType, role, model, success, error }) => ({
+        routingTrace: execution.taskResults.map(({ taskType, role, success, error }) => ({
           taskType,
-          role,
-          model,
+          role: publicExpertLabel(role),
           success,
           error: error ? redactSecretsForResponse(error) : undefined,
         })),

@@ -29,7 +29,7 @@ const ParallaxTitle = ({ children, className = "", intensity = 40 }: ParallaxTit
   }
 
   return (
-    <motion.div ref={ref} style={{ y, opacity }} className={className}>
+    <motion.div ref={ref} style={{ y, opacity }} className={`relative ${className}`}>
       {children}
     </motion.div>
   );

@@ -19,7 +19,7 @@ import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { DataBadge } from "@/components/ui/data-state";
 import { Textarea } from "@/components/ui/textarea";
-import { BuilderModeToggle, BuilderSafeNotice, BuilderToolbar } from "@/components/v2/BuilderShell";
+import { BuilderGenerationModeSelector, BuilderGenerationTimeline, BuilderModeToggle, BuilderPlanTool, BuilderSafeNotice, BuilderToolbar } from "@/components/v2/BuilderShell";
 import { V2PageShell } from "@/components/v2/V2PageShell";
 import { useInterfaceMode } from "@/hooks/use-interface-mode";
 import { toast } from "@/hooks/use-toast";
@@ -352,6 +352,8 @@ const SiteBuilder = () => {
       "Créer un site web moderne pour une agence de coaching business haut de gamme. Positionnement premium, axé sur la transformation et les résultats. Ton professionnel et inspirant.",
   });
   const [mode, setMode] = useState<SiteBuilderMode>("plan");
+  const [planApproved, setPlanApproved] = useState(false);
+  const [generationMode, setGenerationMode] = useState<"direct" | "plan">("direct");
   const [device, setDevice] = useState<Device>("desktop");
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>("brief");
   const [siteProject, setSiteProject] = useState<NormalizedSiteProject>(defaultSite);
@@ -447,15 +449,122 @@ const SiteBuilder = () => {
       versions.length,
     ],
   );
+  const generationTimelineSteps = useMemo(
+    () => [
+      {
+        title: "Analyse du brief",
+        description: "Objectif, secteur, cible et contraintes sont analysés avant génération.",
+        status: planApproved || isGenerating || hasUserGenerated ? "validé" : "en attente",
+        state: planApproved || isGenerating || hasUserGenerated ? ("done" as const) : ("pending" as const),
+        items: [
+          { label: "objectif", state: brief.goal ? ("done" as const) : ("pending" as const) },
+          { label: "secteur", state: brief.niche ? ("done" as const) : ("pending" as const) },
+          { label: "cible", state: brief.targetAudience ? ("done" as const) : ("pending" as const) },
+          { label: "contraintes", state: planAssumptions.length ? ("active" as const) : ("pending" as const) },
+        ],
+      },
+      {
+        title: "Architecture du site/app",
+        description: "Pages, sections, parcours utilisateur et CTA sont structurés.",
+        status: planApproved || isGenerating || hasUserGenerated ? "validé" : "en attente",
+        state: planApproved || isGenerating || hasUserGenerated ? ("done" as const) : ("pending" as const),
+        items: [
+          { label: "pages", state: includedPages.length ? ("done" as const) : ("pending" as const) },
+          { label: "sections", state: intelligence.enrichedBrief.required_sections.length ? ("done" as const) : ("pending" as const) },
+          { label: "parcours utilisateur", state: "active" as const },
+          { label: "CTA", state: brief.goal ? ("done" as const) : ("pending" as const) },
+        ],
+      },
+      {
+        title: "Contenu et conversion",
+        description: "Hero, bénéfices, preuves, FAQ et appels à l'action sont préparés.",
+        status: isGenerating ? "en cours" : hasUserGenerated ? "validé" : planApproved ? "à valider" : "en attente",
+        state: isGenerating ? ("active" as const) : hasUserGenerated ? ("done" as const) : planApproved ? ("active" as const) : ("pending" as const),
+        items: [
+          { label: "hero", state: hasUserGenerated ? ("done" as const) : planApproved ? ("active" as const) : ("pending" as const) },
+          { label: "bénéfices", state: hasUserGenerated ? ("done" as const) : ("pending" as const) },
+          { label: "preuves", state: hasUserGenerated ? ("done" as const) : ("pending" as const) },
+          { label: "FAQ", state: hasUserGenerated ? ("done" as const) : ("pending" as const) },
+          { label: "appels à l'action", state: hasUserGenerated ? ("done" as const) : ("pending" as const) },
+        ],
+      },
+      {
+        title: "Design et responsive",
+        description: "Style, hiérarchie, mobile et lisibilité sont vérifiés.",
+        status: isGenerating ? "en cours" : hasUserGenerated ? "validé" : "en attente",
+        state: isGenerating ? ("active" as const) : hasUserGenerated ? ("done" as const) : ("pending" as const),
+        items: [
+          { label: "style", state: brief.style ? ("done" as const) : ("pending" as const) },
+          { label: "hiérarchie", state: hasUserGenerated ? ("done" as const) : ("pending" as const) },
+          { label: "mobile", state: hasUserGenerated ? ("done" as const) : ("pending" as const) },
+          { label: "lisibilité", state: hasUserGenerated ? ("done" as const) : ("pending" as const) },
+        ],
+      },
+      {
+        title: "Génération finale",
+        description: "Preview, vérification, corrections et résultat prêt sont suivis honnêtement.",
+        status: isGenerating ? "en cours" : hasUserGenerated ? "terminé" : "en attente",
+        state: isGenerating ? ("active" as const) : hasUserGenerated ? (quality.passed ? ("done" as const) : ("blocked" as const)) : ("pending" as const),
+        items: [
+          { label: "preview", state: hasUserGenerated ? ("done" as const) : isGenerating ? ("active" as const) : ("pending" as const) },
+          { label: "vérification", state: hasUserGenerated ? ("done" as const) : ("pending" as const) },
+          { label: "corrections", state: quality.passed ? ("done" as const) : hasUserGenerated ? ("active" as const) : ("pending" as const) },
+          { label: "résultat prêt", state: quality.passed ? ("done" as const) : ("pending" as const) },
+        ],
+      },
+    ],
+    [brief, hasUserGenerated, intelligence.enrichedBrief.required_sections.length, isGenerating, planApproved, planAssumptions.length, quality.passed],
+  );
   const heroSection = siteSections[0];
   const contentSections = siteSections.slice(1, 4);
 
   const applyPreset = (preset: (typeof promptPresets)[number]) => {
+    setPlanApproved(false);
     setBrief((current) => ({
       ...current,
       ...preset.brief,
       freePrompt: preset.prompt,
     }));
+  };
+
+  const updateBriefPrompt = (value: string) => {
+    setPlanApproved(false);
+    setBrief((current) => ({ ...current, freePrompt: value }));
+  };
+
+  const approvePlan = () => {
+    setPlanApproved(true);
+    setMode("plan");
+    setGenerationMessage("Plan validé. Vous pouvez lancer la génération de la preview.");
+    toast({
+      title: "Plan validé",
+      description: "La génération peut maintenant démarrer avec ce cadrage.",
+    });
+  };
+
+  const editPlan = () => {
+    setPlanApproved(false);
+    setMode("plan");
+    setMobilePanel("brief");
+    setGenerationMessage("Modifiez vos réponses ou votre prompt, puis relisez le plan avant validation.");
+  };
+
+  const requestPlanReview = () => {
+    setMode("plan");
+    setMobilePanel("brief");
+    setGenerationMessage("Plan préparé. Lisez le plan détaillé, ajustez vos réponses si besoin, puis validez-le.");
+    toast({
+      title: "Plan à valider",
+      description: "Le Mode Plan attend votre validation avant la génération.",
+    });
+  };
+
+  const handlePrimaryGenerationAction = () => {
+    if (generationMode === "plan" && !planApproved) {
+      requestPlanReview();
+      return;
+    }
+    void generate();
   };
 
   const toStoredProject = (project: NormalizedSiteProject, score: number): StoredProject => ({
@@ -549,6 +658,16 @@ const SiteBuilder = () => {
   };
 
   const generate = async () => {
+    if (generationMode === "plan" && !planApproved) {
+      setMode("plan");
+      setGenerationMessage("Validez le plan Pixelrises avant de lancer la génération.");
+      toast({
+        title: "Plan à valider",
+        description: "Relisez le plan puis validez-le pour lancer la génération.",
+      });
+      return;
+    }
+
     setIsGenerating(true);
     setHasUserGenerated(true);
     setBackendQuality(null);
@@ -857,11 +976,11 @@ const SiteBuilder = () => {
             <div className="mt-4 rounded-[14px] border border-white/[0.08] bg-black/35 p-3">
               <Textarea
                 value={brief.freePrompt}
-                onChange={(event) => setBrief({ ...brief, freePrompt: event.target.value })}
+                onChange={(event) => updateBriefPrompt(event.target.value)}
                 onKeyDown={(event) => {
                   if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
                     event.preventDefault();
-                    void generate();
+                    handlePrimaryGenerationAction();
                   }
                 }}
                 placeholder="Exemple : Crée un site premium pour un barbershop à Marseille, avec tarifs, galerie, avis et bouton réservation..."
@@ -897,15 +1016,41 @@ const SiteBuilder = () => {
               </div>
             </div>
 
+            <BuilderGenerationModeSelector
+              value={generationMode}
+              onChange={(nextMode) => {
+                setGenerationMode(nextMode);
+                if (nextMode === "direct") {
+                  setGenerationMessage("Mode Direct actif : la génération partira directement à partir de votre prompt.");
+                } else {
+                  setMode("plan");
+                  setGenerationMessage("Mode Plan actif : Pixelrises prépare un plan avant de générer.");
+                }
+              }}
+              className="mt-5"
+            />
+
             <div className="mt-5 flex flex-col gap-3">
               <Button
-                onClick={generate}
+                onClick={handlePrimaryGenerationAction}
                 disabled={isGenerating}
                 className="h-12 w-full rounded-xl bg-[#F5C542] text-black hover:bg-[#FFD766] disabled:opacity-70"
               >
                 {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {isGenerating ? "Création..." : "Créer la preview"}
-                <span className="ml-auto hidden text-xs font-semibold sm:inline">Générer le site avec l'IA</span>
+                {isGenerating
+                  ? "Création..."
+                  : generationMode === "plan"
+                    ? planApproved
+                      ? "Générer avec ce plan"
+                      : "Créer le plan"
+                    : "Créer la preview"}
+                <span className="ml-auto hidden text-xs font-semibold sm:inline">
+                  {generationMode === "plan"
+                    ? planApproved
+                      ? "Plan validé"
+                      : "Validation humaine"
+                    : "Mode Direct"}
+                </span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
               <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
@@ -923,49 +1068,59 @@ const SiteBuilder = () => {
             </div>
           </div>
 
-          {isAdvanced ? (
-          <div className="rounded-[18px] border border-[#F5C542]/15 bg-[linear-gradient(135deg,rgba(245,197,66,0.10),rgba(255,255,255,0.03))] p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#F5C542]">Plan Mode Pixelrises</p>
-                <p className="mt-1 text-xs leading-5 text-white/48">La demande est enrichie avant toute génération IA.</p>
-              </div>
-              <DataBadge state="mock" label="Brief enrichi local" />
-            </div>
-            <div className="mt-4 grid gap-2 text-xs leading-5 text-white/64">
-              <p>
-                <span className="text-white/38">Contexte :</span> {intelligence.enrichedBrief.business_context}
-              </p>
-              <p>
-                <span className="text-white/38">Objectif :</span> {intelligence.enrichedBrief.objective}
-              </p>
-              <p>
-                <span className="text-white/38">Design :</span> {intelligence.enrichedBrief.design_direction}
-              </p>
-              <p>
-                <span className="text-white/38">SEO :</span> {intelligence.enrichedBrief.seo_strategy}
-              </p>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {intelligence.enrichedBrief.required_sections.slice(0, 6).map((section) => (
-                <span key={section} className="rounded-full border border-white/[0.08] bg-black/30 px-3 py-1 text-[11px] text-white/58">
-                  {section}
-                </span>
-              ))}
-            </div>
-            {planAssumptions.length ? (
-              <div className="mt-4 rounded-[14px] border border-white/[0.08] bg-black/30 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/42">Hypothèses modifiables</p>
-                <div className="mt-2 space-y-1.5">
-                  {planAssumptions.slice(0, 3).map((assumption) => (
-                    <p key={assumption.id} className="text-xs leading-5 text-white/58">
-                      {assumption.text}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
+          {generationMode === "plan" ? (
+            <BuilderPlanTool
+              plan={{
+                id: "site-builder",
+                title: "Plan proposé par Pixelrises",
+                subtitle: "Vérifiez ce que l'IA va créer avant de lancer la génération.",
+                summary: `${intelligence.enrichedBrief.business_context} Objectif : ${intelligence.enrichedBrief.objective}. Design : ${intelligence.enrichedBrief.design_direction}.`,
+                questions: [
+                  "Quel est l'objectif principal ?",
+                  "À qui s'adresse le projet ?",
+                  "Quel niveau voulez-vous ?",
+                  "Quel style voulez-vous ?",
+                  "Quelle priorité ?",
+                  "Quels éléments sont obligatoires ?",
+                  "Quels éléments sont à éviter ?",
+                  "Voulez-vous un résultat rapide, équilibré ou très détaillé ?",
+                  `Quelle action doit être évidente ? ${brief.goal}`,
+                  `Quelles preuves rassurent la cible ? ${brief.targetAudience || "à préciser"}`,
+                  planAssumptions[0]?.text ?? `Quel niveau de SEO local faut-il viser ? ${brief.city || "marché non précisé"}`,
+                ],
+                sections: [
+                  { label: "Résumé du projet", value: intelligence.enrichedBrief.business_context },
+                  { label: "Objectif", value: intelligence.enrichedBrief.objective || brief.goal },
+                  { label: "Cible", value: brief.targetAudience || "Cible à préciser avant génération." },
+                  { label: "Style", value: brief.style || intelligence.enrichedBrief.design_direction },
+                  { label: "Structure prévue", items: includedPages.length ? includedPages : intelligence.enrichedBrief.required_sections.slice(0, 5) },
+                  { label: "Fonctionnalités prévues", items: keyFeatures.slice(0, 5) },
+                  {
+                    label: "Contenu prévu",
+                    items: [
+                      "Hero clair avec promesse forte",
+                      "Sections de bénéfices et preuves",
+                      "CTA visible",
+                      "FAQ utile",
+                      "Base SEO locale",
+                    ],
+                  },
+                  { label: "Points importants", items: [brief.goal, intelligence.enrichedBrief.seo_strategy, "Validation humaine avant publication"] },
+                  { label: "Éléments à éviter", items: ["Faux avis", "Fausses statistiques", "Publication live non prouvée", "Promesse générique"] },
+                  { label: "Résultat attendu", value: "Une preview de site claire, crédible, responsive et prête à être vérifiée avant sauvegarde ou publication." },
+                ],
+              }}
+              state={isGenerating ? "pending" : "idle"}
+              approved={planApproved}
+              onApprove={approvePlan}
+              onEditPrompt={editPlan}
+              onEditPreferences={editPlan}
+              onGenerate={() => void generate()}
+            />
+          ) : null}
+
+          {generationMode === "plan" || isGenerating || hasUserGenerated ? (
+            <BuilderGenerationTimeline steps={generationTimelineSteps} />
           ) : null}
 
           {isAdvanced ? (
@@ -1089,8 +1244,8 @@ const SiteBuilder = () => {
               <div className="mt-3 rounded-[14px] border border-white/[0.08] bg-black/25 p-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Étapes avancées</p>
                 <div className="mt-2 space-y-1.5">
-                  {routingTrace.slice(0, 5).map((task) => (
-                    <div key={`${task.taskType}-${task.role}-${task.model}`} className="flex items-center justify-between gap-2 text-[11px]">
+                  {routingTrace.slice(0, 5).map((task, index) => (
+                    <div key={`${task.taskType}-${task.role}-${index}`} className="flex items-center justify-between gap-2 text-[11px]">
                       <span className="truncate text-white/58">{task.taskType}</span>
                       <span className={task.success ? "text-emerald-300" : "text-orange-300"}>
                         {task.role} · {task.success ? "OK" : "à vérifier"}

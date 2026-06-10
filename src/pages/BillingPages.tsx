@@ -3,11 +3,17 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
+  CalendarDays,
+  Coins,
   CreditCard,
+  Crown,
   Gauge,
+  Headphones,
   History,
   LockKeyhole,
+  ReceiptText,
   RefreshCw,
+  Shield,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -31,6 +37,7 @@ import {
   getPlanCreditValueEur,
 } from "@/lib/billing";
 import { buildAuthRoute, getCurrentRelativeUrl } from "@/lib/auth-redirect";
+import { isLocalAuthBypassEnabled } from "@/lib/browser-context";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 
 type P9Tone = "ready" | "local" | "warning" | "soon" | "safe" | "beta";
@@ -205,6 +212,8 @@ const formatPlanPrice = (price: number | null) => {
 };
 
 const formatOneTimePrice = (price: number) => `${price} EUR`;
+const formatCreditsCount = (value: number | null | undefined) =>
+  value === null || value === undefined ? "Sur mesure" : new Intl.NumberFormat("fr-FR").format(value);
 
 const formatCreditUnitPrice = (price: number, credits: number) =>
   `${(price / credits).toLocaleString("fr-FR", {
@@ -292,7 +301,7 @@ const useBillingAccount = () => {
 
   useEffect(() => {
     const load = async () => {
-      if (!isSupabaseConfigured) {
+      if (!isSupabaseConfigured || isLocalAuthBypassEnabled()) {
         setDataState("local");
         setLoading(false);
         return;
@@ -371,6 +380,14 @@ const useCheckout = () => {
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
   const startCheckout = async (planKey: PlanKey) => {
+    if (isLocalAuthBypassEnabled()) {
+      toast({
+        title: "Paiement réservé au compte connecté",
+        description: "En local, tu peux travailler sans connexion. Le checkout réel nécessite une session utilisateur.",
+      });
+      return;
+    }
+
     if (!isSupabaseConfigured) {
       toast({
         title: "Paiement indisponible",
@@ -429,6 +446,14 @@ const useCheckout = () => {
   const startCreditPackCheckout = async (pack: CreditPackConfig) => {
     if (pack.status === "quote") {
       if (pack.quoteUrl) window.open(pack.quoteUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (isLocalAuthBypassEnabled()) {
+      toast({
+        title: "Paiement réservé au compte connecté",
+        description: "En local, tu peux tester l'interface. Les achats réels restent liés à une session.",
+      });
       return;
     }
 
@@ -494,6 +519,99 @@ const BillingDataBadge = ({ state }: { state: "real" | "local" | "error" | "empt
   if (state === "error") return <P9Badge tone="warning">A verifier</P9Badge>;
   return <P9Badge tone="soon">Aucune donnee</P9Badge>;
 };
+
+const BillingMetricCard = ({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  featured = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint: string;
+  icon: LucideIcon;
+  featured?: boolean;
+}) => (
+  <article
+    className={`relative overflow-hidden rounded-[24px] border p-4 sm:p-5 ${
+      featured
+        ? "border-[#F5C542]/38 bg-[#F5C542]/[0.055] shadow-[0_0_56px_-42px_rgba(245,197,66,0.95)]"
+        : "border-white/[0.08] bg-white/[0.035]"
+    }`}
+  >
+    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F5C542]/55 to-transparent" />
+    <div className="relative flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#F5C542]">{label}</p>
+        <p className="mt-3 truncate text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">{value}</p>
+        <p className="mt-1 text-xs leading-5 text-white/52">{hint}</p>
+      </div>
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#F5C542]/24 bg-[#F5C542]/10 text-[#F5C542]">
+        <Icon className="h-5 w-5" />
+      </span>
+    </div>
+  </article>
+);
+
+const BillingProtectionItem = ({
+  title,
+  description,
+  icon: Icon,
+}: {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+}) => (
+  <div className="flex gap-3 rounded-[22px] border border-white/[0.06] bg-black/24 p-4">
+    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#F5C542]/24 bg-[#F5C542]/10 text-[#F5C542]">
+      <Icon className="h-5 w-5" />
+    </span>
+    <div>
+      <p className="text-sm font-bold text-white">{title}</p>
+      <p className="mt-1 text-xs leading-5 text-white/54">{description}</p>
+    </div>
+  </div>
+);
+
+const BillingControlItem = ({
+  title,
+  description,
+  icon: Icon,
+}: {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+}) => (
+  <div className="rounded-[20px] border border-white/[0.07] bg-white/[0.025] p-4">
+    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#F5C542]/20 bg-[#F5C542]/10 text-[#F5C542]">
+      <Icon className="h-4 w-4" />
+    </div>
+    <p className="mt-3 text-sm font-bold text-white">{title}</p>
+    <p className="mt-1 text-xs leading-5 text-white/48">{description}</p>
+  </div>
+);
+
+const BillingSectionTitle = ({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+}) => (
+  <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#F5C542]">{eyebrow}</p>
+      <h2 className="mt-2 text-xl font-black tracking-[-0.035em] text-white sm:text-2xl">{title}</h2>
+      {description ? <p className="mt-2 max-w-2xl text-sm leading-6 text-white/52">{description}</p> : null}
+    </div>
+    {action}
+  </div>
+);
 
 export const PricingPage = () => {
   const { startCheckout, loadingPlan } = useCheckout();
@@ -659,161 +777,203 @@ export const BillingPage = () => {
   return (
     <PixelrisesAppShell
       breadcrumb="Billing"
-      title="Facturation"
-      description="Plan, credits et renouvellement. Les actions payantes restent sous votre controle."
+      title="Crédits & abonnement"
+      description="Gérez votre plan, vos crédits et vos recharges sans perdre le contrôle."
       primaryAction={{ label: "Changer de plan", href: "/pricing", icon: TrendingUp }}
-      secondaryAction={{ label: "Historique credits", href: "/credits", icon: History }}
+      secondaryAction={{ label: "Historique crédits", href: "/credits", icon: History }}
     >
-      {paymentStatus === "success" && (
-        <P9SafeNotice title="Paiement confirme">
-          Stripe a confirme le paiement. Les credits sont ajoutes par webhook securise et idempotent.
-        </P9SafeNotice>
-      )}
-
-      {paymentStatus === "cancelled" && (
-        <P9Panel className="border-orange-400/20 bg-orange-400/10">
-          <div className="flex gap-3">
-            <AlertTriangle className="h-5 w-5 text-orange-300" />
-            <div>
-              <p className="font-bold text-orange-200">Paiement annule</p>
-              <p className="mt-1 text-sm text-muted-foreground">Aucun changement n'a ete applique a votre compte.</p>
-            </div>
+      <div className="space-y-5">
+        {paymentStatus === "success" && (
+          <div className="rounded-[24px] border border-[#F5C542]/24 bg-[#F5C542]/10 p-4 text-sm leading-6 text-white/70">
+            <p className="font-bold text-[#F5C542]">Paiement confirmé</p>
+            <p className="mt-1">Stripe a confirmé le paiement. Les crédits sont ajoutés par webhook sécurisé et idempotent.</p>
           </div>
-        </P9Panel>
-      )}
+        )}
 
-      <div className="grid gap-4 lg:grid-cols-4">
-        <P9Stat
-          label="Credits"
-          value={loading ? "..." : wallet.balance}
-          hint="Solde disponible"
-          icon={WalletCards}
-        />
-        <P9Stat
-          label="Plan"
-          value={plan.name}
-          hint={statusLabel(subscription.status)}
-          icon={CreditCard}
-          tone="ready"
-        />
-        <P9Stat
-          label="Renouvellement"
-          value={formatDate(subscription.currentPeriodEnd)}
-          hint={`${wallet.monthlyAllowance} credits inclus`}
-          icon={RefreshCw}
-          tone="beta"
-        />
-        <P9Stat
-          label="Utilises"
-          value={wallet.lifetimeUsed}
-          hint="Historique cumule"
-          icon={Gauge}
-          tone="warning"
-        />
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <div className="rounded-[24px] border border-emerald-300/15 bg-emerald-300/[0.055] p-4">
-          <p className="text-sm font-bold text-emerald-200">Abonnement automatique</p>
-          <p className="mt-1 text-xs leading-5 text-white/56">
-            Checkout confirme : credits initiaux. Chaque facture mensuelle payee recharge le plan.
-          </p>
-        </div>
-        <div className="rounded-[24px] border border-[#F5C542]/20 bg-[#F5C542]/10 p-4">
-          <p className="text-sm font-bold text-[#F5C542]">Anti double-credit</p>
-          <p className="mt-1 text-xs leading-5 text-white/56">
-            Les webhooks utilisent un identifiant unique pour eviter les doublons de paiement ou de recharge.
-          </p>
-        </div>
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-4">
-          <p className="text-sm font-bold text-white">Secours admin</p>
-          <p className="mt-1 text-xs leading-5 text-white/56">
-            Si Stripe doit etre verifie, l'admin peut ajouter la recharge mensuelle manuellement une seule fois.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-        <P9Panel glow>
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <P9Badge tone="safe">{plan.name}</P9Badge>
-                <BillingDataBadge state={dataState} />
+        {paymentStatus === "cancelled" && (
+          <P9Panel className="border-orange-400/20 bg-orange-400/10">
+            <div className="flex gap-3">
+              <AlertTriangle className="h-5 w-5 text-orange-300" />
+              <div>
+                <p className="font-bold text-orange-200">Paiement annulé</p>
+                <p className="mt-1 text-sm text-muted-foreground">Aucun changement n'a été appliqué à votre compte.</p>
               </div>
-              <h2 className="mt-4 text-2xl font-black">Votre abonnement</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                Les changements de plan, moyens de paiement et factures passent par le portail client securise. Aucune information de paiement sensible n'est stockee dans l'interface Pixelrises.
-              </p>
             </div>
-            <Button onClick={() => void openPortal()} disabled={portalLoading} className="rounded-2xl">
-              {portalLoading ? "Ouverture..." : "Gerer mon abonnement"}
+          </P9Panel>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <BillingMetricCard
+            label="Crédits disponibles"
+            value={loading ? "..." : formatCreditsCount(wallet.balance)}
+            hint="Solde actuel"
+            icon={Coins}
+            featured
+          />
+          <BillingMetricCard
+            label="Plan actuel"
+            value={plan.name}
+            hint={`${formatCreditsCount(wallet.monthlyAllowance)} crédits / mois`}
+            icon={CreditCard}
+          />
+          <BillingMetricCard
+            label="Renouvellement"
+            value={formatDate(subscription.currentPeriodEnd)}
+            hint={subscription.currentPeriodEnd ? "Prochaine recharge" : "À configurer si abonnement actif"}
+            icon={CalendarDays}
+          />
+          <BillingMetricCard
+            label="Crédits utilisés"
+            value={formatCreditsCount(wallet.lifetimeUsed)}
+            hint="Historique cumulé"
+            icon={Gauge}
+          />
+        </div>
+
+        <section className="relative overflow-hidden rounded-[28px] border border-[#F5C542]/18 bg-[#080808]/88 p-5 shadow-[0_0_80px_-60px_rgba(245,197,66,0.95)]">
+          <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-[radial-gradient(circle_at_82%_35%,rgba(245,197,66,0.24),transparent_34%)]" />
+          <BillingSectionTitle
+            eyebrow="Sécurité & protection"
+            title="Paiement contrôlé, crédits protégés."
+            description="La page reste claire : chaque recharge, webhook et secours est encadré sans exposer de donnée sensible."
+          />
+          <div className="relative mt-5 grid gap-3 lg:grid-cols-3">
+            <BillingProtectionItem
+              title="Abonnement automatique"
+              description="Checkout confirmé : crédits initiaux, puis recharge mensuelle uniquement après facture payée."
+              icon={RefreshCw}
+            />
+            <BillingProtectionItem
+              title="Anti double-crédit"
+              description="Les événements Stripe sont traités avec idempotence pour éviter les doublons de paiement ou de recharge."
+              icon={ShieldCheck}
+            />
+            <BillingProtectionItem
+              title="Secours admin"
+              description="En cas de souci, l'équipe peut intervenir manuellement avec contrôle et traçabilité."
+              icon={Headphones}
+            />
+          </div>
+        </section>
+
+        <section className="relative overflow-hidden rounded-[28px] border border-[#F5C542]/22 bg-[linear-gradient(135deg,rgba(245,197,66,0.10),rgba(255,255,255,0.035)_34%,rgba(0,0,0,0.36))] p-5 shadow-[0_0_90px_-64px_rgba(245,197,66,0.95)]">
+          <div className="pointer-events-none absolute -left-16 top-8 h-48 w-48 rounded-full bg-[#F5C542]/10 blur-3xl" />
+          <div className="relative flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[28px] border border-[#F5C542]/30 bg-[#F5C542]/12 text-[#F5C542] shadow-[0_0_46px_-24px_rgba(245,197,66,0.95)]">
+                <Crown className="h-9 w-9" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <P9Badge tone="safe">Votre abonnement</P9Badge>
+                  <span className="rounded-full border border-white/[0.10] bg-black/30 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/62">
+                    {statusLabel(subscription.status)}
+                  </span>
+                  {dataState === "real" ? (
+                    <span className="rounded-full border border-[#F5C542]/20 bg-[#F5C542]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5C542]">
+                      Données compte
+                    </span>
+                  ) : null}
+                </div>
+                <h2 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">Plan {plan.name}</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-white/58">
+                  {formatCreditsCount(wallet.monthlyAllowance)} crédits inclus / mois. Les changements de plan, moyens de paiement et factures passent par le portail client sécurisé.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-2 text-sm text-white/62 sm:grid-cols-3 xl:min-w-[520px]">
+              <div className="rounded-2xl border border-white/[0.08] bg-black/24 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/38">Renouvellement</p>
+                <p className="mt-1 font-semibold text-white">{formatDate(subscription.currentPeriodEnd)}</p>
+              </div>
+              <div className="rounded-2xl border border-white/[0.08] bg-black/24 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/38">Paiement</p>
+                <p className="mt-1 font-semibold text-white">Portail sécurisé</p>
+              </div>
+              <div className="rounded-2xl border border-white/[0.08] bg-black/24 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/38">Méthode</p>
+                <p className="mt-1 font-semibold text-white">Non exposée</p>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => void openPortal()}
+              disabled={portalLoading}
+              className="min-h-[50px] rounded-2xl bg-[#F5C542] px-6 text-sm font-black text-black shadow-[0_18px_46px_-30px_rgba(245,197,66,0.95)] hover:bg-[#FFD766]"
+            >
+              {portalLoading ? "Ouverture..." : "Gérer mon abonnement"}
             </Button>
           </div>
-        </P9Panel>
+        </section>
 
-        <P9Panel>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h3 className="text-lg font-bold">Packs de credits</h3>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                Credits ponctuels pour produire plus, sans changer immediatement de plan. Les credits sont ajoutes apres paiement confirme.
-              </p>
-            </div>
-            <P9Badge tone="safe">Webhook securise</P9Badge>
-          </div>
+        <section className="rounded-[28px] border border-white/[0.08] bg-white/[0.025] p-5">
+          <BillingSectionTitle
+            eyebrow="Packs de crédits"
+            title="Ajoutez des crédits quand vous voulez."
+            description="Les crédits ponctuels sont ajoutés après confirmation du paiement. Growth reste mis en avant car il garde le meilleur ratio."
+            action={<P9Badge tone="safe">Paiement sécurisé</P9Badge>}
+          />
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
             {CREDIT_PACKS.map((pack) => {
               const tone = packTone[pack.key] || packTone.credits_100;
               const fixedPack = pack.priceEur !== null && pack.credits !== null;
+              const highlighted = pack.key === "credits_300";
+              const quote = pack.status === "quote";
 
               return (
-                <div
+                <article
                   key={pack.key}
-                  className={`relative overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br ${tone.className} p-4`}
+                  className={`relative flex min-h-[330px] flex-col overflow-hidden rounded-[28px] border p-5 ${
+                    highlighted
+                      ? "border-[#F5C542]/55 bg-[#F5C542]/[0.075] shadow-[0_0_62px_-32px_rgba(245,197,66,0.95)]"
+                      : "border-white/[0.08] bg-black/28"
+                  }`}
                 >
-                  <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[#F5C542]/10 blur-2xl" />
-                  <div className="relative">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <P9Badge tone={pack.status === "active" ? (pack.key === "credits_300" ? "safe" : "ready") : "beta"}>
-                          {tone.label}
-                        </P9Badge>
-                        <h4 className="mt-3 text-xl font-black text-white">{pack.label}</h4>
-                        <p className="mt-1 text-xs leading-5 text-white/52">{tone.detail}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-black text-white">
-                          {pack.priceEur === null ? "Sur devis" : formatOneTimePrice(pack.priceEur)}
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F5C542]/55 to-transparent" />
+                  <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-[#F5C542]/12 blur-3xl" />
+                  {highlighted ? (
+                    <span className="absolute right-4 top-4 rounded-full bg-[#F5C542] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-black">
+                      Meilleur ratio
+                    </span>
+                  ) : null}
+
+                  <div className="relative flex flex-1 flex-col">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#F5C542]/24 bg-[#F5C542]/10 text-[#F5C542]">
+                      {quote ? <Crown className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+                    </span>
+                    <p className="mt-5 text-[10px] font-black uppercase tracking-[0.22em] text-[#F5C542]">{tone.label}</p>
+                    <h3 className="mt-2 text-2xl font-black tracking-[-0.04em] text-white">{pack.label}</h3>
+                    <p className="mt-1 text-sm font-semibold text-[#F5C542]">
+                      {pack.credits === null ? "Sur devis" : `${formatCreditsCount(pack.credits)} crédits`}
+                    </p>
+                    <p className="mt-4 text-4xl font-black tracking-[-0.05em] text-white">
+                      {pack.priceEur === null ? "Sur devis" : formatOneTimePrice(pack.priceEur)}
+                    </p>
+                    <p className="mt-1 text-xs text-white/46">
+                      {fixedPack ? formatCreditUnitPrice(pack.priceEur, pack.credits) : "Volume personnalisé"}
+                    </p>
+
+                    <div className="mt-5 space-y-2 border-t border-white/[0.08] pt-4 text-xs text-white/58">
+                      <p className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 text-[#F5C542]" />
+                        {quote ? "Validation humaine avant devis" : "Ajout automatique après paiement"}
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <LockKeyhole className="h-4 w-4 text-[#F5C542]" />
+                        Protection anti-doublon
+                      </p>
+                      {quote ? (
+                        <p className="flex items-center gap-2">
+                          <Headphones className="h-4 w-4 text-[#F5C542]" />
+                          Support prioritaire
                         </p>
-                        <p className="mt-1 text-xs font-semibold text-[#F5C542]">
-                          {pack.credits === null ? "Volume custom" : `${pack.credits} credits`}
-                        </p>
-                      </div>
+                      ) : null}
                     </div>
 
-                    <p className="mt-4 min-h-[40px] text-sm leading-6 text-muted-foreground">{pack.description}</p>
-
-                    <div className="mt-4 grid gap-2 rounded-2xl border border-white/10 bg-black/20 p-3 text-xs">
-                      <div className="flex justify-between gap-3">
-                        <span className="text-white/46">Prix par credit</span>
-                        <strong className="text-white">
-                          {fixedPack ? formatCreditUnitPrice(pack.priceEur, pack.credits) : "Negocie"}
-                        </strong>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <span className="text-white/46">Ajout credits</span>
-                        <strong className="text-white">{pack.status === "active" ? "Apres paiement" : "Apres devis"}</strong>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <span className="text-white/46">Protection marge</span>
-                        <strong className="text-white">{pack.status === "active" ? "Active" : "Validation humaine"}</strong>
-                      </div>
-                    </div>
-
-                    {pack.status === "quote" && pack.quoteUrl ? (
-                      <Button asChild className="mt-4 w-full rounded-2xl" variant="outline">
+                    {quote && pack.quoteUrl ? (
+                      <Button asChild className="mt-auto w-full rounded-2xl border-[#F5C542]/24 bg-transparent text-white hover:bg-[#F5C542]/10" variant="outline">
                         <a href={pack.quoteUrl} target="_blank" rel="noopener noreferrer">
                           {pack.ctaLabel ?? "Demander un devis"}
                           <ArrowRight className="ml-2 h-4 w-4" />
@@ -821,8 +981,12 @@ export const BillingPage = () => {
                       </Button>
                     ) : (
                       <Button
-                        className="mt-4 w-full rounded-2xl"
-                        variant={pack.key === "credits_300" ? "default" : "outline"}
+                        className={`mt-auto w-full rounded-2xl ${
+                          highlighted
+                            ? "bg-[#F5C542] text-black hover:bg-[#FFD766]"
+                            : "border-[#F5C542]/24 bg-transparent text-white hover:bg-[#F5C542]/10"
+                        }`}
+                        variant={highlighted ? "default" : "outline"}
                         disabled={loadingPack === pack.key}
                         onClick={() => void startCreditPackCheckout(pack)}
                       >
@@ -831,11 +995,27 @@ export const BillingPage = () => {
                       </Button>
                     )}
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
-        </P9Panel>
+        </section>
+
+        <section className="relative overflow-hidden rounded-[28px] border border-[#F5C542]/18 bg-[#080808]/88 p-5">
+          <div className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 rounded-full bg-[#F5C542]/12 blur-3xl" />
+          <BillingSectionTitle
+            eyebrow="Vous gardez le contrôle"
+            title="Aucun débit caché, aucune recharge opaque."
+            description="La facturation reste lisible : historique, anti-doublon, secours admin et transparence des transactions."
+          />
+          <div className="relative mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <BillingControlItem title="Paiement contrôlé" description="Aucun débit sans action ou validation." icon={CreditCard} />
+            <BillingControlItem title="Historique disponible" description="Suivez les crédits et transactions." icon={ReceiptText} />
+            <BillingControlItem title="Protection anti-doublon" description="Sécurité webhook et vérifications." icon={Shield} />
+            <BillingControlItem title="Secours admin" description="Intervention humaine si besoin." icon={Headphones} />
+            <BillingControlItem title="Aucun débit caché" description="Transparence côté compte." icon={LockKeyhole} />
+          </div>
+        </section>
       </div>
     </PixelrisesAppShell>
   );

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
@@ -34,6 +34,7 @@ import { Progress } from "@/components/ui/progress";
 import { V2PageShell } from "@/components/v2/V2PageShell";
 import { toast } from "@/hooks/use-toast";
 import { buildAuthRoute, getCurrentRelativeUrl } from "@/lib/auth-redirect";
+import { isLocalAuthBypassEnabled } from "@/lib/browser-context";
 import { tryBootstrapAdmin } from "@/lib/admin-bootstrap";
 import { setPaymentReturnIntent, type PaymentReturnIntent } from "@/lib/payment-return-intent";
 import { resolvePublishedSiteUrl } from "@/lib/published-site";
@@ -69,6 +70,9 @@ type GeneratedSite = {
 
 type BillingFocus = "packs" | "subscriptions";
 type DashboardMode = "guided" | "cockpit";
+type DashboardProps = {
+  readOnlyDemo?: boolean;
+};
 
 type BillingOffer = {
   key: string;
@@ -266,31 +270,53 @@ const calculateScore = (dimensions: BusinessScoreDimension[], sites: GeneratedSi
   return Math.min(100, Math.round(average + siteBonus));
 };
 
-const Dashboard = () => {
+const Dashboard = ({ readOnlyDemo = false }: DashboardProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const localAuthBypass = isLocalAuthBypassEnabled();
+  const localWorkspaceMode = localAuthBypass && !readOnlyDemo;
+  const cloudDataEnabled = isSupabaseConfigured && !readOnlyDemo && !localAuthBypass;
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [loading, setLoading] = useState(cloudDataEnabled);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [credits, setCredits] = useState(isSupabaseConfigured ? 0 : 12);
-  const [totalUsed, setTotalUsed] = useState(isSupabaseConfigured ? 0 : 18);
-  const [sites, setSites] = useState<GeneratedSite[]>(isSupabaseConfigured ? [] : demoSites);
+  const [credits, setCredits] = useState(cloudDataEnabled ? 0 : readOnlyDemo ? 120 : 120);
+  const [totalUsed, setTotalUsed] = useState(cloudDataEnabled ? 0 : readOnlyDemo ? 38 : 0);
+  const [sites, setSites] = useState<GeneratedSite[]>(readOnlyDemo ? demoSites : []);
   const [v2Projects, setV2Projects] = useState<StoredProject[]>([]);
   const [projectStorageSource, setProjectStorageSource] = useState<"supabase" | "localStorage">(
-    isSupabaseConfigured ? "supabase" : "localStorage",
+    cloudDataEnabled ? "supabase" : "localStorage",
   );
   const [dashboardMode, setDashboardMode] = useState<DashboardMode>(() => readDashboardMode());
-  const [siteViewCount, setSiteViewCount] = useState(isSupabaseConfigured ? 0 : 1248);
+  const [siteViewCount, setSiteViewCount] = useState(cloudDataEnabled ? 0 : readOnlyDemo ? 1248 : 0);
   const [checkoutLoadingPriceId, setCheckoutLoadingPriceId] = useState<string | null>(null);
   const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [billingFocus, setBillingFocus] = useState<BillingFocus>("packs");
   const [checkoutReturnIntent, setCheckoutReturnIntent] =
     useState<Omit<PaymentReturnIntent, "createdAt"> | null>(null);
 
-  const demoMode = !isSupabaseConfigured;
+  const demoMode = readOnlyDemo;
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    if (!cloudDataEnabled) {
+      if (readOnlyDemo) {
+        setUser(null);
+        setIsAdmin(false);
+        setCredits(120);
+        setTotalUsed(38);
+        setSites(demoSites);
+        setV2Projects([]);
+        setProjectStorageSource("localStorage");
+        setSiteViewCount(1248);
+        setLoading(false);
+        return;
+      }
+
+      setUser(null);
+      setIsAdmin(localWorkspaceMode);
+      setCredits(120);
+      setTotalUsed(0);
+      setSites([]);
+      setSiteViewCount(0);
       void projectStorageAdapter.listProjects().then((result) => {
         setV2Projects(result.data);
         setProjectStorageSource(result.fallback);
@@ -399,19 +425,19 @@ const Dashboard = () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [cloudDataEnabled, localWorkspaceMode, readOnlyDemo]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!cloudDataEnabled) return;
     if (!loading && !user) {
       navigate(buildAuthRoute(getCurrentRelativeUrl()), { replace: true });
     }
-  }, [loading, navigate, user]);
+  }, [cloudDataEnabled, loading, navigate, user]);
 
   const changeDashboardMode = (mode: DashboardMode) => {
     setDashboardMode(mode);
     persistDashboardMode(mode);
-    trackV2Event("dashboard_mode_changed", { mode });
+    if (!readOnlyDemo) trackV2Event("dashboard_mode_changed", { mode });
   };
 
   const publishedCount = useMemo(
@@ -432,7 +458,7 @@ const Dashboard = () => {
   const businessScore = v2Projects.length
     ? Math.round((calculateScore(businessScoreDimensions, sites) + v2AverageScore) / 2)
     : calculateScore(businessScoreDimensions, sites);
-  const displayName = getDisplayName(user, demoMode);
+  const displayName = localWorkspaceMode ? "Fondateur Pixelrises" : getDisplayName(user, demoMode);
   const firstName = displayName.split(" ")[0] || "Client";
   const totalProjects = sites.length + v2Projects.length;
   const v2SiteCount = v2Projects.filter((project) => project.type === "site").length;
@@ -494,14 +520,22 @@ const Dashboard = () => {
   const launchBlockers = launchReadinessChecks.filter((check) => !check.passed).slice(0, 3);
   const dashboardDataState: DataState = demoMode
     ? "example"
+    : localWorkspaceMode
+      ? v2Projects.length > 0
+        ? "mock"
+        : "empty"
     : totalProjects > 0 || siteViewCount > 0 || credits > 0
       ? "real"
       : "empty";
   const dashboardDataDescription =
     dashboardDataState === "real"
       ? "Le cockpit utilise vos projets sauvegardés et les événements disponibles pour guider les prochaines actions."
+      : dashboardDataState === "mock"
+        ? "Mode fondateur local : les projets viennent du navigateur et restent exploitables sans connexion."
       : dashboardDataState === "empty"
-        ? "Aucun projet ou événement réel n'est encore disponible. Les prochaines actions guident le premier lancement."
+        ? localWorkspaceMode
+          ? "Mode fondateur local : aucun projet local n'est encore disponible. Lance une création pour alimenter ton espace."
+          : "Aucun projet ou événement réel n'est encore disponible. Les prochaines actions guident le premier lancement."
         : "Exemples de démonstration : ces chiffres présentent l'expérience V2, ils ne sont pas des résultats réels.";
   const isGuidedMode = dashboardMode === "guided";
   const projectListDataState: DataState =
@@ -511,12 +545,23 @@ const Dashboard = () => {
         ? dashboardDataState
         : "empty";
   const analyticsDataState: DataState =
-    demoMode || (siteViewCount > 0 && !isSupabaseConfigured)
+    demoMode
       ? "example"
+      : localWorkspaceMode
+        ? siteViewCount > 0
+          ? "mock"
+          : "empty"
+      : siteViewCount > 0 && !cloudDataEnabled
+        ? "example"
       : siteViewCount > 0
         ? "real"
         : "empty";
-  const businessScoreDataState: DataState = dashboardDataState === "empty" ? "example" : dashboardDataState;
+  const businessScoreDataState: DataState =
+    localWorkspaceMode && dashboardDataState === "empty"
+      ? "mock"
+      : dashboardDataState === "empty"
+        ? "example"
+        : dashboardDataState;
 
   const selectedManagedSite = useMemo<ManagedSite | null>(() => {
     if (demoMode) return null;
@@ -619,10 +664,38 @@ const Dashboard = () => {
     ["builder", "seo", "conversion", "business"].includes(agent.id),
   );
 
+  const notifyReadOnlyDemo = useCallback((label = "Cette action") => {
+    toast({
+      title: "Demo visuelle en lecture seule",
+      description: `${label} sera disponible apres connexion au vrai espace Pixelrises.`,
+    });
+  }, []);
+
+  const handleReadOnlyDemoInteraction = (event: MouseEvent<HTMLDivElement>) => {
+    if (!readOnlyDemo) return;
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    const interactiveElement = target?.closest("a,button");
+
+    if (!interactiveElement || interactiveElement.hasAttribute("data-demo-allow")) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const actionLabel =
+      interactiveElement.getAttribute("aria-label") ||
+      interactiveElement.textContent?.trim().replace(/\s+/g, " ") ||
+      "Cette action";
+    notifyReadOnlyDemo(actionLabel);
+  };
+
   const openBillingModal = (
     focus: BillingFocus = "packs",
     returnIntent?: Omit<PaymentReturnIntent, "createdAt">,
   ) => {
+    if (readOnlyDemo) {
+      notifyReadOnlyDemo("Les credits et abonnements");
+      return;
+    }
+
     setBillingFocus(focus);
     setCheckoutReturnIntent(returnIntent ?? null);
     setBillingModalOpen(true);
@@ -630,6 +703,11 @@ const Dashboard = () => {
 
   const startCheckout = useCallback(
     async (offer: BillingOffer) => {
+      if (readOnlyDemo) {
+        notifyReadOnlyDemo(offer.name);
+        return;
+      }
+
       if (offer.mode === "quote") {
         if (offer.quoteUrl) {
           trackV2Event("quote_start", { key: offer.key, mode: offer.mode });
@@ -682,7 +760,7 @@ const Dashboard = () => {
         setCheckoutLoadingPriceId(null);
       }
     },
-    [checkoutReturnIntent],
+    [checkoutReturnIntent, notifyReadOnlyDemo, readOnlyDemo],
   );
 
   const closeManager = () => {
@@ -721,38 +799,72 @@ const Dashboard = () => {
       }
       action={
         <div className="flex flex-wrap gap-3">
-          {isAdmin ? (
-            <Button
-              asChild
-              variant="outline"
-              className="rounded-2xl border-[#F5C542]/30 bg-[#F5C542]/10 text-[#F5C542] hover:bg-[#F5C542]/15"
-            >
-              <Link to="/admin">
-                <ShieldCheck className="h-4 w-4" />
-                Admin
-              </Link>
-            </Button>
-          ) : null}
-          <Button asChild variant="outline" className="rounded-2xl border-white/[0.10] bg-transparent text-white/80">
-            <Link to="/projects">
-              <FolderKanban className="h-4 w-4" />
-              Voir mes projets
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="rounded-2xl border-white/[0.10] bg-transparent text-white/80">
-            <Link to="/agents">
-              <Bot className="h-4 w-4" />
-              Mes agents
-            </Link>
-          </Button>
-          <Button asChild className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
-            <Link to="/create">
-              <Plus className="h-4 w-4" />
-              Créer quelque chose
-            </Link>
-          </Button>
+          {readOnlyDemo ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-2xl border-white/[0.10] bg-transparent text-white/80"
+                onClick={() => notifyReadOnlyDemo("Les projets")}
+              >
+                <FolderKanban className="h-4 w-4" />
+                Voir mes projets
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-2xl border-white/[0.10] bg-transparent text-white/80"
+                onClick={() => notifyReadOnlyDemo("Les agents")}
+              >
+                <Bot className="h-4 w-4" />
+                Mes agents
+              </Button>
+              <Button
+                type="button"
+                className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]"
+                onClick={() => notifyReadOnlyDemo("La creation")}
+              >
+                <Plus className="h-4 w-4" />
+                Créer quelque chose
+              </Button>
+            </>
+          ) : (
+            <>
+              {isAdmin ? (
+                <Button
+                  asChild
+                  variant="outline"
+                  className="rounded-2xl border-[#F5C542]/30 bg-[#F5C542]/10 text-[#F5C542] hover:bg-[#F5C542]/15"
+                >
+                  <Link to="/admin">
+                    <ShieldCheck className="h-4 w-4" />
+                    Admin
+                  </Link>
+                </Button>
+              ) : null}
+              <Button asChild variant="outline" className="rounded-2xl border-white/[0.10] bg-transparent text-white/80">
+                <Link to="/projects">
+                  <FolderKanban className="h-4 w-4" />
+                  Voir mes projets
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-2xl border-white/[0.10] bg-transparent text-white/80">
+                <Link to="/agents">
+                  <Bot className="h-4 w-4" />
+                  Mes agents
+                </Link>
+              </Button>
+              <Button asChild className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
+                <Link to="/create">
+                  <Plus className="h-4 w-4" />
+                  Créer quelque chose
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       }
+      readOnlyDemo={readOnlyDemo}
     >
       <SEOHead
         title="Dashboard V2 | Pixelrises"
@@ -760,7 +872,12 @@ const Dashboard = () => {
         noIndex
       />
 
-      <div className="mb-6 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+      <div
+        data-testid={readOnlyDemo ? "dashboard-demo-readonly" : undefined}
+        className={readOnlyDemo ? "dashboard-demo-desktop-content" : undefined}
+        onClickCapture={handleReadOnlyDemoInteraction}
+      >
+      <div data-dashboard-demo-layout="state-row" className="mb-6 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
         <DataSourceLabel
           state={dashboardDataState}
           label={
@@ -781,6 +898,7 @@ const Dashboard = () => {
 
       <section
         data-testid="dashboard-mode-switch"
+        data-dashboard-demo-layout="mode-switch"
         className="mb-6 flex flex-col gap-4 rounded-[28px] border border-white/[0.08] bg-white/[0.035] p-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
@@ -849,7 +967,7 @@ const Dashboard = () => {
         data-testid="dashboard-guided-mode"
         className="mb-6 overflow-hidden rounded-[32px] border border-[#F5C542]/20 bg-[radial-gradient(circle_at_top_right,rgba(245,197,66,0.18),transparent_32%),rgba(255,255,255,0.04)] p-5 sm:p-6"
       >
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+        <div data-dashboard-demo-layout="guided-row" className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
               <DataBadge state={dashboardDataState} label={dashboardDataState === "real" ? "Recommandation IA" : "Recommandation exemple"} />
@@ -869,7 +987,7 @@ const Dashboard = () => {
               Impact estimé : {totalProjects ? "améliore la conversion et la clarté du projet." : "crée une base concrète à connecter aux agents et analytics."}
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row xl:flex-col xl:min-w-[260px]">
+          <div data-dashboard-demo-layout="guided-actions" className="flex flex-col gap-3 sm:flex-row xl:flex-col xl:min-w-[260px]">
             <Button asChild className="rounded-2xl bg-[#F5C542] text-black hover:bg-[#FFD766]">
               <Link to={totalProjects ? primaryRecommendation.href : "/builder/site"}>
                 {totalProjects ? primaryRecommendation.label : "Créer mon premier projet"}
@@ -967,7 +1085,7 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-3">
+        <div data-dashboard-demo-layout="creation-grid" className="mt-5 grid gap-4 lg:grid-cols-3">
           {creationCards.map((card) => {
             const Icon = card.icon;
 
@@ -1015,7 +1133,7 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <div data-dashboard-demo-layout="ai-spaces-grid" className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
           {aiSpacesList.map((space) => (
             <Link
               key={space.id}
@@ -1038,6 +1156,7 @@ const Dashboard = () => {
 
       <section
         data-testid="dashboard-cockpit-metrics"
+        data-dashboard-demo-layout="metrics-grid"
         className={`grid gap-4 md:grid-cols-2 xl:grid-cols-7 ${isGuidedMode ? "hidden" : ""}`}
       >
         {stats.map((stat) => {
@@ -1091,7 +1210,7 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div data-dashboard-demo-layout="launch-path-grid" className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {launchPathSteps.map((step, index) => {
             const Icon = step.icon;
             return (
@@ -1123,7 +1242,7 @@ const Dashboard = () => {
         </div>
       </section>
 
-      <section className="mt-6 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+      <section data-dashboard-demo-layout="business-split" className="mt-6 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -1208,7 +1327,7 @@ const Dashboard = () => {
         </div>
       </section>
 
-      <section className="mt-6 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+      <section data-dashboard-demo-layout="projects-split" className="mt-6 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
         <div className="rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -1392,7 +1511,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div data-dashboard-demo-layout="automations-grid" className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {dashboardAutomations.map((automation) => {
             const Icon = automation.icon;
             return (
@@ -1427,7 +1546,7 @@ const Dashboard = () => {
         </div>
       </section>
 
-      <section className={`mt-6 grid gap-4 xl:grid-cols-3 ${isGuidedMode ? "hidden" : ""}`}>
+      <section data-dashboard-demo-layout="bottom-grid" className={`mt-6 grid gap-4 xl:grid-cols-3 ${isGuidedMode ? "hidden" : ""}`}>
         <div className="rounded-[32px] border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6">
           <div className="flex items-center gap-3">
             <Bot className="h-5 w-5 text-[#F5C542]" />
@@ -1504,7 +1623,7 @@ const Dashboard = () => {
             <Link to="/agents">Ouvrir les agents</Link>
           </Button>
         </div>
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div data-dashboard-demo-layout="recommendations-grid" className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {dashboardRecommendations.map((recommendation) => (
             <Link
               key={recommendation.title}
@@ -1615,7 +1734,7 @@ const Dashboard = () => {
       ) : null}
 
       <div className="mt-8 flex justify-center">
-        {isSupabaseConfigured ? (
+        {cloudDataEnabled ? (
           <button
             type="button"
             onClick={() => void supabase.auth.signOut()}
@@ -1625,8 +1744,15 @@ const Dashboard = () => {
             Déconnexion
           </button>
         ) : (
-          <span className="text-xs text-white/35">V2 isolée · service cloud à connecter séparément</span>
+          <span className="text-xs text-white/35">
+            {readOnlyDemo
+              ? "Démo visuelle en lecture seule · aucune action connectée"
+              : localWorkspaceMode
+                ? "Mode fondateur local · accès sans connexion sur localhost uniquement"
+                : "V2 isolée · service cloud à connecter séparément"}
+          </span>
         )}
+      </div>
       </div>
     </V2PageShell>
   );

@@ -164,13 +164,14 @@ const resolveAIProvider = (): AIProviderConfig => {
   ).toLowerCase();
   const gatewayKey = readFirstEnv(
     "AI_GATEWAY_API_KEY",
+    "AI_GATEWAY_API_KEY (multia ia pixelrises)",
     "VERCEL_AI_GATEWAY_API_KEY",
     "API_GATEWAY_VERCEL",
     "VERCEL_AI_GATEWAY_KEY",
     "VERCEL_OIDC_TOKEN",
   );
-  const claudeKey = readFirstEnv("ANTHROPIC_API_KEY", "CLAUDE_API_KEY");
-  const openAIKey = readFirstEnv("OPENAI_API_KEY");
+  const claudeKey = readFirstEnv("ANTHROPIC_API_KEY", "CLAUDE_API_KEY", "claude api key");
+  const openAIKey = readFirstEnv("OPENAI_API_KEY", "open ai API key");
   const geminiKey = readFirstEnv("GEMINI_API_KEY", "GOOGLE_API_KEY");
 
   if (["vercel", "gateway", "ai-gateway", "vercel-gateway"].includes(requestedProvider)) {

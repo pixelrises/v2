@@ -6,6 +6,8 @@ import GlobalBg from "@/components/ui/global-bg";
 import HowItWorks from "@/components/HowItWorks";
 import FinalCTA from "@/components/FinalCTA";
 import Hero from "@/components/Hero";
+import AILanding from "@/components/AILanding";
+import type { LandingMode } from "@/components/HomeModeSwitch";
 import { getPublishedSiteSlugFromHostname } from "@/lib/published-site";
 import Preview from "./Preview";
 
@@ -27,11 +29,7 @@ type WindowWithIdleCallbacks = Window &
 const CursorHalo = lazy(() => import("@/components/ui/cursor-halo"));
 const Benefits = lazy(() => import("@/components/Benefits"));
 const BeforeAfter = lazy(() => import("@/components/BeforeAfter"));
-const DemoShowcase = lazy(() => import("@/components/DemoShowcase"));
-const ProjectCarousel = lazy(() => import("@/components/ProjectCarousel"));
 const Reviews = lazy(() => import("@/components/Reviews"));
-const Pricing = lazy(() => import("@/components/Pricing"));
-const RecommendationModule = lazy(() => import("@/components/RecommendationModule"));
 const FAQ = lazy(() => import("@/components/FAQ"));
 const Commission = lazy(() => import("@/components/Commission"));
 const SocialSection = lazy(() => import("@/components/SocialSection"));
@@ -44,6 +42,7 @@ const getCurrentHostname = () => (typeof window === "undefined" ? "" : window.lo
 const Index = () => {
   const [showDeferred, setShowDeferred] = useState(false);
   const [isCoarse, setIsCoarse] = useState(true);
+  const [landingMode, setLandingMode] = useState<LandingMode>("delegation");
   const publishedSiteSlug = getPublishedSiteSlugFromHostname(getCurrentHostname());
 
   useEffect(() => {
@@ -92,32 +91,38 @@ const Index = () => {
             "site vitrine SEO",
           ]}
         />
-        <Hero />
-        <SocialProof />
+        <Hero mode={landingMode} onModeChange={setLandingMode} />
 
-        <Suspense fallback={null}>
-          <Benefits />
-          <HowItWorks />
-          <RecommendationModule />
-          <BeforeAfter />
-          <DemoShowcase />
-          <ProjectCarousel />
-        </Suspense>
+        {landingMode === "delegation" ? (
+          <>
+            <SocialProof />
 
-        <Suspense fallback={null}>
-          <Reviews />
-          <Pricing />
-          <FAQ />
-        </Suspense>
+            <Suspense fallback={null}>
+              <Benefits />
+              <HowItWorks />
+              <BeforeAfter />
+            </Suspense>
 
-        <Suspense fallback={null}>
-          <Commission />
-          <SocialSection />
-          <FinalCTA />
-          <Footer />
-        </Suspense>
+            <Suspense fallback={null}>
+              <Reviews />
+              <FAQ />
+            </Suspense>
 
-        {showDeferred && (
+            <Suspense fallback={null}>
+              <Commission />
+              <SocialSection />
+              <FinalCTA />
+              <Footer />
+            </Suspense>
+          </>
+        ) : (
+          <Suspense fallback={null}>
+            <AILanding />
+            <Footer />
+          </Suspense>
+        )}
+
+        {landingMode === "delegation" && showDeferred && (
           <Suspense fallback={null}>
             <FloatingButtons />
             <ActivityNotifications />

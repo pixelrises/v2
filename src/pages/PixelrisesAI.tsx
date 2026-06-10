@@ -1711,7 +1711,7 @@ const PixelrisesAI = () => {
       success
         ? createBuilderMessage(
             "ai",
-            "La preview est prête. Vous pouvez l'améliorer, l'ouvrir ou la publier immédiatement.",
+            "La preview est prête. Vous pouvez l'améliorer, l'ouvrir ou préparer la publication si elle est configurée.",
             "success",
           )
         : createBuilderMessage(

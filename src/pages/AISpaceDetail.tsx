@@ -30,6 +30,8 @@ import { Button } from "@/components/ui/button";
 import { DataBadge, EmptyState } from "@/components/ui/data-state";
 import { Textarea } from "@/components/ui/textarea";
 import { V2PageShell } from "@/components/v2/V2PageShell";
+import { BusinessAIWorkspace } from "@/components/ai-spaces/BusinessAIWorkspace";
+import { StudentAIWorkspace } from "@/components/ai-spaces/StudentAIWorkspace";
 import {
   createAISpaceMessage,
   getAISpaceConfig,
@@ -220,6 +222,14 @@ const AISpaceDetail = () => {
   }
 
   const Icon = iconMap[space.icon] ?? Sparkles;
+
+  if (space.id === "business") {
+    return <BusinessAIWorkspace space={space} />;
+  }
+
+  if (space.id === "student") {
+    return <StudentAIWorkspace space={space} />;
+  }
 
   const useWorkspaceItem = (item: AISpaceWorkspaceItem) => {
     setActiveQuickActionId(undefined);

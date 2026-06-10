@@ -38,7 +38,7 @@ import { DataBadge, DataSourceLabel, EmptyState } from "@/components/ui/data-sta
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { BuilderModeToggle, BuilderSafeNotice, BuilderToolbar } from "@/components/v2/BuilderShell";
+import { BuilderGenerationModeSelector, BuilderGenerationTimeline, BuilderModeToggle, BuilderPlanTool, BuilderSafeNotice, BuilderToolbar } from "@/components/v2/BuilderShell";
 import { V2PageShell } from "@/components/v2/V2PageShell";
 import { useInterfaceMode } from "@/hooks/use-interface-mode";
 import type { DataState } from "@/lib/data-state";
@@ -448,6 +448,8 @@ const GameBuilder = () => {
   const { isAdvanced, isSimple } = useInterfaceMode();
   const [brief, setBrief] = useState<Required<GameBuilderBriefInput>>(defaultBrief);
   const [activeMode, setActiveMode] = useState<GameBuildMode>("plan");
+  const [planApproved, setPlanApproved] = useState(false);
+  const [generationMode, setGenerationMode] = useState<"direct" | "plan">("direct");
   const [selectedDeliverables, setSelectedDeliverables] = useState<string[]>(deliverableOptions);
   const [isGenerating, setIsGenerating] = useState(false);
   const [pipelineMessage, setPipelineMessage] = useState("Décris ton jeu pour générer un prototype ou package exploitable. Aucune publication automatique.");
@@ -465,6 +467,71 @@ const GameBuilder = () => {
 
   const plan = useMemo(() => buildGamePlan(brief), [brief]);
   const qualityDegrees = Math.max(0, Math.min(100, gamePackage.qualityScores.score)) * 3.6;
+  const generationTimelineSteps = useMemo(
+    () => [
+      {
+        title: "Analyse du concept",
+        description: "Type de jeu, plateforme, cible et objectif joueur sont cadrés.",
+        status: planApproved || isGenerating || activeMode === "prototype" ? "validé" : "en attente",
+        state: planApproved || isGenerating || activeMode === "prototype" ? ("done" as const) : ("pending" as const),
+        items: [
+          { label: "type de jeu", state: brief.gameType ? ("done" as const) : ("pending" as const) },
+          { label: "plateforme", state: brief.platform ? ("done" as const) : ("pending" as const) },
+          { label: "cible", state: brief.targetAudience ? ("done" as const) : ("pending" as const) },
+          { label: "objectif joueur", state: brief.freePrompt ? ("active" as const) : ("pending" as const) },
+        ],
+      },
+      {
+        title: "Gameplay",
+        description: "Boucle principale, règles, actions et progression sont préparées.",
+        status: isGenerating ? "en cours" : activeMode === "prototype" ? "validé" : planApproved ? "à valider" : "en attente",
+        state: isGenerating ? ("active" as const) : activeMode === "prototype" ? ("done" as const) : planApproved ? ("active" as const) : ("pending" as const),
+        items: [
+          { label: "boucle principale", state: plan.gameplayLoop ? ("done" as const) : ("pending" as const) },
+          { label: "règles", state: planApproved ? ("active" as const) : ("pending" as const) },
+          { label: "actions", state: planApproved ? ("active" as const) : ("pending" as const) },
+          { label: "progression", state: activeMode === "prototype" ? ("done" as const) : ("pending" as const) },
+        ],
+      },
+      {
+        title: "Mécaniques",
+        description: "Score, niveaux, récompenses et obstacles sont définis sans promettre une publication automatique.",
+        status: isGenerating ? "en cours" : activeMode === "prototype" ? "validé" : selectedDeliverables.length ? "à valider" : "en attente",
+        state: isGenerating ? ("active" as const) : activeMode === "prototype" ? ("done" as const) : selectedDeliverables.length ? ("active" as const) : ("pending" as const),
+        items: [
+          { label: "score", state: activeMode === "prototype" ? ("done" as const) : ("pending" as const) },
+          { label: "niveaux", state: activeMode === "prototype" ? ("done" as const) : ("pending" as const) },
+          { label: "récompenses", state: selectedDeliverables.length ? ("active" as const) : ("pending" as const) },
+          { label: "obstacles", state: selectedDeliverables.length ? ("active" as const) : ("pending" as const) },
+        ],
+      },
+      {
+        title: "Prototype",
+        description: "Structure, scènes, interactions et limites techniques sont suivies.",
+        status: isGenerating ? "en cours" : activeMode === "prototype" ? "validé" : "en attente",
+        state: isGenerating ? ("active" as const) : activeMode === "prototype" ? ("done" as const) : ("pending" as const),
+        items: [
+          { label: "structure", state: activeMode === "prototype" ? ("done" as const) : isGenerating ? ("active" as const) : ("pending" as const) },
+          { label: "scènes", state: activeMode === "prototype" ? ("done" as const) : ("pending" as const) },
+          { label: "interactions", state: activeMode === "prototype" ? ("done" as const) : ("pending" as const) },
+          { label: "limites techniques", state: "active" as const },
+        ],
+      },
+      {
+        title: "Génération finale",
+        description: "Prototype, vérification, ajustements et résultat prêt sont suivis honnêtement.",
+        status: isGenerating ? "en cours" : activeMode === "prototype" ? "terminé" : "en attente",
+        state: isGenerating ? ("active" as const) : activeMode === "prototype" ? (gamePackage.qualityScores.score >= 75 ? ("done" as const) : ("active" as const)) : ("pending" as const),
+        items: [
+          { label: "prototype", state: activeMode === "prototype" ? ("done" as const) : isGenerating ? ("active" as const) : ("pending" as const) },
+          { label: "vérification", state: activeMode === "prototype" ? ("done" as const) : ("pending" as const) },
+          { label: "ajustements", state: gamePackage.qualityScores.score >= 75 ? ("done" as const) : activeMode === "prototype" ? ("active" as const) : ("pending" as const) },
+          { label: "résultat prêt", state: gamePackage.qualityScores.score >= 75 ? ("done" as const) : ("pending" as const) },
+        ],
+      },
+    ],
+    [activeMode, brief, gamePackage.qualityScores.score, isGenerating, plan.gameplayLoop, planApproved, selectedDeliverables.length],
+  );
 
   useEffect(() => {
     trackV2Event("builder_opened", { builder: "game", phase: "phase-8" }, { module: "game-builder" });
@@ -475,16 +542,19 @@ const GameBuilder = () => {
   }, [gamePackage.gameId]);
 
   const toggleDeliverable = (deliverable: string) => {
+    setPlanApproved(false);
     setSelectedDeliverables((current) =>
       current.includes(deliverable) ? current.filter((item) => item !== deliverable) : [...current, deliverable],
     );
   };
 
   const updateBrief = (patch: Partial<Required<GameBuilderBriefInput>>) => {
+    setPlanApproved(false);
     setBrief((current) => ({ ...current, ...patch }));
   };
 
   const selectSuggestion = (suggestion: GameSuggestion) => {
+    setPlanApproved(false);
     setBrief({
       title: suggestion.title,
       platform: suggestion.platform,
@@ -494,8 +564,33 @@ const GameBuilder = () => {
       theme: suggestion.theme,
       freePrompt: suggestion.freePrompt,
     });
-    setPipelineMessage(`${suggestion.title} chargé. Plan Mode prêt, génère le package pour appliquer cette direction.`);
+    setPipelineMessage(`${suggestion.title} chargé. Mode Plan prêt si vous voulez cadrer avant génération.`);
     setActiveMode("plan");
+  };
+
+  const approvePlan = () => {
+    setPlanApproved(true);
+    setActiveMode("plan");
+    setPipelineMessage("Plan Game Builder validé. Vous pouvez lancer le prototype ou package.");
+  };
+
+  const editPlan = () => {
+    setPlanApproved(false);
+    setActiveMode("plan");
+    setPipelineMessage("Modifiez le brief, les livrables ou les règles, puis relisez le plan avant validation.");
+  };
+
+  const requestPlanReview = () => {
+    setActiveMode("plan");
+    setPipelineMessage("Plan préparé. Lisez le plan détaillé, ajustez vos réponses si besoin, puis validez-le.");
+  };
+
+  const handlePrimaryGenerationAction = () => {
+    if (generationMode === "plan" && !planApproved) {
+      requestPlanReview();
+      return;
+    }
+    void generate();
   };
 
   const persistAndVersion = async (
@@ -514,6 +609,12 @@ const GameBuilder = () => {
   };
 
   const generate = async () => {
+    if (generationMode === "plan" && !planApproved) {
+      setActiveMode("plan");
+      setPipelineMessage("Validez le plan Game Builder avant de lancer la génération.");
+      return;
+    }
+
     setIsGenerating(true);
     setPipelineMessage("Préparation du prototype et du package...");
 
@@ -590,6 +691,7 @@ const GameBuilder = () => {
   };
 
   const resetProject = () => {
+    setPlanApproved(false);
     setBrief(defaultBrief);
     const nextPackage = buildGameProductionPackage(defaultBrief, { dataState: "mock", mode: "plan" });
     setGamePackage(nextPackage);
@@ -687,16 +789,85 @@ const GameBuilder = () => {
               </div>
             </div>
 
+            <BuilderGenerationModeSelector
+              value={generationMode}
+              onChange={(nextMode) => {
+                setGenerationMode(nextMode);
+                if (nextMode === "direct") {
+                  setPipelineMessage("Mode Direct actif : le prototype partira directement à partir de votre prompt.");
+                } else {
+                  setActiveMode("plan");
+                  setPipelineMessage("Mode Plan actif : Pixelrises prépare un plan avant de générer.");
+                }
+              }}
+              className="mt-5"
+            />
+
             <Button
-              onClick={() => void generate()}
+              onClick={handlePrimaryGenerationAction}
               disabled={isGenerating}
               className="mt-6 h-12 w-full rounded-[14px] bg-[#F5C542] font-semibold text-black shadow-[0_0_36px_-18px_rgba(245,197,66,0.9)] hover:bg-[#FFD766] disabled:opacity-70"
             >
               {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-              {isGenerating ? "Génération..." : "Générer prototype / package"}
+              {isGenerating
+                ? "Génération..."
+                : generationMode === "plan"
+                  ? planApproved
+                    ? "Générer avec ce plan"
+                    : "Créer le plan"
+                  : "Générer prototype / package"}
             </Button>
             <p className="mt-3 text-center text-xs leading-5 text-white/42">Prototype sécurisé · Données non publiées</p>
           </section>
+
+          {generationMode === "plan" ? (
+            <BuilderPlanTool
+              plan={{
+                id: "game-builder",
+                title: "Plan proposé par Pixelrises",
+                subtitle: "Vérifiez ce que l'IA va créer avant de lancer la génération.",
+                summary: `${plan.promise} Gameplay : ${plan.gameplayLoop}. Prochaine action : ${plan.nextAction}.`,
+                questions: [
+                  "Quel est l'objectif principal ?",
+                  "À qui s'adresse le projet ?",
+                  "Quel niveau voulez-vous ?",
+                  "Quel style voulez-vous ?",
+                  "Quelle priorité ?",
+                  "Quels éléments sont obligatoires ?",
+                  "Quels éléments sont à éviter ?",
+                  "Voulez-vous un résultat rapide, équilibré ou très détaillé ?",
+                  `Le jeu doit-il être jouable web ou surtout un package ${brief.platform} ?`,
+                  `Quel niveau de difficulté convient à ${brief.targetAudience} ?`,
+                  "Quels livrables doivent rester en checklist manuelle avant publication ?",
+                ],
+                sections: [
+                  { label: "Résumé du projet", value: plan.promise },
+                  { label: "Objectif", value: plan.nextAction },
+                  { label: "Cible", value: brief.targetAudience },
+                  { label: "Style", value: `${brief.gameType} · ${brief.subGenre} · ${brief.platform}` },
+                  { label: "Structure prévue", items: ["Concept jouable", "Boucle de gameplay", "Prototype ou package", "Checklist de test"] },
+                  { label: "Fonctionnalités prévues", items: selectedDeliverables.slice(0, 6) },
+                  {
+                    label: "Contenu prévu",
+                    items: ["Règles lisibles", "Score / progression si applicable", "Restart / feedback", "Limites techniques visibles"],
+                  },
+                  { label: "Points importants", items: [plan.gameplayLoop, "Prototype testable", "Publication externe non automatique"] },
+                  { label: "Éléments à éviter", items: ["Promesse Roblox/UEFN/Minecraft publiée", "Action externe automatique", "Faux statut live"] },
+                  { label: "Résultat attendu", value: "Un prototype ou package exploitable en bêta, clair sur ses limites et prêt pour test manuel." },
+                ],
+              }}
+              state={isGenerating ? "pending" : "idle"}
+              approved={planApproved}
+              onApprove={approvePlan}
+              onEditPrompt={editPlan}
+              onEditPreferences={editPlan}
+              onGenerate={() => void generate()}
+            />
+          ) : null}
+
+          {generationMode === "plan" || isGenerating || activeMode === "prototype" ? (
+            <BuilderGenerationTimeline steps={generationTimelineSteps} />
+          ) : null}
 
           <section className="rounded-[22px] border border-[#F5C542]/15 bg-[#F5C542]/[0.045] p-4">
             <div className="flex items-center justify-between gap-3">

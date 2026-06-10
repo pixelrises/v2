@@ -25,6 +25,7 @@ import SEOHead from "@/components/SEOHead";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { buildAuthRoute, getCurrentRelativeUrl } from "@/lib/auth-redirect";
+import { isLocalAuthBypassEnabled } from "@/lib/browser-context";
 import { tryBootstrapAdmin } from "@/lib/admin-bootstrap";
 import { sanitizeTextDeep } from "@/lib/text-sanitize";
 import { resolvePublishedSiteUrl } from "@/lib/published-site";
@@ -44,6 +45,7 @@ import {
   readProductLabLastRunStatusFromSupabase,
   readProductLabDecisions,
   getUnsyncedProductLabDecisions,
+  syncProductLabDecisionsToLocalRunner,
   syncProductLabDecisionsToSupabase,
   writeProductLabDecision,
   type ProductLabAutomationAction,
@@ -500,17 +502,67 @@ const getReadableAdminError = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-const createProductLabLocalFallbackState = (
+const joinProductLabLoadErrors = (...errors: Array<string | null | undefined>) => {
+  const cleanErrors = errors
+    .filter((error): error is string => Boolean(error && error.trim()))
+    .filter((error, index, allErrors) => allErrors.indexOf(error) === index);
+
+  return cleanErrors.length ? cleanErrors.join(" ") : undefined;
+};
+
+const loadProductLabStateSafely = async (
   scope: ProductLabScope,
-  error: string,
-): ProductLabStateLoadResult => [
-  getProductLabScopeConfig(scope).fallbackQueue,
-  {
-    decisions: readProductLabDecisions(scope),
-    persisted: false,
-    error,
+  messages: {
+    queueTimeout: string;
+    queueError: string;
+    decisionsTimeout: string;
+    decisionsError: string;
   },
-];
+): Promise<ProductLabStateLoadResult> => {
+  const config = getProductLabScopeConfig(scope);
+  const [queueState, decisionsState] = await Promise.allSettled([
+    resolveWithTimeout(loadProductLabReviewQueue(scope), PRODUCT_LAB_LOAD_TIMEOUT_MS),
+    resolveWithTimeout(readProductLabDecisionsFromSupabase(scope), PRODUCT_LAB_LOAD_TIMEOUT_MS),
+  ]);
+
+  const fallbackQueue: ProductLabReviewQueue = {
+    ...config.fallbackQueue,
+    loadSource: "fallback",
+    loadedAt: new Date().toISOString(),
+  };
+
+  const queue =
+    queueState.status === "fulfilled" && queueState.value
+      ? queueState.value
+      : fallbackQueue;
+
+  const queueError =
+    queueState.status === "fulfilled"
+      ? queueState.value
+        ? null
+        : messages.queueTimeout
+      : getReadableAdminError(queueState.reason, messages.queueError);
+
+  const decisionsResult: ProductLabDecisionsLoadResult =
+    decisionsState.status === "fulfilled" && decisionsState.value
+      ? decisionsState.value
+      : {
+          decisions: readProductLabDecisions(scope),
+          persisted: false,
+          error:
+            decisionsState.status === "fulfilled"
+              ? messages.decisionsTimeout
+              : getReadableAdminError(decisionsState.reason, messages.decisionsError),
+        };
+
+  return [
+    queue,
+    {
+      ...decisionsResult,
+      error: joinProductLabLoadErrors(queueError, decisionsResult.error),
+    },
+  ];
+};
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -667,30 +719,15 @@ const Admin = () => {
     setProductLabLoading(true);
     setProductLabPersistence("loading");
     setProductLabPersistenceError(null);
-    let queue: ProductLabReviewQueue;
-    let decisionsResult: ProductLabDecisionsLoadResult;
-
-    try {
-      const loadedState = await resolveWithTimeout<ProductLabStateLoadResult>(
-        Promise.all([
-          loadProductLabReviewQueue(scope),
-          readProductLabDecisionsFromSupabase(scope),
-        ]) as Promise<ProductLabStateLoadResult>,
-        PRODUCT_LAB_LOAD_TIMEOUT_MS,
-      );
-
-      [queue, decisionsResult] =
-        loadedState ??
-        createProductLabLocalFallbackState(
-          scope,
-          "Chargement Product Lab trop long. Secours local actif; clique Recharger pour retenter Supabase.",
-        );
-    } catch (error) {
-      [queue, decisionsResult] = createProductLabLocalFallbackState(
-        scope,
-        getReadableAdminError(error, "Chargement Product Lab impossible. Secours local actif."),
-      );
-    }
+    const [queue, decisionsResult] = await loadProductLabStateSafely(scope, {
+      queueTimeout:
+        "Chargement des propositions trop long. Secours local actif; clique Recharger pour retenter Supabase et le JSON public.",
+      queueError: "Chargement des propositions Product Lab impossible. Secours local actif.",
+      decisionsTimeout:
+        "Chargement des decisions admin trop long. Les propositions restent visibles; les validations sont gardees localement.",
+      decisionsError:
+        "Chargement des decisions admin impossible. Les propositions restent visibles; les validations sont gardees localement.",
+    });
 
     if (activeProductLabScopeRef.current !== scope) return;
 
@@ -721,30 +758,15 @@ const Admin = () => {
   const loadProductLabScopeDashboard = useCallback(async () => {
     const entries = await Promise.all(
       productLabScopes.map(async (scope) => {
-        let queue: ProductLabReviewQueue;
-        let decisionsResult: ProductLabDecisionsLoadResult;
-
-        try {
-          const loadedState = await resolveWithTimeout<ProductLabStateLoadResult>(
-            Promise.all([
-              loadProductLabReviewQueue(scope),
-              readProductLabDecisionsFromSupabase(scope),
-            ]) as Promise<ProductLabStateLoadResult>,
-            PRODUCT_LAB_LOAD_TIMEOUT_MS,
-          );
-
-          [queue, decisionsResult] =
-            loadedState ??
-            createProductLabLocalFallbackState(
-              scope,
-              "Dashboard Product Lab trop long a synchroniser. Secours local affiche.",
-            );
-        } catch (error) {
-          [queue, decisionsResult] = createProductLabLocalFallbackState(
-            scope,
-            getReadableAdminError(error, "Dashboard Product Lab impossible a charger."),
-          );
-        }
+        const [queue, decisionsResult] = await loadProductLabStateSafely(scope, {
+          queueTimeout:
+            "Dashboard Product Lab trop long a synchroniser. Secours local affiche.",
+          queueError: "Dashboard Product Lab impossible a charger.",
+          decisionsTimeout:
+            "Decisions admin trop longues a charger. Les stats affichent la file et les choix locaux disponibles.",
+          decisionsError:
+            "Decisions admin impossibles a charger. Les stats affichent la file et les choix locaux disponibles.",
+        });
 
         return [
           scope,
@@ -763,6 +785,17 @@ const Admin = () => {
 
   useEffect(() => {
     const init = async () => {
+      if (isLocalAuthBypassEnabled()) {
+        setAdminReady(true);
+        await Promise.all([
+          loadAdminData(),
+          loadProductLabStateForScope(productLabScope),
+          loadProductLabScopeDashboard(),
+        ]);
+        setLoading(false);
+        return;
+      }
+
       const sessionResult = await resolveWithTimeout(supabase.auth.getSession(), 2000);
       const sessionUser = sessionResult?.data?.session?.user ?? null;
 
@@ -870,6 +903,15 @@ const Admin = () => {
   };
 
   const ensureAdminRoleForAction = async () => {
+    if (isLocalAuthBypassEnabled()) {
+      toast({
+        title: "Action cloud bloquée en local",
+        description: "L'admin local est ouvert pour travailler, mais les ajustements réels nécessitent une session admin Supabase.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     const {
       data: { user },
       error: userError,
@@ -1281,6 +1323,7 @@ const Admin = () => {
       allLive: liveScopes === productLabScopeOptions.length,
     };
   }, [productLabScopeDashboard]);
+  const adminLocalBypassActive = isLocalAuthBypassEnabled();
   const productLabSelectedIsFullyLive = productLabPersistence === "supabase" && productLabQueueSource === "supabase";
   const productLabSelectedStatusLabel = productLabSelectedIsFullyLive
     ? "Source live Supabase"
@@ -1333,6 +1376,42 @@ const Admin = () => {
     setProductLabDecisionSaving(itemId);
 
     try {
+      if (isLocalAuthBypassEnabled()) {
+        const localRunnerResult = productLabQueue
+          ? await syncProductLabDecisionsToLocalRunner(nextDecisions, productLabQueue, productLabScope)
+          : {
+              synced: false,
+              count: 0,
+              error: "File Product Lab absente ou en cours de chargement.",
+            };
+        const localMessage = localRunnerResult.synced
+          ? `Decision locale envoyee au runner Product Lab (${localRunnerResult.count} decision(s)).`
+          : `Decision gardee dans ce navigateur. ${localRunnerResult.error ?? "Le runner local n'a pas encore recu la decision."}`;
+
+        setProductLabPersistence("localStorage");
+        setProductLabPersistenceError(localMessage);
+        setProductLabScopeDashboard((previous) => ({
+          ...previous,
+          [productLabScope]: buildProductLabScopeDashboardState(
+            productLabQueue,
+            nextDecisions,
+            "localStorage",
+            localMessage,
+          ),
+        }));
+        toast({
+          title: localRunnerResult.synced
+            ? "Decision envoyee au Product Lab local"
+            : "Decision Product Lab gardee en local",
+          description: localRunnerResult.synced
+            ? "Le runner local peut maintenant appliquer cette validation sans passer par Supabase. Cloud, PR et auto-merge restent verrouilles."
+            : localRunnerResult.error ||
+              "La validation reste locale. Relance le serveur Vite si le pont Product Lab local n'est pas disponible.",
+          variant: localRunnerResult.synced ? undefined : "destructive",
+        });
+        return;
+      }
+
       const canSyncSupabase = await ensureAdminRoleForAction();
       if (!canSyncSupabase) {
         setProductLabPersistence("localStorage");
@@ -2254,7 +2333,9 @@ const Admin = () => {
                             : "Supabase live actif"
                           : productLabPersistence === "loading"
                             ? "Verification en cours"
-                            : "Secours local a synchroniser"}
+                            : adminLocalBypassActive
+                              ? "Runner local actif"
+                              : "Secours local a synchroniser"}
                       </p>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
@@ -2283,8 +2364,17 @@ const Admin = () => {
                       <Button
                         variant="outline"
                         className="border-green-400/25 bg-green-400/[0.08] text-green-100 hover:bg-green-400/[0.14]"
-                        disabled={!unsyncedProductLabDecisionCount || productLabDecisionSaving === "__sync__"}
+                        disabled={
+                          adminLocalBypassActive ||
+                          !unsyncedProductLabDecisionCount ||
+                          productLabDecisionSaving === "__sync__"
+                        }
                         onClick={() => void syncLocalProductLabDecisions()}
+                        title={
+                          adminLocalBypassActive
+                            ? "Synchronisation cloud reservee a une vraie session admin Supabase."
+                            : undefined
+                        }
                       >
                         {productLabDecisionSaving === "__sync__" ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -2294,6 +2384,12 @@ const Admin = () => {
                         Synchroniser
                       </Button>
                     </div>
+                    {adminLocalBypassActive && unsyncedProductLabDecisionCount > 0 ? (
+                      <p className="rounded-2xl border border-amber-400/25 bg-amber-400/[0.08] px-3 py-2 text-xs leading-5 text-amber-100">
+                        Mode local: tes decisions sont envoyees au runner Product Lab local. La synchronisation cloud
+                        Supabase/GitHub reste reservee a une vraie session admin.
+                      </p>
+                    ) : null}
                     <Button className="justify-center" onClick={() => void copyProductLabDecisions()}>
                       <ClipboardCheck className="h-4 w-4" />
                       Exporter decisions
@@ -2570,9 +2666,9 @@ const Admin = () => {
 
               {productLabPersistence !== "supabase" && (
                 <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/[0.08] p-4 text-sm leading-6 text-amber-100">
-                  <strong>Attention:</strong> les validations {productLabScopeConfig.label} visibles ici sont gardees
-                  dans ce navigateur. Elles ne seront pas appliquees par GitHub Actions tant que la synchronisation
-                  Supabase n'est pas active.
+                  <strong>Mode local:</strong> les validations {productLabScopeConfig.label} peuvent alimenter le runner
+                  Product Lab local sur localhost. Elles ne seront pas envoyees a GitHub Actions tant que la
+                  synchronisation Supabase n'est pas active.
                   {productLabPersistenceError ? (
                     <span className="mt-1 block text-amber-200/80">Detail: {productLabPersistenceError}</span>
                   ) : null}
@@ -2581,9 +2677,10 @@ const Admin = () => {
 
               {unsyncedProductLabDecisionCount > 0 && (
                 <div className="mt-4 rounded-2xl border border-blue-400/25 bg-blue-400/[0.08] p-4 text-sm leading-6 text-blue-100">
-                  <strong>{unsyncedProductLabDecisionCount} validation(s) locale(s) a synchroniser.</strong> Clique
-                  sur Synchroniser pour envoyer ces choix dans Supabase. Sinon GitHub Actions ne peut pas les appliquer
-                  au prochain run.
+                  <strong>{unsyncedProductLabDecisionCount} validation(s) locale(s).</strong>{" "}
+                  {adminLocalBypassActive
+                    ? "Elles sont utilisables par le Product Lab local; le cloud reste volontairement verrouille."
+                    : "Clique sur Synchroniser pour envoyer ces choix dans Supabase afin que GitHub Actions les lise au prochain run."}
                 </div>
               )}
 

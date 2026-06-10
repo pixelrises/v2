@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
+import { buildPixelrisesCoreContext, type PixelrisesGenerationType } from "@/modules/ai/intelligence";
 import { redactSecrets } from "@/modules/ai/security/redactSecrets";
 import { getAISpaceConfig } from "./registry";
 import type {
@@ -6,6 +7,23 @@ import type {
   AISpaceAssistantResponse,
   AISpaceRecommendation,
 } from "./types";
+
+const generationTypeForRequest = (request: AISpaceAssistantRequest): PixelrisesGenerationType => {
+  const intent = String(request.intent ?? request.quickActionId ?? "").toLowerCase();
+  const prompt = request.prompt.toLowerCase();
+  const haystack = `${intent} ${prompt}`;
+
+  if (/site|landing/.test(haystack)) return "site_landing";
+  if (/app|prototype/.test(haystack)) return "app_prototype";
+  if (/jeu|game/.test(haystack)) return "app_prototype";
+  if (/agent/.test(haystack)) return "agent";
+  if (/quiz/.test(haystack)) return "quiz";
+  if (/fiche|resume|revision|révision/.test(haystack)) return "study_sheet";
+  if (/image|visuel|logo/.test(haystack)) return "image_visual";
+  if (/template|modele|modèle/.test(haystack)) return "template";
+
+  return request.spaceType === "student" ? "study_sheet" : "text_generation";
+};
 
 const buildFallbackRecommendations = (spaceType: string): AISpaceRecommendation[] => {
   const config = getAISpaceConfig(spaceType);
@@ -56,8 +74,6 @@ const buildMockAnswer = (request: AISpaceAssistantRequest): AISpaceAssistantResp
     recommendations: buildFallbackRecommendations(request.spaceType),
     builderLinks: config?.builderLinks ?? [],
     source: "mock-fallback",
-    provider: "pixelrises-safe-fallback",
-    model: "local-structured-response",
   };
 };
 
@@ -66,6 +82,7 @@ export const runAISpaceAssistant = async (
 ): Promise<AISpaceAssistantResponse> => {
   const config = getAISpaceConfig(request.spaceType);
   if (!config) return buildMockAnswer(request);
+  const coreContext = buildPixelrisesCoreContext({ generationType: generationTypeForRequest(request) });
 
   if (!isSupabaseConfigured || import.meta.env.MODE === "test") {
     return buildMockAnswer(request);
@@ -75,9 +92,17 @@ export const runAISpaceAssistant = async (
     const { data, error } = await supabase.functions.invoke("ai-space-chat", {
       body: {
         ...request,
-        systemPrompt: config.systemPrompt,
+        ...(request.spaceType === "business" ? {} : { systemPrompt: config.systemPrompt }),
         spaceName: config.name,
         safetyRules: config.safetyRules,
+        pixelrisesCore: {
+          name: coreContext.name,
+          version: coreContext.version,
+          fineTuningStatus: coreContext.fineTuningStatus,
+          costEstimate: coreContext.costEstimate,
+          serverStorageStatus: coreContext.serverStorageStatus,
+          qualityCriteria: coreContext.qualityCriteria.map((criterion) => criterion.label),
+        },
       },
     });
 
@@ -96,9 +121,7 @@ export const runAISpaceAssistant = async (
         ? data.recommendations
         : buildFallbackRecommendations(request.spaceType),
       builderLinks: Array.isArray(data.builderLinks) ? data.builderLinks : config.builderLinks,
-      source: "real",
-      provider: typeof data.provider === "string" ? data.provider : "vercel-gateway",
-      model: typeof data.model === "string" ? data.model : undefined,
+      source: data.source === "mock-fallback" ? "mock-fallback" : "real",
       usage: data.usage,
     };
   } catch (error) {

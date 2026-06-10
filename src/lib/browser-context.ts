@@ -31,8 +31,14 @@ const getUserAgent = () =>
 export const isLocalhostHostname = (hostname: string) =>
   hostname === "localhost" ||
   hostname === "127.0.0.1" ||
+  hostname === "::1" ||
   hostname === "0.0.0.0" ||
   hostname.endsWith(".localhost");
+
+export const isLocalAuthBypassEnabled = () => {
+  if (typeof window === "undefined") return false;
+  return isLocalhostHostname(window.location.hostname);
+};
 
 export const isPixelrisesAppHostname = (hostname: string) => {
   const normalized = hostname.trim().toLowerCase();

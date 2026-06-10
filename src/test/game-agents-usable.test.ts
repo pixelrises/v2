@@ -21,6 +21,7 @@ describe("Game Builder proposals and AI agent usability", () => {
     expect(agents).toContain("preset=${agent.id}");
     expect(agentBuilder).toContain("useSearchParams");
     expect(agentBuilder).toContain("applyAgentPreset");
-    expect(agentBuilder).toContain("Agent préconfiguré");
+    expect(agentBuilder).toContain("Agent Studio");
+    expect(agentBuilder).toContain("setTestPrompt(getAgentBlueprint(selectedPreset.id)?.recommendedTestPrompt");
   });
 });

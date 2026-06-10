@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import {
   ArrowRight,
   ExternalLink,
@@ -232,10 +233,10 @@ const DemoShowcase = () => {
                 size="lg"
                 className="w-full border-border hover:border-primary/40 sm:w-auto"
               >
-                <a href="#tarifs">
+                <Link to="/pricing">
                   {isFr ? "Je veux le mien" : "I want mine"}
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
+                </Link>
               </Button>
             </div>
           </div>

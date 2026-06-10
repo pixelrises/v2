@@ -102,7 +102,7 @@ export function GeneralAIFloatingAssistant() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-2xl border border-[#F5C542]/25 bg-[#090909]/92 px-4 py-3 text-sm font-semibold text-white shadow-[0_22px_80px_-36px_rgba(245,197,66,0.75)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-[#F5C542]/45 lg:bottom-7 lg:right-7"
+        className="fixed bottom-24 right-5 z-50 flex items-center gap-3 rounded-2xl border border-[#F5C542]/25 bg-[#090909]/92 px-4 py-3 text-sm font-semibold text-white shadow-[0_22px_80px_-36px_rgba(245,197,66,0.75)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-[#F5C542]/45 lg:bottom-7 lg:right-7"
         aria-label="Ouvrir le conseiller Pixelrises"
       >
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F5C542] text-black">
