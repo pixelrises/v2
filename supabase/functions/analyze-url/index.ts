@@ -132,10 +132,15 @@ function parseBudgetCeiling(budget: unknown) {
   const numbers = value.match(/\d+/g)?.map(Number) || [];
   if (numbers.length === 0) return 0;
   if (/plus|more|\+/i.test(value)) return 99999;
+  if (/moins|under/i.test(value)) return Math.min(...numbers) - 1;
   return Math.max(...numbers);
 }
 
 function budgetRecommendation(budget: unknown): Diagnosis["recommandation_offre"] {
+  const value = String(budget || "");
+  if (/moins|under/i.test(value)) return "Essentiel";
+  if (/entre|between/i.test(value)) return "Professionnel";
+
   const ceiling = parseBudgetCeiling(budget);
   if (ceiling > 1000) return "Premium";
   if (ceiling >= 600) return "Professionnel";
@@ -149,7 +154,7 @@ function enforceBudgetRecommendation(diagnosis: Diagnosis, budget: unknown): Dia
   const proposedPrice = OFFER_PRICES[proposed] || 0;
   const mustUseExpected =
     (ceiling && proposedPrice > ceiling) ||
-    (OFFER_RANK[proposed] || 0) < (OFFER_RANK[expected] || 0);
+    (OFFER_RANK[proposed] || 0) > (OFFER_RANK[expected] || 0);
 
   if (!mustUseExpected) return diagnosis;
 

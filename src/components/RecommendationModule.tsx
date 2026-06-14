@@ -135,6 +135,17 @@ const OFFER_RANK: Record<OfferName, number> = {
   Premium: 3,
 };
 
+const capOfferByBudget = (offer: OfferName, budget: string): OfferName => {
+  const normalized = budget.toLowerCase();
+
+  if (normalized.includes("moins") || normalized.includes("under")) return "Essentiel";
+  if (normalized.includes("entre") || normalized.includes("between")) {
+    return OFFER_RANK[offer] > OFFER_RANK.Professionnel ? "Professionnel" : offer;
+  }
+
+  return offer;
+};
+
 /*
  * Launch-readiness contract markers retained for static guardrail tests:
  * buildStrategicDiagnosis, requiresRealWebsiteAudit, OFFER_RANK.
@@ -210,14 +221,15 @@ const getOfferFromAnswers = (answers: Answers): OfferName => {
   const objective = answers.objectif.toLowerCase();
   const activity = answers.activity.toLowerCase();
   const urgent = answers.urgency.toLowerCase().includes("vite");
+  let recommendedOffer: OfferName = "Essentiel";
 
   if (ceiling > 1000 || objective.includes("premium") || activity.includes("boutique")) {
-    return "Premium";
+    recommendedOffer = "Premium";
+  } else if (ceiling >= 600 || objective.includes("clients") || objective.includes("convertir") || urgent) {
+    recommendedOffer = "Professionnel";
   }
-  if (ceiling >= 600 || objective.includes("clients") || objective.includes("convertir") || urgent) {
-    return "Professionnel";
-  }
-  return "Essentiel";
+
+  return capOfferByBudget(recommendedOffer, answers.budget);
 };
 
 const normalizeOfferName = (offer: string, fallback: OfferName): OfferName => {

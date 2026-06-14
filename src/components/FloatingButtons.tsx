@@ -5,7 +5,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 
 const FloatingButtons = () => {
   const [showCTA, setShowCTA] = useState(false);
-  const { locale, t } = useTranslation();
+  const { locale } = useTranslation();
   const isFr = locale === "fr";
 
   useEffect(() => {
@@ -45,20 +45,20 @@ const FloatingButtons = () => {
 
               <div className="min-w-0 pr-2">
                 <p className="text-sm font-semibold text-foreground">
-                  {isFr ? "Passez à la création" : "Move to creation"}
+                  {isFr ? "Passez au diagnostic" : "Start with the diagnostic"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {isFr
-                    ? "Lancez votre première version et testez la qualité Pixelrises."
-                    : "Launch your first version and test Pixelrises quality."}
+                    ? "Clarifiez votre besoin et trouvez l'offre adaptee avant de creer."
+                    : "Clarify your need and find the right offer before building."}
                 </p>
               </div>
 
               <a
-                href="#tarifs"
+                href="/diagnostic"
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] hover:bg-primary/90"
               >
-                {t("floating.cta")}
+                {isFr ? "Faire le diagnostic" : "Start diagnostic"}
                 <ArrowRight className="h-4 w-4" />
               </a>
             </div>
@@ -70,7 +70,7 @@ const FloatingButtons = () => {
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed right-4 bottom-[88px] z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] shadow-lg transition-transform hover:scale-110 sm:bottom-6 sm:right-6"
+        className="fixed bottom-[88px] right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] shadow-lg transition-transform hover:scale-110 sm:bottom-6 sm:right-6"
         aria-label="WhatsApp"
       >
         <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white">
