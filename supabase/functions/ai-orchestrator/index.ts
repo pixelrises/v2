@@ -87,7 +87,7 @@ type AITaskType =
   | "output_normalization"
   | "final_fusion";
 
-type AIRole = "gemini" | "openai" | "claude" | "cloud-design" | "cloud-code" | "mistral";
+type AIRole = "gemini" | "openai" | "claude" | "claude-design" | "claude-code" | "mistral";
 
 type MultiAITaskResult = {
   taskType: AITaskType;
@@ -256,34 +256,35 @@ const roleForTask = (taskType: AITaskType): AIRole => {
     return "claude";
   }
   if (["site_design", "design_system", "ui_layout", "component_suggestion", "game_level_design", "game_assets", "game_ui_ux"].includes(taskType)) {
-    return "cloud-design";
+    return "claude-design";
   }
   if (["game_script", "game_prototype_code", "code_generation", "code_review", "bug_fix", "refactor"].includes(taskType)) {
-    return "cloud-code";
+    return "claude-code";
   }
   return "mistral";
 };
 
 const modelForRole = (role: AIRole) => {
   if (role === "openai") {
-    return readEnv("AI_GATEWAY_OPENAI_MODEL") || readEnv("AI_GATEWAY_COPY_MODEL") || readEnv("AI_GATEWAY_MODEL") || "openai/gpt-4o-mini";
+    return readEnv("AI_GATEWAY_COPY_MODEL") || readEnv("AI_GATEWAY_OPENAI_MODEL") || readEnv("AI_GATEWAY_MODEL") || "openai/gpt-4o-mini";
   }
   if (role === "claude") {
-    return readEnv("AI_GATEWAY_CLAUDE_MODEL") || readEnv("AI_GATEWAY_REASONING_MODEL") || "anthropic/claude-3.5-haiku";
+    return readEnv("AI_GATEWAY_CLAUDE_MODEL") || readEnv("AI_GATEWAY_REASONING_MODEL") || "anthropic/claude-sonnet-4-6";
   }
-  if (role === "cloud-design") {
+  if (role === "claude-design") {
     return readEnv("AI_GATEWAY_DESIGN_MODEL") ||
+      readEnv("AI_GATEWAY_VISUAL_MODEL") ||
       readEnv("AI_GATEWAY_CLAUDE_MODEL") ||
       readEnv("AI_GATEWAY_REASONING_MODEL") ||
-      "anthropic/claude-3.5-haiku";
+      "anthropic/claude-sonnet-4-6";
   }
-  if (role === "cloud-code") {
+  if (role === "claude-code") {
     return readEnv("AI_GATEWAY_CODE_MODEL") || "mistral/codestral";
   }
   if (role === "mistral") {
     return readEnv("AI_GATEWAY_FAST_MODEL") || "mistral/mistral-small";
   }
-  return readEnv("AI_GATEWAY_BALANCED_MODEL") || readEnv("AI_GATEWAY_GEMINI_MODEL") || "meta/llama-3.3-70b";
+  return readEnv("AI_GATEWAY_GEMINI_MODEL") || readEnv("AI_GATEWAY_BALANCED_MODEL") || "google/gemini-2.5-flash";
 };
 
 const taskMaxTokens = (taskType: AITaskType) => {
@@ -410,9 +411,9 @@ const roleSystemPrompt = (role: AIRole) => {
       "Tu es l'IA business, strategie, copywriting, SEO et conversion de Pixelrises. Tu optimises valeur, clarte, objections et CTA sans promesse mensongere. Reponds uniquement en JSON valide.",
     claude:
       "Tu es l'IA logique et raisonnement de Pixelrises. Tu structures, critiques, detectes les incoherences et renforces la qualite. Reponds uniquement en JSON valide.",
-    "cloud-design":
+    "claude-design":
       "Tu es l'IA design Pixelrises. Tu proposes direction artistique, UI, UX, layout, spacing, composants et variation premium sans copier de marque. Reponds uniquement en JSON valide.",
-    "cloud-code":
+    "claude-code":
       "Tu es l'IA code Pixelrises. Tu produis snippets, architecture, securite, tests et scripts de base sans sortir du scope. Reponds uniquement en JSON valide.",
     mistral:
       "Tu es l'IA rapide Pixelrises. Tu fais classification, resume, extraction, tags et pre-analyse. Reponds uniquement en JSON valide.",
@@ -435,8 +436,8 @@ const publicExpertLabel = (role: AIRole) => {
     gemini: "Expert coherence",
     openai: "Expert business",
     claude: "Expert logique",
-    "cloud-design": "Expert design",
-    "cloud-code": "Expert code",
+    "claude-design": "Expert design",
+    "claude-code": "Expert code",
     mistral: "Expert rapide",
   };
 

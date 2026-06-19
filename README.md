@@ -1,167 +1,226 @@
-# Pixelrises V1
+# Pixelrises V2
 
-Pixelrises est un SaaS orienté résultats qui permet de créer, optimiser et publier un site business grâce à Pixelrises AI.
+Pixelrises V2 est la plateforme IA publique de Pixelrises pour creer, structurer, tester et faire evoluer des projets business avec un cockpit unique.
 
-Le produit couvre aujourd'hui :
-- authentification utilisateur
-- génération de site business
-- optimisation de site existant
-- preview et publication
-- gestion de crédits
-- dashboard client
-- espace admin
-- paiements Stripe
-- backend Supabase Functions
+V2 couvre aujourd'hui :
+- landing publique Pixelrises ;
+- `AI Spaces` avec orientations par usage ;
+- `Business AI` pour strategie, offre, landing, conversion et briefs builders ;
+- `Student AI` pour revision, fiches, quiz, oral, slides, plan de travail et brouillons pedagogiques ;
+- `Site Builder` pour brief, generation, preview, sauvegarde et publication preparee ;
+- `Game Builder` pour prototypes et packs beta encadres ;
+- `Agent Studio` pour definir, configurer et sauvegarder des agents ;
+- `Templates` pour ouvrir les bons espaces avec une demande pre-remplie ;
+- `Creator AI`, `Image AI` et `Video AI` via orchestrateur, selon niveau de credits et provider disponible ;
+- `Diagnostic` pour orienter vers la bonne offre ;
+- `Dashboard`, `Credits`, `Billing`, `Integrations`, `Automations` et `Admin/Product Lab`.
 
-## Stack
+## Positionnement V2
 
-- Vite
-- React 18
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Supabase
-- Stripe
-- Gemini via Supabase Edge Functions
+Pixelrises V2 n'est pas V3 ni V4.
 
-## Installation
+V2 est concue pour :
+- etre vendable publiquement avec limites honnetes ;
+- garder les modules sensibles proteges ;
+- distinguer clairement le reel, le prepare, le mock et le bientot ;
+- rester evolutive vers V3/V4 sans casser la base.
 
-Prérequis :
+Restent volontairement limites ou prepares :
+- certaines integrations externes ;
+- certaines automatisations live ;
+- certaines generations premium image/video selon les cles serveur ;
+- certaines actions admin ou cloud qui exigent une vraie session Supabase et des variables de prod.
+
+## Architecture produit
+
+### Modules principaux
+
+- `Business AI` : creation, offre, copywriting, conversion, marche, concurrence, briefs builders.
+- `Student AI` : cours, revision, fiches, quiz, oral, slides, planning, correction et progression.
+- `Site Builder` : generation de site business, preview et iteration.
+- `Game Builder` : structure, prototype, scripts et contraintes plateforme.
+- `Agent Studio` : role, mission, permissions, test, sauvegarde.
+- `Templates` : exemples prets a reprendre qui redirigent vers les bons modules.
+- `Product Lab` : espace admin de propositions et d'amelioration continue.
+
+### AI Orchestrator
+
+Pixelrises V2 utilise une logique de routage multi-IA cote serveur.
+
+Roles documentes actuellement dans le code :
+- `OpenAI` : strategie, copywriting, SEO, conversion, offre, marketing textuel.
+- `Claude` : raisonnement, quality gate, coherence, permissions, planification.
+- `Claude Design` : UI/UX, direction artistique, layout, design system.
+- `Claude Code` : generation technique, debug, refactor, scripts, review.
+- `Gemini` : moteur general, ideation visuelle rapide, fallback valeur.
+- `Mistral` : fallback economique, classification, rapidite.
+- `Pollojourney` : moteur premium image/video type Midjourney-like via API serveur quand configure.
+
+L'orchestrateur ne doit pas exposer :
+- secret ;
+- provider key ;
+- model id sensible ;
+- prompt systeme.
+
+## Credits et niveaux
+
+La logique produit vise quatre niveaux :
+- `Lite / Rapide`
+- `Standard`
+- `Premium`
+- `Ultra`
+
+Principe :
+- plus le niveau monte, plus le pipeline peut utiliser des briques premium ;
+- les credits doivent etre debites apres succes ;
+- pas de debit si echec total ;
+- si un provider premium n'est pas configure, Pixelrises doit rester honnete et basculer vers un fallback rentable ou vers un statut `A configurer`.
+
+## Integrations techniques
+
+- `Frontend` : React 18, TypeScript, Vite, Tailwind, shadcn/ui.
+- `Backend` : Supabase Edge Functions, auth, database et storage.
+- `Paiement` : Stripe.
+- `Deploy` : Vercel.
+- `IA` : Vercel AI Gateway + providers server-side.
+
+## Routes importantes
+
+- `/` : landing publique
+- `/auth` : connexion / inscription
+- `/dashboard`
+- `/builder/site`
+- `/builder/game`
+- `/builder/agent`
+- `/ai-spaces/business`
+- `/ai-spaces/student`
+- `/templates`
+- `/pricing`
+- `/diagnostic`
+- `/integrations`
+- `/automations`
+- `/admin`
+
+## Installation locale
+
+Prerequis :
 - Node.js 18+
 - npm
-- projet Supabase configuré
-- compte Stripe pour les paiements
+- projet Supabase configure
+- variables d'environnement locales
 
 ```bash
 npm install
 ```
 
-## Configuration environnement
+## Variables d'environnement
 
-Crée un fichier `.env` à partir de `.env.example`.
+Copier `.env.example` vers `.env.local` ou `.env`.
 
-### Variables frontend
+### Frontend public
 
 ```env
 VITE_SUPABASE_URL=
 VITE_SUPABASE_PUBLISHABLE_KEY=
 ```
 
-### Variables backend Supabase Edge Functions
+### Backend / Supabase
 
 ```env
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ADMIN_ALLOWED_EMAILS=
+```
+
+### IA / Orchestration
+
+```env
+AI_GATEWAY_API_KEY=
+VERCEL_AI_GATEWAY_API_KEY=
+AI_GATEWAY_MODEL=
+AI_GATEWAY_FAST_MODEL=
+AI_GATEWAY_BALANCED_MODEL=
+AI_GATEWAY_REASONING_MODEL=
+AI_GATEWAY_OPENAI_MODEL=
+AI_GATEWAY_COPY_MODEL=
+AI_GATEWAY_CLAUDE_MODEL=
+AI_GATEWAY_DESIGN_MODEL=
+AI_GATEWAY_CODE_MODEL=
+AI_GATEWAY_GEMINI_MODEL=
+AI_GATEWAY_FALLBACK_MODELS=
+AI_GATEWAY_ALLOW_PREMIUM_MODELS=
+OPENAI_API_KEY=
+CLAUDE_API_KEY=
+ANTHROPIC_API_KEY=
 GEMINI_API_KEY=
-LOVABLE_API_KEY=
+MISTRAL_API_KEY=
+POLLO_API_KEY=
+POLLO_API_BASE_URL=
+AI_DEFAULT_PROVIDER=
+```
+
+### Stripe
+
+```env
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 ```
 
-## Lancement local
+## Commandes utiles
 
 ```bash
 npm run dev
-```
-
-Ou avec le script local du workspace :
-
-```powershell
-.\start-dev.cmd
-```
-
-## Build production
-
-```bash
+npm run lint
+npx tsc --noEmit
+npm run test
 npm run build
 ```
 
-## Tests
+Autres commandes presentes :
+- `npm run product-lab:*`
+- `npm run smoke:generator`
+- `npm run gateway:*`
 
-```bash
-npm run test
-```
+## Deploiement
 
-Smoke test du générateur :
+Flux attendu :
+1. pousser la branche GitHub ;
+2. laisser Vercel builder le projet ;
+3. verifier les variables d'environnement ;
+4. verifier le domaine public ;
+5. confirmer les fonctions Supabase et Stripe cote serveur.
 
-```bash
-npm run smoke:generator
-```
+## Statuts produit autorises
 
-## Déploiement Vercel
+Dans l'interface, un module doit afficher un statut honnete :
+- `Actif`
+- `A configurer`
+- `Prepare`
+- `Mock`
+- `Bientot`
 
-1. Push le repo sur GitHub.
-2. Importe le repo dans Vercel.
-3. Ajoute les variables frontend :
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_PUBLISHABLE_KEY`
-4. Lance le déploiement.
+Ne jamais afficher `Actif` si la brique n'est pas reellement branchee.
 
-Le fichier `vercel.json` gère le fallback SPA vers `index.html`.
+## Securite
 
-## Setup Supabase
+Regles critiques :
+- ne jamais exposer `service_role` cote frontend ;
+- ne jamais exposer de cle IA cote client ;
+- ne jamais commit de secret ;
+- ne jamais afficher les cles dans les logs ;
+- ne jamais simuler une integration reelle si elle est seulement preparee ;
+- garder le bypass local strictement limite a `localhost` / `127.0.0.1` / `::1`.
 
-1. Crée ou relie le projet Supabase.
-2. Pousse les migrations dans `supabase/migrations`.
-3. Déploie les Edge Functions :
-   - `generate-site`
-   - `analyze-url`
-   - `create-checkout`
-   - `stripe-webhook`
-   - `grant-dashboard-credits`
-   - `bootstrap-admin` si besoin d'auto-promotion admin
-4. Configure les secrets backend côté Supabase.
+## Documentation associee
 
-## Setup Stripe
+- `docs/V2_FINAL_EXECUTION_REPORT.md`
+- pages legales dans `src/pages/`
+- documentation interne dans `docs/`
 
-1. Crée les produits et prix Stripe utilisés par Pixelrises.
-2. Configure la redirection succès/annulation.
-3. Pointe le webhook Stripe vers :
+## Limites connues
 
-```txt
-https://<your-supabase-project>.supabase.co/functions/v1/stripe-webhook
-```
-
-4. Ajoute le secret webhook dans `STRIPE_WEBHOOK_SECRET`.
-5. Vérifie que les crédits sont bien ajoutés après validation du paiement.
-
-## SEO
-
-Le projet inclut déjà :
-- `robots.txt`
-- `sitemap.xml`
-- meta title / description / OG / Twitter
-- JSON-LD dans `index.html`
-- `SEOHead` pour les pages clés
-- `noindex` sur les pages internes sensibles
-
-## Publication GitHub
-
-Checklist rapide :
-1. Vérifier que `.env` n'est pas commité.
-2. Vérifier que `node_modules` et `dist` restent ignorés.
-3. Committer les changements.
-4. Pousser sur GitHub.
-5. Importer le repo dans Vercel.
-
-Checklist de lancement détaillée :
-
-- `CHECKLIST_LANCEMENT_V1.md`
-
-## Structure utile
-
-- `src/` : frontend React
-- `public/` : assets publics, `robots.txt`, `sitemap.xml`, manifest
-- `supabase/functions/` : logique backend serverless
-- `supabase/migrations/` : base de données
-- `scripts/` : scripts de vérification
-- `docs/` : prompts et documentation interne
-
-## Notes de lancement
-
-- aucun accès admin n'est hardcodé
-- les secrets doivent rester côté env uniquement
-- les pages internes (`/admin`, `/dashboard`, `/auth`) sont non indexables
-- les sites générés gardent leur propre rendu, séparé de l'interface Pixelrises
+- certaines validations live dependent encore des dashboards externes ;
+- certains providers premium dependent de variables serveur non testables dans tous les environnements ;
+- les workflows Product Lab cloud exigent une vraie session admin Supabase / GitHub ;
+- la charge multi-utilisateur reelle depend aussi des limites de plan Supabase/Vercel et pas seulement du code.

@@ -3,7 +3,7 @@ import { mockProviderAdapter } from "./MockProviderAdapter";
 
 export class CloudCodeProviderAdapter extends BaseProviderAdapter {
   constructor() {
-    super("cloud-code");
+    super("claude-code");
   }
 
   async generateText(input: ProviderRequest) {

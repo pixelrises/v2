@@ -39,10 +39,16 @@ describe("Pixelrises generator prompt contract", () => {
     );
   });
 
-  it("uses Gemini 3 generation first with stable 2.5 fallbacks and creative variation libraries", () => {
-    expect(generateSite).toContain('const SITE_GENERATION_MODEL = "google/gemini-3-pro-preview"');
-    expect(generateSite).toContain('const SITE_GENERATION_FALLBACK_MODEL = "google/gemini-3-flash-preview"');
-    expect(generateSite).toContain('const SITE_GENERATION_STABLE_FALLBACK_MODEL = "google/gemini-2.5-pro"');
+  it("uses env-driven Gemini generation with stable fallbacks and creative variation libraries", () => {
+    expect(generateSite).toContain('const SITE_GENERATION_MODEL =');
+    expect(generateSite).toContain('Deno.env.get("AI_GATEWAY_SITE_GENERATION_MODEL")');
+    expect(generateSite).toContain('"google/gemini-3-pro-preview"');
+    expect(generateSite).toContain('const SITE_GENERATION_FALLBACK_MODEL =');
+    expect(generateSite).toContain('Deno.env.get("AI_GATEWAY_SITE_GENERATION_FALLBACK_MODEL")');
+    expect(generateSite).toContain('"google/gemini-3-flash-preview"');
+    expect(generateSite).toContain('const SITE_GENERATION_STABLE_FALLBACK_MODEL =');
+    expect(generateSite).toContain('Deno.env.get("AI_GATEWAY_SITE_GENERATION_STABLE_MODEL")');
+    expect(generateSite).toContain('"google/gemini-2.5-pro"');
     expect(generateSite).toContain("const CREATIVE_LAYOUT_RECIPES");
     expect(generateSite).toContain("buildCreativeVariationGuide(form, profile, userVision)");
     expect(generateSite).toContain("buildSiteSpecificityMatrix(form, profile, strategy, userVision)");

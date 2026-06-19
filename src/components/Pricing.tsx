@@ -20,6 +20,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { cn } from "@/lib/utils";
 
 const WHATSAPP_LINK = "https://wa.me/33775256214";
+const STUDENT_AI_PAYMENT_LINK = "https://buy.stripe.com/6oU7sN777fJd4zZ9GFaZi0G";
 
 const getSubscriptionPaymentLink = (planKey: "starter" | "pro" | "business") =>
   getPlanByKey(planKey).stripePaymentLink ?? "/pricing";
@@ -136,6 +137,30 @@ const Pricing = () => {
   ];
 
   const aiPlans: PricingCard[] = [
+    {
+      name: isFr ? "Student" : "Student",
+      price: "13",
+      badge: isFr ? "Étudiant" : "Student",
+      volume: isFr ? "50 crédits mensuels" : "50 monthly credits",
+      summary: isFr
+        ? "Pensé d'abord pour Student AI, avec assez de marge pour tester légèrement Business AI sans complexité."
+        : "Built first for Student AI, with enough room to lightly test Business AI without complexity.",
+      result: isFr ? "50 crédits / mois - étudiant + test léger Business AI" : "50 credits / month - student + light Business AI testing",
+      link: STUDENT_AI_PAYMENT_LINK,
+      features: isFr
+        ? [
+            "Révisions, fiches, oraux et diaporamas",
+            "Explications, résumés et méthode de travail",
+            "Test léger de Business AI",
+            "Accès simple pour démarrer sans surcoût",
+          ]
+        : [
+            "Revision, study sheets, oral prep and slides",
+            "Explanations, summaries and study method",
+            "Light Business AI testing",
+            "Simple access to start without overpaying",
+          ],
+    },
     {
       name: "Starter",
       price: "19",
@@ -266,7 +291,12 @@ const Pricing = () => {
   ];
 
   const activeCards = view === "service" ? servicePlans : view === "ai" ? aiPlans : maintenancePlans;
-  const columnsClass = view === "maintenance" ? "md:grid-cols-2 max-w-4xl" : "md:grid-cols-3 max-w-6xl";
+  const columnsClass =
+    view === "maintenance"
+      ? "md:grid-cols-2 max-w-4xl"
+      : view === "ai"
+        ? "md:grid-cols-2 xl:grid-cols-4 max-w-7xl"
+        : "md:grid-cols-3 max-w-6xl";
 
   const headerCopy = useMemo(() => {
     if (view === "service") {

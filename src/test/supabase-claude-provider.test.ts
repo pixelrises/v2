@@ -18,8 +18,8 @@ describe("Supabase Claude provider contract", () => {
     expect(provider).toContain("AI_GATEWAY_FALLBACK_MODELS");
     expect(provider).toContain("openai/gpt-4o-mini");
     expect(provider).toContain("mistral/mistral-small");
-    expect(provider).toContain("meta/llama-3.3-70b");
-    expect(provider).toContain("anthropic/claude-3.5-haiku");
+    expect(provider).toContain("google/gemini-2.5-flash");
+    expect(provider).toContain("anthropic/claude-sonnet-4-6");
     expect(provider).toContain("mistral/codestral");
     expect(provider).toContain("AI_GATEWAY_ALLOW_PREMIUM_MODELS");
     expect(provider).toContain("gpt-5-pro");

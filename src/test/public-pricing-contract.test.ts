@@ -49,6 +49,7 @@ describe("public pricing route", () => {
       "https://buy.stripe.com/bJe00l4YZ9kP3vV1a9aZi0i",
       "https://buy.stripe.com/14A3cx8bbdB59Uj9GFaZi08",
       "https://buy.stripe.com/9B6bJ3bnncx19Uj7yxaZi0h",
+      "https://buy.stripe.com/6oU7sN777fJd4zZ9GFaZi0G",
     ]) {
       expect(pricing).toContain(expectedPaymentLink);
     }

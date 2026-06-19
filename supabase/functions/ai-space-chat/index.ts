@@ -164,16 +164,28 @@ const creatorPremiumImageAnswer = (result: PolloGenerationResult, prompt: string
 };
 
 const modelForSpace = (spaceType: AISpaceType) => {
-  if (spaceType === "business") return readEnv("AI_GATEWAY_OPENAI_MODEL") || "openai/gpt-4o-mini";
-  if (spaceType === "student") return readEnv("AI_GATEWAY_STUDENT_MODEL") || readEnv("AI_GATEWAY_FAST_MODEL") || "mistral/mistral-small";
+  if (spaceType === "business") {
+    return readEnv("AI_GATEWAY_COPY_MODEL") || readEnv("AI_GATEWAY_OPENAI_MODEL") || "openai/gpt-4o-mini";
+  }
+  if (spaceType === "student") {
+    return readEnv("AI_GATEWAY_STUDENT_MODEL") ||
+      readEnv("AI_GATEWAY_GEMINI_MODEL") ||
+      readEnv("AI_GATEWAY_FAST_MODEL") ||
+      "google/gemini-2.5-flash-lite";
+  }
   if (spaceType === "management") {
     return readEnv("AI_GATEWAY_CHEAP_MODEL") || readEnv("AI_GATEWAY_FAST_MODEL") || "mistral/ministral-8b";
   }
   if (spaceType === "enterprise") {
-    return readEnv("AI_GATEWAY_CLAUDE_MODEL") || readEnv("AI_GATEWAY_REASONING_MODEL") || "anthropic/claude-3.5-haiku";
+    return readEnv("AI_GATEWAY_CLAUDE_MODEL") || readEnv("AI_GATEWAY_REASONING_MODEL") || "anthropic/claude-sonnet-4-6";
   }
-  if (spaceType === "creator") return readEnv("AI_GATEWAY_CREATOR_MODEL") || readEnv("AI_GATEWAY_OPENAI_MODEL") || "openai/gpt-4o-mini";
-  return readEnv("AI_GATEWAY_BALANCED_MODEL") || "meta/llama-3.3-70b";
+  if (spaceType === "creator") {
+    return readEnv("AI_GATEWAY_CREATOR_MODEL") ||
+      readEnv("AI_GATEWAY_OPENAI_MODEL") ||
+      readEnv("AI_GATEWAY_GEMINI_MODEL") ||
+      "openai/gpt-4o-mini";
+  }
+  return readEnv("AI_GATEWAY_GEMINI_MODEL") || readEnv("AI_GATEWAY_BALANCED_MODEL") || "google/gemini-2.5-flash";
 };
 
 const buildPixelrisesCorePrompt = (payload?: {

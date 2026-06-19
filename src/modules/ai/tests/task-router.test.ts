@@ -14,11 +14,11 @@ const task: AITask = {
 };
 
 describe("TaskRouter", () => {
-  it("falls back when Cloud Design is missing", () => {
+  it("falls back when Claude Design is missing", () => {
     const router = new TaskRouter();
     const [routed] = router.route([task], "qualite");
 
-    expect(routed.recommendedProvider).toBe("cloud-design");
+    expect(routed.recommendedProvider).toBe("claude-design");
     expect(routed.selectedProvider).toBe("gemini");
     expect(routed.fallbackChain).toContain("mock");
   });

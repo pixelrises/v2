@@ -26,9 +26,9 @@ describe("Creator AI Pollojourney contract", () => {
 
   it("routes premium creator images to Pollojourney only in quality mode", () => {
     expect(defaultRoutingRules.creator_premium_image.provider).toBe("pollojourney");
-    expect(defaultRoutingRules.creator_premium_image.fallbackProvider).toBe("cloud-design");
+    expect(defaultRoutingRules.creator_premium_image.fallbackProvider).toBe("claude-design");
     expect(routingModeOverrides.qualite.creator_premium_image).toBe("pollojourney");
-    expect(routingModeOverrides.cout_optimise.creator_premium_image).toBe("cloud-design");
+    expect(routingModeOverrides.cout_optimise.creator_premium_image).toBe("claude-design");
   });
 
   it("keeps Creator AI explicit about costs, validation and premium visual use cases", () => {

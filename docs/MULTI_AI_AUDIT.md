@@ -16,7 +16,7 @@ Les providers sont prepares en mode mock-safe. Aucun appel reel a une API extern
 - AI Orchestrator fonctionnel.
 - Prompt Splitter pour site, agent, game, integration, improvement, code, strategy et template.
 - Task Router centralise via `ai-routing.config.ts`.
-- Provider adapters: Gemini, OpenAI, Claude, Cloud Design, Cloud Code, Mistral, Mock, Future.
+- Provider adapters: Gemini, OpenAI, Claude, Claude Design, Claude Code, Mistral, Mock, Future.
 - Mock Provider fonctionnel pour developpement local et tests.
 - Output Normalizer pour site, agent, game et sorties generiques.
 - Fusion Engine pour site, agent, game et recommandations generiques.
@@ -51,8 +51,8 @@ Les providers sont prepares en mode mock-safe. Aucun appel reel a une API extern
 - Gemini / Pixelrises AI General.
 - OpenAI / Pixelrises Strategy.
 - Claude / Pixelrises Logic.
-- Cloud Design.
-- Cloud Code.
+- Claude Design.
+- Claude Code.
 - Mistral.
 - Outputs de site, agent, game et recommandations.
 - Test connexion dans Settings.

@@ -11,8 +11,8 @@ const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
 const DEFAULT_CLAUDE_MODEL = "claude-3-5-haiku-latest";
 const DEFAULT_GATEWAY_MODEL = "openai/gpt-4o-mini";
 const DEFAULT_GATEWAY_FAST_MODEL = "mistral/mistral-small";
-const DEFAULT_GATEWAY_BALANCED_MODEL = "meta/llama-3.3-70b";
-const DEFAULT_GATEWAY_REASONING_MODEL = "anthropic/claude-3.5-haiku";
+const DEFAULT_GATEWAY_BALANCED_MODEL = "google/gemini-2.5-flash";
+const DEFAULT_GATEWAY_REASONING_MODEL = "anthropic/claude-sonnet-4-6";
 const DEFAULT_GATEWAY_CODE_MODEL = "mistral/codestral";
 const DEFAULT_GATEWAY_FALLBACK_MODELS = [
   DEFAULT_GATEWAY_MODEL,
@@ -21,7 +21,7 @@ const DEFAULT_GATEWAY_FALLBACK_MODELS = [
   DEFAULT_GATEWAY_REASONING_MODEL,
 ];
 const PREMIUM_GATEWAY_MODEL_PATTERNS = [
-  /^anthropic\/claude-opus-4\.5$/i,
+  /^anthropic\/claude-opus-4(?:[-.]8)?$/i,
   /^openai\/o1$/i,
   /^openai\/o3-deep-research$/i,
   /^openai\/gpt-5-pro$/i,
@@ -104,16 +104,18 @@ const normalizeVercelGatewayModelName = (model: unknown) => {
   }
 
   if (/gemini-2\.5|gemini-3|gemini/i.test(value)) {
-    return readOptionalEnv("AI_GATEWAY_BALANCED_MODEL") || DEFAULT_GATEWAY_BALANCED_MODEL;
+    return readOptionalEnv("AI_GATEWAY_GEMINI_MODEL") ||
+      readOptionalEnv("AI_GATEWAY_BALANCED_MODEL") ||
+      DEFAULT_GATEWAY_BALANCED_MODEL;
   }
 
-  if (/claude-sonnet-4|claude-haiku-4|claude-opus-4\.7/i.test(value)) {
+  if (/claude-sonnet-4(?:[-.]6)?|claude-haiku-4|claude-opus-4(?:[-.]8)?|claude-3\.5/i.test(value)) {
     return readOptionalEnv("AI_GATEWAY_CLAUDE_MODEL") ||
       readOptionalEnv("AI_GATEWAY_REASONING_MODEL") ||
       DEFAULT_GATEWAY_REASONING_MODEL;
   }
 
-  if (/deepseek|mistral-medium/i.test(value)) {
+  if (/deepseek|mistral-medium|codestral|grok-code/i.test(value)) {
     return readOptionalEnv("AI_GATEWAY_CODE_MODEL") ||
       readOptionalEnv("AI_GATEWAY_FAST_MODEL") ||
       DEFAULT_GATEWAY_CODE_MODEL;

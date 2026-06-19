@@ -6,7 +6,7 @@ const routedTask: RoutedAITask = {
   type: "game_script",
   description: "Generer un snippet Roblox",
   priority: "medium",
-  recommendedProvider: "cloud-code",
+  recommendedProvider: "claude-code",
   fallbackProvider: "mock",
   selectedProvider: "mock",
   fallbackChain: ["mock"],

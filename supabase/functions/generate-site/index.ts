@@ -433,15 +433,26 @@ type PromptBlueprint = {
 
 const GENERATION_CREDIT_COST = 13;
 const IMPROVEMENT_CREDIT_COST = 4;
-const BUSINESS_ANALYSIS_MODEL = "google/gemini-3-flash-preview";
-const BUSINESS_ANALYSIS_FALLBACK_MODELS = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
-const SITE_GENERATION_MODEL = "google/gemini-3-pro-preview";
-const SITE_GENERATION_FALLBACK_MODEL = "google/gemini-3-flash-preview";
-const SITE_GENERATION_STABLE_FALLBACK_MODEL = "google/gemini-2.5-pro";
-const SITE_GENERATION_FAST_FALLBACK_MODEL = "google/gemini-2.5-flash";
-const SITE_GENERATION_LIGHT_FALLBACK_MODEL = "google/gemini-2.5-flash-lite";
-const IMAGE_GENERATION_MODEL = "gemini-3-pro-image-preview";
-const IMAGE_GENERATION_FALLBACK_MODEL = "gemini-2.5-flash-image";
+const BUSINESS_ANALYSIS_MODEL =
+  (Deno.env.get("AI_GATEWAY_BUSINESS_ANALYSIS_MODEL") ?? "").trim() || "google/gemini-3-flash-preview";
+const BUSINESS_ANALYSIS_FALLBACK_MODELS = [
+  (Deno.env.get("AI_GATEWAY_GEMINI_MODEL") ?? "").trim() || "google/gemini-2.5-flash",
+  (Deno.env.get("AI_GATEWAY_FAST_MODEL") ?? "").trim() || "google/gemini-2.5-flash-lite",
+];
+const SITE_GENERATION_MODEL =
+  (Deno.env.get("AI_GATEWAY_SITE_GENERATION_MODEL") ?? "").trim() || "google/gemini-3-pro-preview";
+const SITE_GENERATION_FALLBACK_MODEL =
+  (Deno.env.get("AI_GATEWAY_SITE_GENERATION_FALLBACK_MODEL") ?? "").trim() || "google/gemini-3-flash-preview";
+const SITE_GENERATION_STABLE_FALLBACK_MODEL =
+  (Deno.env.get("AI_GATEWAY_SITE_GENERATION_STABLE_MODEL") ?? "").trim() || "google/gemini-2.5-pro";
+const SITE_GENERATION_FAST_FALLBACK_MODEL =
+  (Deno.env.get("AI_GATEWAY_SITE_GENERATION_FAST_MODEL") ?? "").trim() || "google/gemini-2.5-flash";
+const SITE_GENERATION_LIGHT_FALLBACK_MODEL =
+  (Deno.env.get("AI_GATEWAY_SITE_GENERATION_LIGHT_MODEL") ?? "").trim() || "google/gemini-2.5-flash-lite";
+const IMAGE_GENERATION_MODEL =
+  (Deno.env.get("AI_GATEWAY_IMAGE_MODEL") ?? "").trim() || "gemini-3-pro-image-preview";
+const IMAGE_GENERATION_FALLBACK_MODEL =
+  (Deno.env.get("AI_GATEWAY_IMAGE_FALLBACK_MODEL") ?? "").trim() || "gemini-2.5-flash-image";
 const SITE_GENERATION_TEMPERATURE = 0.8;
 const GENERATION_TOP_P = 0.9;
 const GENERATION_MAX_TOKENS = 16000;
