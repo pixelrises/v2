@@ -1,9 +1,9 @@
 import { BaseProviderAdapter, type ProviderJSONRequest, type ProviderRequest } from "./BaseProviderAdapter";
 import { mockProviderAdapter } from "./MockProviderAdapter";
 
-export class CloudDesignProviderAdapter extends BaseProviderAdapter {
+export class ClaudeCodeProviderAdapter extends BaseProviderAdapter {
   constructor() {
-    super("claude-design");
+    super("claude-code");
   }
 
   async generateText(input: ProviderRequest) {
@@ -15,4 +15,4 @@ export class CloudDesignProviderAdapter extends BaseProviderAdapter {
   }
 }
 
-export const cloudDesignProviderAdapter = new CloudDesignProviderAdapter();
+export const claudeCodeProviderAdapter = new ClaudeCodeProviderAdapter();

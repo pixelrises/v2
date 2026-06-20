@@ -109,8 +109,8 @@ Fichiers crees:
 - `src/modules/ai/prompts/openai.strategy.prompt.ts`
 - `src/modules/ai/providers/BaseProviderAdapter.ts`
 - `src/modules/ai/providers/ClaudeProviderAdapter.ts`
-- `src/modules/ai/providers/CloudCodeProviderAdapter.ts`
-- `src/modules/ai/providers/CloudDesignProviderAdapter.ts`
+- `src/modules/ai/providers/ClaudeCodeProviderAdapter.ts`
+- `src/modules/ai/providers/ClaudeDesignProviderAdapter.ts`
 - `src/modules/ai/providers/FutureProviderAdapter.ts`
 - `src/modules/ai/providers/GeminiProviderAdapter.ts`
 - `src/modules/ai/providers/MistralProviderAdapter.ts`

@@ -1,7 +1,7 @@
 import type { AIProviderId } from "../schemas/ai-task.schema";
 import type { AIProviderAdapter } from "./BaseProviderAdapter";
-import { cloudCodeProviderAdapter } from "./CloudCodeProviderAdapter";
-import { cloudDesignProviderAdapter } from "./CloudDesignProviderAdapter";
+import { claudeCodeProviderAdapter } from "./ClaudeCodeProviderAdapter";
+import { claudeDesignProviderAdapter } from "./ClaudeDesignProviderAdapter";
 import { claudeProviderAdapter } from "./ClaudeProviderAdapter";
 import { futureProviderAdapter } from "./FutureProviderAdapter";
 import { geminiMultiAIProviderAdapter } from "./GeminiProviderAdapter";
@@ -16,8 +16,8 @@ export * from "./GeminiProviderAdapter";
 export * from "./OpenAIProviderAdapter";
 export * from "./VercelGatewayProviderAdapter";
 export * from "./ClaudeProviderAdapter";
-export * from "./CloudDesignProviderAdapter";
-export * from "./CloudCodeProviderAdapter";
+export * from "./ClaudeDesignProviderAdapter";
+export * from "./ClaudeCodeProviderAdapter";
 export * from "./MistralProviderAdapter";
 export * from "./MockProviderAdapter";
 export * from "./PollojourneyProviderAdapter";
@@ -28,8 +28,8 @@ export const aiProviderAdapters: Record<AIProviderId, AIProviderAdapter> = {
   gemini: geminiMultiAIProviderAdapter,
   openai: openAIProviderAdapter,
   claude: claudeProviderAdapter,
-  "claude-design": cloudDesignProviderAdapter,
-  "claude-code": cloudCodeProviderAdapter,
+  "claude-design": claudeDesignProviderAdapter,
+  "claude-code": claudeCodeProviderAdapter,
   mistral: mistralProviderAdapter,
   pollojourney: pollojourneyProviderAdapter,
   mock: mockProviderAdapter,
