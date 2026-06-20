@@ -89,9 +89,9 @@ describe("AI Spaces pages", () => {
     expect(screen.getByText("/methode")).toBeInTheDocument();
     expect(screen.getByText("/sources")).toBeInTheDocument();
     expect(screen.getByText("/recherche")).toBeInTheDocument();
-    expect(screen.getByText("/site")).toBeInTheDocument();
-    expect(screen.getByText("/app")).toBeInTheDocument();
-    expect(screen.getByText("/jeu")).toBeInTheDocument();
+    expect(screen.queryByText("/site")).not.toBeInTheDocument();
+    expect(screen.queryByText("/app")).not.toBeInTheDocument();
+    expect(screen.queryByText("/jeu")).not.toBeInTheDocument();
     expect(screen.getByText("/agent")).toBeInTheDocument();
     expect(screen.getByText(/Aper(ç|Ã§|ÃƒÂ§)u/)).toBeInTheDocument();
     expect(screen.getAllByText("Structure").length).toBeGreaterThanOrEqual(1);

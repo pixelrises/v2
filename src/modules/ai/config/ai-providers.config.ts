@@ -120,6 +120,7 @@ export const aiProvidersConfig: Record<AIProviderId, AIProviderConfig> = {
       "site_conversion",
       "agent_prompt",
       "analytics_insights",
+      "creator_ad_creative",
     ],
   },
   claude: {
@@ -149,7 +150,15 @@ export const aiProvidersConfig: Record<AIProviderId, AIProviderConfig> = {
     defaultModel: "design-backend",
     status: "missing",
     serverOnly: true,
-    supportedTasks: ["site_design", "design_system", "ui_layout", "component_suggestion", "game_level_design", "game_assets"],
+    supportedTasks: [
+      "site_design",
+      "design_system",
+      "ui_layout",
+      "component_suggestion",
+      "game_level_design",
+      "game_assets",
+      "creator_image_concept",
+    ],
   },
   "claude-code": {
     providerId: "claude-code",

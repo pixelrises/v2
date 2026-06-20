@@ -64,6 +64,7 @@ export const aiSpacesRegistry: Record<AISpaceType, AISpaceConfig> = {
     builderLinks: [
       { label: "Créer un site", href: "/builder/site", status: "ready" },
       { label: "Créer un agent", href: "/builder/agent", status: "ready" },
+      { label: "Ouvrir Creator AI", href: "/ai-spaces/creator", status: "ready" },
       { label: "Préparer une boutique", href: "/create", status: "prepared" },
     ],
     dashboard: {
@@ -108,6 +109,14 @@ export const aiSpacesRegistry: Record<AISpaceType, AISpaceConfig> = {
               actionLabel: "Créer le site",
               href: "/builder/site",
               tags: ["Site", "SEO"],
+            },
+            {
+              title: "Brief pub ou visuel final",
+              description: "Business AI cadre l'angle, l'offre et le message, puis passe Creator AI pour produire le rendu marketing final.",
+              status: "ready",
+              actionLabel: "Ouvrir Creator AI",
+              href: "/ai-spaces/creator",
+              tags: ["Creator AI", "Brief", "Redirection"],
             },
           ],
         },
@@ -720,7 +729,7 @@ export const aiSpacesRegistry: Record<AISpaceType, AISpaceConfig> = {
     name: "Creator AI",
     shortName: "Créateur",
     tagline: "Scripts, visuels premium, pubs, avatars et campagnes.",
-    description: "Prépare des contenus, prompts image, publicités, avatars et campagnes créatives avec coûts maîtrisés.",
+    description: "Prépare des contenus, prompts image, publicités, avatars et campagnes créatives avec moteurs image/vidéo spécialisés et coûts maîtrisés.",
     status: "beta",
     tone: "creative",
     icon: "sparkles",
@@ -779,6 +788,7 @@ export const aiSpacesRegistry: Record<AISpaceType, AISpaceConfig> = {
     recommendedAgents: ["Content Agent", "Script Agent", "Hook Agent", "Social Media Agent", "Visual Campaign Agent"],
     recommendedTemplates: ["Script court", "Calendrier contenu", "Hooks", "Posts", "Prompt image premium", "Pub produit"],
     builderLinks: [
+      { label: "Cadrer la stratégie dans Business AI", href: "/ai-spaces/business", status: "ready" },
       { label: "Créer un agent contenu", href: "/builder/agent", status: "ready" },
       { label: "Marketing module plus tard", href: "/create", status: "soon" },
     ],
@@ -868,6 +878,14 @@ export const aiSpacesRegistry: Record<AISpaceType, AISpaceConfig> = {
           kind: "creator",
           items: [
             {
+              title: "Image AI rapide",
+              description: "Prépare un visuel simple, une variation ou une direction d'image rapide avant le mode premium.",
+              status: "prepared",
+              actionLabel: "Préparer",
+              tags: ["Image AI", "Gemini", "Rapide"],
+              meta: "Conçu pour idéation et variantes légères à coût modéré, sans prétendre qu'un moteur premium tourne déjà.",
+            },
+            {
               title: "Pollojourney image premium",
               description: "Pour photoréalisme, direction artistique forte, campagnes social ads et rendus plus premium.",
               status: "requires-connection",
@@ -888,7 +906,7 @@ export const aiSpacesRegistry: Record<AISpaceType, AISpaceConfig> = {
               description: "Prépare avatar, scène, dialogue, mouvement, format vertical et garde-fous de marque.",
               status: "requires-connection",
               actionLabel: "Préparer",
-              tags: ["Avatar", "Vidéo", "Premium"],
+              tags: ["Video AI", "Avatar", "Premium"],
               meta: "Fonction premium Pollo à configurer et facturer plus cher.",
             },
             {

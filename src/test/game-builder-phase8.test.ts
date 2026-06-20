@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultRoutingRules, promptSplitter } from "@/modules/ai";
 import {
+  buildGamePlan,
   buildGameProductionPackage,
   createGameMarkdownExport,
   gameAIRoles,
@@ -116,5 +117,40 @@ describe("Game Builder Phase 8", () => {
     expect(markdown).toContain("## Scripts / snippets");
     expect(markdown).toContain("## Checklist de test");
     expect(markdown).toContain("Pixelrises ne publie pas automatiquement");
+  });
+  it("threads advanced briefing fields into the production package without fake publication claims", () => {
+    const brief = {
+      platform: "Web game",
+      gameType: "Runner",
+      title: "Runner Neon",
+      visualStyle: "Arcade neon",
+      prototypeTarget: "Phaser 2D",
+      qualityTier: "Premium",
+      gameplayLoopHint: "Courir, esquiver, attraper des bonus, battre son score, recommencer.",
+      coreMechanics: "Dash, saut, score, bonus, restart",
+      mainCharacter: "Livreur futuriste",
+      enemyType: "Drones et barrières laser",
+      worldMap: "Ville, tunnel, rooftop, finale",
+      progressionStyle: "Score attack",
+      levelCount: "4",
+      difficultyTarget: "Équilibré",
+      enemyAIStyle: "Pattern arcade",
+      freePrompt: "Créer un runner premium avec progression claire et rejouabilité.",
+    };
+    const gamePlan = buildGamePlan(brief);
+    const gamePackage = buildGameProductionPackage(brief);
+
+    expect(gamePlan.complexity).toContain("Premium");
+    expect(gamePlan.gameplayLoop).toContain("Courir, esquiver");
+    expect(gamePlan.assumptions.join(" ")).toContain("arcade neon");
+    expect(gamePackage.gameplayLoop).toContain("Courir, esquiver");
+    expect(gamePackage.difficultyCurve).toContain("Score attack");
+    expect(gamePackage.prototypePreview.webGame?.controls).toContain("Phaser 2D");
+    expect(gamePackage.levelsOrZones).toHaveLength(4);
+    expect(gamePackage.levelsOrZones.some((zone) => zone.assetsNeeded.includes("Arcade neon"))).toBe(true);
+    expect(gamePackage.assetPrompts.some((asset) => asset.prompt.includes("Arcade neon"))).toBe(true);
+    expect(gamePackage.limitations.join(" ")).not.toMatch(/publie automatiquement/i);
+    expect(gamePackage.sourceSummary).toContain("Qualité Premium");
+    expect(gamePackage.sourceSummary).toContain("Phaser 2D");
   });
 });

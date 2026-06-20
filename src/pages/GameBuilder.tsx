@@ -75,7 +75,14 @@ type SelectFieldProps = {
   onChange: (value: string) => void;
 };
 
-type GameSuggestion = Required<GameBuilderBriefInput> & {
+type GameSuggestion = GameBuilderBriefInput & {
+  title: string;
+  platform: GamePlatform;
+  gameType: string;
+  subGenre: string;
+  targetAudience: string;
+  theme: string;
+  freePrompt: string;
   badge: string;
 };
 
@@ -84,6 +91,12 @@ const gameTypes = ["Quiz", "Clicker", "Obby", "Tycoon", "Runner", "Reflex", "RPG
 const subGenres = ["Feedback rapide", "Progression", "Checkpoints", "Économie", "Exploration", "Coop", "Puzzle", "Créatif", "Score attack"];
 const audiences = ["Joueurs casual", "10-18 ans", "Ados", "Famille", "Créateurs Roblox", "Joueurs compétitifs", "Communauté école", "Formation / business"];
 const deliverableOptions = ["Plan Mode", "Prototype Mode", "Scripts / Snippets", "Assets prompts", "Checklist", "Export"];
+const visualStyles = ["Cartoon premium", "Pixel stylisé", "Low poly lisible", "Arcade neon", "Fantasy colorée", "Sci-fi sombre"];
+const prototypeTargets = ["Prototype web React", "Phaser 2D", "Three.js 3D", "Roblox Studio", "Minecraft Bedrock", "UEFN Island"];
+const qualityTiers = ["Lite", "Standard", "Premium", "Ultra"];
+const progressionStyles = ["Niveaux courts avec montée progressive", "Score attack", "Boucle idle / upgrade", "Checkpoints et zones", "Mission puis boss final"];
+const difficultyTargets = ["Très accessible", "Accessible puis progressif", "Équilibré", "Challenge assumé"];
+const enemyAIStyles = ["Aucune IA ennemie", "Comportements simples et testables", "Patrouille + poursuite", "Pattern arcade", "Puzzle / timing"];
 
 const defaultBrief: Required<GameBuilderBriefInput> = {
   title: "Pixel Challenge",
@@ -92,6 +105,18 @@ const defaultBrief: Required<GameBuilderBriefInput> = {
   subGenre: "Feedback rapide",
   theme: "Quiz web avec score, niveaux et feedback immédiat",
   targetAudience: "Joueurs casual",
+  visualStyle: "Cartoon premium",
+  prototypeTarget: "Prototype web React",
+  qualityTier: "Standard",
+  gameplayLoopHint: "Répondre, recevoir un feedback immédiat, marquer des points, passer au niveau suivant, relancer.",
+  coreMechanics: "Question, choix, score, combo, restart",
+  mainCharacter: "Joueur solo",
+  enemyType: "Compte à rebours et erreurs",
+  worldMap: "Tutoriel, 3 niveaux, finale",
+  progressionStyle: "Niveaux courts avec montée progressive",
+  levelCount: "5",
+  difficultyTarget: "Accessible puis progressif",
+  enemyAIStyle: "Aucune IA ennemie",
   freePrompt: "Créer un jeu quiz web avec score, niveaux, feedback, restart et progression claire.",
 };
 
@@ -466,6 +491,13 @@ const GameBuilder = () => {
   );
 
   const plan = useMemo(() => buildGamePlan(brief), [brief]);
+  const estimatedCredits = useMemo(() => {
+    const qualityCost = { Lite: 4, Standard: 8, Premium: 14, Ultra: 22 }[brief.qualityTier] ?? 8;
+    const platformCost = brief.platform === "Web game" ? 0 : 4;
+    const deliverableCost = Math.max(0, selectedDeliverables.length - 2);
+    return qualityCost + platformCost + deliverableCost;
+  }, [brief.platform, brief.qualityTier, selectedDeliverables.length]);
+  const builderStatusLabel = generationMode === "plan" && !planApproved ? "Plan à valider" : isGenerating ? "Génération en cours" : activeMode === "prototype" ? "Prototype prêt" : "Bêta contrôlée";
   const qualityDegrees = Math.max(0, Math.min(100, gamePackage.qualityScores.score)) * 3.6;
   const generationTimelineSteps = useMemo(
     () => [
@@ -556,6 +588,7 @@ const GameBuilder = () => {
   const selectSuggestion = (suggestion: GameSuggestion) => {
     setPlanApproved(false);
     setBrief({
+      ...defaultBrief,
       title: suggestion.title,
       platform: suggestion.platform,
       gameType: suggestion.gameType,
@@ -708,6 +741,25 @@ const GameBuilder = () => {
     trackV2Event("export_requested", { type: "game", format }, { module: "game-builder", projectId: gamePackage.gameId });
   };
 
+  const saveDraft = async () => {
+    const dataState = await persistAndVersion(gamePackage, "manual_edit", "draft_save", "Brouillon Game Builder sauvegardé.");
+    setPipelineMessage(
+      dataState === "real"
+        ? "Brouillon sauvegardé. Tu peux reprendre le prototype plus tard."
+        : "Brouillon sauvegardé en local. Sync cloud à confirmer plus tard.",
+    );
+  };
+
+  const createVariant = () => {
+    setPlanApproved(false);
+    updateBrief({
+      title: `${brief.title} Variant`,
+      freePrompt: `${brief.freePrompt} Variante : propose une lecture différente, plus ${brief.qualityTier.toLowerCase()} et plus marquante.`,
+    });
+    setActiveMode("plan");
+    setPipelineMessage("Variante prête. Ajuste le brief si besoin puis relance la génération.");
+  };
+
   const markdownPreview = useMemo(() => createGameMarkdownExport(gamePackage).slice(0, 900), [gamePackage]);
 
   return (
@@ -765,6 +817,93 @@ const GameBuilder = () => {
               <SelectField icon={Target} label="Sous-genre" value={brief.subGenre} options={subGenres} onChange={(value) => updateBrief({ subGenre: value })} />
               <SelectField icon={Bot} label="Audience cible" value={brief.targetAudience} options={audiences} onChange={(value) => updateBrief({ targetAudience: value })} />
             </div>
+
+            {isSimple ? (
+              <div className="mt-5 grid gap-3 rounded-[18px] border border-white/[0.08] bg-black/18 p-4">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <SelectField icon={Sparkles} label="Style graphique" value={brief.visualStyle} options={visualStyles} onChange={(value) => updateBrief({ visualStyle: value })} />
+                  <SelectField icon={Gauge} label="Niveau qualité" value={brief.qualityTier} options={qualityTiers} onChange={(value) => updateBrief({ qualityTier: value })} />
+                </div>
+                <label className="block">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/48">Boucle de gameplay</span>
+                  <Textarea
+                    value={brief.gameplayLoopHint}
+                    onChange={(event) => updateBrief({ gameplayLoopHint: event.target.value })}
+                    placeholder="Explique la boucle principale en une phrase."
+                    className="mt-2 min-h-[88px] rounded-[16px] border-white/[0.10] bg-black/30 p-4 text-sm leading-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] placeholder:text-white/28"
+                  />
+                </label>
+              </div>
+            ) : null}
+
+            {isAdvanced ? (
+              <div className="mt-5 grid gap-3 rounded-[18px] border border-[#F5C542]/15 bg-[#F5C542]/[0.045] p-4">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <SelectField icon={Sparkles} label="Style graphique" value={brief.visualStyle} options={visualStyles} onChange={(value) => updateBrief({ visualStyle: value })} />
+                  <SelectField icon={Rocket} label="Prototype cible" value={brief.prototypeTarget} options={prototypeTargets} onChange={(value) => updateBrief({ prototypeTarget: value })} />
+                  <SelectField icon={Gauge} label="Niveau qualité" value={brief.qualityTier} options={qualityTiers} onChange={(value) => updateBrief({ qualityTier: value })} />
+                  <SelectField icon={Shield} label="Difficulté visée" value={brief.difficultyTarget} options={difficultyTargets} onChange={(value) => updateBrief({ difficultyTarget: value })} />
+                  <SelectField icon={Flag} label="Progression" value={brief.progressionStyle} options={progressionStyles} onChange={(value) => updateBrief({ progressionStyle: value })} />
+                  <SelectField icon={ShieldAlert} label="IA ennemie" value={brief.enemyAIStyle} options={enemyAIStyles} onChange={(value) => updateBrief({ enemyAIStyle: value })} />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="block">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/48">Mécaniques</span>
+                    <Textarea
+                      value={brief.coreMechanics}
+                      onChange={(event) => updateBrief({ coreMechanics: event.target.value })}
+                      placeholder="Combat, collecte, score, crafting, combos..."
+                      className="mt-2 min-h-[88px] rounded-[16px] border-white/[0.10] bg-black/30 p-4 text-sm leading-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] placeholder:text-white/28"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/48">Boucle de gameplay</span>
+                    <Textarea
+                      value={brief.gameplayLoopHint}
+                      onChange={(event) => updateBrief({ gameplayLoopHint: event.target.value })}
+                      placeholder="Action, feedback, récompense, progression, relance."
+                      className="mt-2 min-h-[88px] rounded-[16px] border-white/[0.10] bg-black/30 p-4 text-sm leading-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] placeholder:text-white/28"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/48">Personnage / joueur</span>
+                    <Textarea
+                      value={brief.mainCharacter}
+                      onChange={(event) => updateBrief({ mainCharacter: event.target.value })}
+                      placeholder="Qui agit dans le jeu ?"
+                      className="mt-2 min-h-[80px] rounded-[16px] border-white/[0.10] bg-black/30 p-4 text-sm leading-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] placeholder:text-white/28"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/48">Ennemis / obstacles</span>
+                    <Textarea
+                      value={brief.enemyType}
+                      onChange={(event) => updateBrief({ enemyType: event.target.value })}
+                      placeholder="Obstacles, ennemis, pièges, chrono..."
+                      className="mt-2 min-h-[80px] rounded-[16px] border-white/[0.10] bg-black/30 p-4 text-sm leading-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] placeholder:text-white/28"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/48">Carte / monde</span>
+                    <Textarea
+                      value={brief.worldMap}
+                      onChange={(event) => updateBrief({ worldMap: event.target.value })}
+                      placeholder="Zones, biomes, checkpoints, arènes..."
+                      className="mt-2 min-h-[80px] rounded-[16px] border-white/[0.10] bg-black/30 p-4 text-sm leading-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] placeholder:text-white/28"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/48">Nombre de niveaux</span>
+                    <input
+                      value={brief.levelCount}
+                      onChange={(event) => updateBrief({ levelCount: event.target.value })}
+                      placeholder="5"
+                      className="mt-2 h-12 w-full rounded-[16px] border border-white/[0.10] bg-black/30 px-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] placeholder:text-white/28"
+                    />
+                  </label>
+                </div>
+              </div>
+            ) : null}
 
             <div className="mt-5 border-t border-white/[0.08] pt-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/48">Livrables souhaités</p>
@@ -948,6 +1087,47 @@ const GameBuilder = () => {
               </div>
             </div>
 
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {[
+                ["Type de jeu", `${brief.gameType} · ${brief.subGenre}`],
+                ["Qualité", brief.qualityTier],
+                ["Crédits estimés", `${estimatedCredits} crédits`],
+                ["Statut", builderStatusLabel],
+              ].map(([label, value]) => (
+                <article key={label} className="rounded-[16px] border border-white/[0.08] bg-black/22 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/42">{label}</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+                </article>
+              ))}
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Button
+                onClick={handlePrimaryGenerationAction}
+                disabled={isGenerating}
+                className="h-11 rounded-[14px] bg-[#F5C542] px-5 font-semibold text-black shadow-[0_0_36px_-18px_rgba(245,197,66,0.9)] hover:bg-[#FFD766] disabled:opacity-70"
+              >
+                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                {generationMode === "plan" && !planApproved ? "Générer le plan" : "Générer"}
+              </Button>
+              <Button onClick={() => void improve()} variant="outline" className="h-11 rounded-[14px] border-white/[0.10] bg-black/25 text-white/80 hover:bg-white/[0.06]">
+                <Sparkles className="h-4 w-4" />
+                Améliorer
+              </Button>
+              <Button onClick={createVariant} variant="outline" className="h-11 rounded-[14px] border-white/[0.10] bg-black/25 text-white/80 hover:bg-white/[0.06]">
+                <RefreshCw className="h-4 w-4" />
+                Créer une variante
+              </Button>
+              <Button onClick={() => void saveDraft()} variant="outline" className="h-11 rounded-[14px] border-white/[0.10] bg-black/25 text-white/80 hover:bg-white/[0.06]">
+                <Save className="h-4 w-4" />
+                Sauvegarder
+              </Button>
+              <Button onClick={() => setActiveMode("export")} variant="outline" className="h-11 rounded-[14px] border-white/[0.10] bg-black/25 text-white/80 hover:bg-white/[0.06]">
+                <Download className="h-4 w-4" />
+                Exporter
+              </Button>
+            </div>
+
             {activeMode === "plan" ? (
               <div className={`mt-5 grid gap-4 ${isAdvanced ? "xl:grid-cols-[1.1fr_0.9fr]" : ""}`}>
                 <section className="rounded-[18px] border border-white/[0.08] bg-black/22 p-5">
@@ -962,6 +1142,8 @@ const GameBuilder = () => {
                       ["Promesse", plan.promise],
                       ["Complexité", plan.complexity],
                       ["Gameplay loop", plan.gameplayLoop],
+                      ["Prototype cible", brief.prototypeTarget],
+                      ["Style visuel", brief.visualStyle],
                       ["Prochaine action", plan.nextAction],
                     ].map(([label, value]) => (
                       <article key={label} className="rounded-[16px] border border-white/[0.08] bg-white/[0.035] p-4">
@@ -999,6 +1181,21 @@ const GameBuilder = () => {
                   <p className="mt-3 text-sm leading-6 text-white/56">
                     Les étapes de conception, scripts, assets et vérification restent regroupées ici pour les utilisateurs avancés.
                   </p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {[
+                      ["Mécaniques", brief.coreMechanics],
+                      ["Personnage", brief.mainCharacter],
+                      ["Ennemis / obstacles", brief.enemyType],
+                      ["Carte / monde", brief.worldMap],
+                      ["Progression", brief.progressionStyle],
+                      ["Niveaux", brief.levelCount],
+                    ].map(([label, value]) => (
+                      <article key={label} className="rounded-[14px] border border-white/[0.08] bg-white/[0.035] p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/42">{label}</p>
+                        <p className="mt-2 text-sm leading-6 text-white/68">{value}</p>
+                      </article>
+                    ))}
+                  </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {(gamePackage.routingRoles.length
                       ? gamePackage.routingRoles

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aiProvidersConfig, defaultRoutingRules, vercelGatewayModelStack } from "@/modules/ai";
+import { aiProvidersConfig, defaultRoutingRules, routingModeOverrides, vercelGatewayModelStack } from "@/modules/ai";
 
 describe("AI routing config", () => {
   it("contains every required provider", () => {
@@ -49,5 +49,16 @@ describe("AI routing config", () => {
     expect(defaultRoutingRules.creator_image_concept.fallbackProvider).toBe("claude-design");
     expect(defaultRoutingRules.creator_ad_creative.provider).toBe("openai");
     expect(defaultRoutingRules.creator_premium_image.provider).toBe("pollojourney");
+  });
+
+  it("keeps quality mode aligned with Pixelrises creator roles", () => {
+    expect(routingModeOverrides.qualite.creator_image_concept).toBe("claude-design");
+    expect(routingModeOverrides.qualite.creator_ad_creative).toBe("openai");
+    expect(routingModeOverrides.qualite.creator_avatar_video).toBe("pollojourney");
+  });
+
+  it("declares creator support on the expected providers", () => {
+    expect(aiProvidersConfig.openai.supportedTasks).toContain("creator_ad_creative");
+    expect(aiProvidersConfig["claude-design"].supportedTasks).toContain("creator_image_concept");
   });
 });

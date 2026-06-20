@@ -161,6 +161,18 @@ export type GameBuilderBriefInput = {
   subGenre?: string;
   theme?: string;
   targetAudience?: string;
+  visualStyle?: string;
+  prototypeTarget?: string;
+  qualityTier?: string;
+  gameplayLoopHint?: string;
+  coreMechanics?: string;
+  mainCharacter?: string;
+  enemyType?: string;
+  worldMap?: string;
+  progressionStyle?: string;
+  levelCount?: string;
+  difficultyTarget?: string;
+  enemyAIStyle?: string;
   freePrompt?: string;
 };
 
@@ -335,6 +347,18 @@ export const normalizeGameBuilderBrief = (input: GameBuilderBriefInput): Require
     subGenre: input.subGenre?.trim() || (gameType === "Quiz" ? "Feedback rapide" : "Progression"),
     theme: input.theme?.trim() || freePrompt,
     targetAudience: input.targetAudience?.trim() || "joueurs casual",
+    visualStyle: input.visualStyle?.trim() || "Stylise premium lisible",
+    prototypeTarget: input.prototypeTarget?.trim() || (platform === "Web game" ? "Prototype web React" : platformLabel(platform)),
+    qualityTier: input.qualityTier?.trim() || "Standard",
+    gameplayLoopHint: input.gameplayLoopHint?.trim() || "Boucle courte, feedback rapide, progression visible",
+    coreMechanics: input.coreMechanics?.trim() || "Objectif principal, score, progression, restart",
+    mainCharacter: input.mainCharacter?.trim() || "Joueur principal",
+    enemyType: input.enemyType?.trim() || "Obstacle / challenge contextuel",
+    worldMap: input.worldMap?.trim() || "Carte simple en 3 a 5 zones",
+    progressionStyle: input.progressionStyle?.trim() || "Niveaux courts avec montee progressive",
+    levelCount: input.levelCount?.trim() || "5",
+    difficultyTarget: input.difficultyTarget?.trim() || "Accessible puis progressif",
+    enemyAIStyle: input.enemyAIStyle?.trim() || "Comportements simples et testables",
     freePrompt,
   };
 };
@@ -358,20 +382,22 @@ export const buildGamePlan = (input: GameBuilderBriefInput) => {
           ? "Traverser des zones courtes, réussir des obstacles et débloquer une récompense finale."
           : "Comprendre vite, agir souvent, progresser clairement et vouloir relancer une partie.",
     gameplayLoop:
-      brief.gameType === "Clicker"
+      brief.gameplayLoopHint ||
+      (brief.gameType === "Clicker"
         ? "Cliquer, gagner des points, acheter une amélioration, accélérer la progression, recommencer."
-        : "Entrer dans un défi, réussir une action courte, recevoir un feedback, gagner une récompense, passer au niveau suivant.",
-    complexity: isWeb ? "Bêta légère, jouable dans le navigateur" : "Bêta premium, intégration manuelle requise",
+        : "Entrer dans un défi, réussir une action courte, recevoir un feedback, gagner une récompense, passer au niveau suivant."),
+    complexity: `${brief.qualityTier} · ${isWeb ? "Bêta légère, jouable dans le navigateur" : "Bêta premium, intégration manuelle requise"}`,
     assumptions: [
       "Hypothèse : la première version privilégie une boucle courte et testable plutôt qu'un jeu complet.",
       "Hypothèse : les assets restent des prompts ou placeholders tant que l'utilisateur ne fournit pas ses visuels.",
+      `Hypothèse : la direction visuelle reste ${brief.visualStyle.toLowerCase()} tant qu'aucun asset final n'est fourni.`,
     ],
     risks: [
       "Test manuel obligatoire avant toute publication.",
       "Les snippets ne sont pas garantis production-ready sans adaptation dans l'éditeur officiel.",
       "Aucune API Roblox, Minecraft ou Fortnite n'est appelée par Pixelrises.",
     ],
-    nextAction: isWeb ? "Tester le prototype web et ajuster score/restart." : `Créer la scène de base dans ${platformLabel(brief.platform)}.`,
+    nextAction: isWeb ? "Tester le prototype web et ajuster score/restart." : `Créer la scène de base dans ${platformLabel(brief.platform)} puis intégrer les scripts manuellement.`,
   };
 };
 
@@ -383,25 +409,29 @@ const buildZones = (brief: Required<GameBuilderBriefInput>): GameLevelZone[] => 
         ? ["Spawn", "Zone précision", "Zone timing", "Zone risque", "Finish reward"]
         : brief.gameType === "Quiz"
           ? ["Tutoriel", "Niveau facile", "Niveau moyen", "Niveau rapide", "Résultat"]
-          : ["Onboarding", "Défi 1", "Défi 2", "Défi avancé", "Victoire"];
+        : ["Onboarding", "Défi 1", "Défi 2", "Défi avancé", "Victoire"];
 
-  return zoneBase.map((name, index) => ({
+  const parsedLevelCount = Number.parseInt(brief.levelCount, 10);
+  const wantedLevels = Number.isFinite(parsedLevelCount) ? Math.max(3, Math.min(8, parsedLevelCount)) : zoneBase.length;
+  const finalZones = zoneBase.slice(0, wantedLevels);
+
+  return finalZones.map((name, index) => ({
     id: `zone-${index + 1}`,
     name,
     objective:
       index === 0
         ? "Expliquer la règle en moins de 10 secondes."
-        : index === zoneBase.length - 1
+        : index === finalZones.length - 1
           ? "Valider la maîtrise et donner une récompense claire."
           : `Faire réussir une action principale liée à ${brief.gameType}.`,
     mechanics:
       index === 0
-        ? ["Onboarding", "Feedback immédiat"]
-        : ["Objectif court", "Score", "Checkpoint", "Récompense visible"],
-    difficulty: index <= 1 ? "easy" : index <= 3 ? "medium" : "hard",
-    reward: index === zoneBase.length - 1 ? "Badge final et cosmetic symbolique" : `+${(index + 1) * 10} points et accès zone suivante`,
-    assetsNeeded: ["UI objectif", "Feedback réussite", `${brief.subGenre} prop ${index + 1}`],
-    testPoints: ["Le joueur comprend l'objectif", "Le feedback apparaît", "La progression est sauvegardable ou visible"],
+        ? ["Onboarding", "Feedback immédiat", brief.coreMechanics]
+        : ["Objectif court", "Score", "Checkpoint", "Récompense visible", brief.enemyAIStyle],
+    difficulty: index <= 1 ? "easy" : index <= Math.max(2, finalZones.length - 2) ? "medium" : "hard",
+    reward: index === finalZones.length - 1 ? "Badge final et cosmetic symbolique" : `+${(index + 1) * 10} points et accès zone suivante`,
+    assetsNeeded: ["UI objectif", "Feedback réussite", `${brief.subGenre} prop ${index + 1}`, brief.visualStyle],
+    testPoints: ["Le joueur comprend l'objectif", "Le feedback apparaît", "La progression est sauvegardable ou visible", `Vérifier la difficulté : ${brief.difficultyTarget}`],
   }));
 };
 
@@ -437,7 +467,7 @@ const buildWebPrototype = (brief: Required<GameBuilderBriefInput>): WebPrototype
             { id: "bonus", label: "Bonus niveau +20", points: 20, feedback: "Niveau accéléré." },
             { id: "risk", label: "Action risquée +5", points: 5, feedback: "Risque contrôlé." },
           ],
-    controls: ["Souris ou tactile", "Boutons d'action", "Restart manuel"],
+    controls: ["Souris ou tactile", "Boutons d'action", "Restart manuel", brief.prototypeTarget],
   };
 };
 
@@ -546,7 +576,7 @@ const buildScripts = (brief: Required<GameBuilderBriefInput>, zones: GameLevelZo
       purpose: "Faire tourner une boucle score/niveaux/restart jouable dans le navigateur.",
       codeOrPseudocode:
         "const [score, setScore] = useState(0);\nconst [running, setRunning] = useState(false);\nconst level = score >= target ? 'Victoire' : score >= target * 0.6 ? 'Maîtrise' : 'Découverte';\nfunction play(points) { setRunning(true); setScore((value) => Math.min(target, value + points)); }\nfunction restart() { setScore(0); setRunning(false); }",
-      setupInstructions: ["Utiliser le Prototype Mode intégré.", "Tester score, restart et feedback.", `Objectif cible : ${prototype.scoreTarget} points.`],
+      setupInstructions: ["Utiliser le Prototype Mode intégré.", "Tester score, restart et feedback.", `Objectif cible : ${prototype.scoreTarget} points.`, `Cible prototype : ${brief.prototypeTarget}`],
       testInstructions: ["Cliquer sur Lancer.", "Ajouter des points.", "Atteindre le score cible.", "Relancer avec Restart."],
       warnings: ["Prototype léger, pas un moteur complet.", "Pas de dépendance externe lourde."],
     },
@@ -558,28 +588,28 @@ const buildAssets = (brief: Required<GameBuilderBriefInput>): GameAssetPrompt[] 
     id: "asset-thumbnail",
     type: "thumbnail",
     title: "Thumbnail premium",
-    prompt: `Thumbnail ${brief.platform} pour ${brief.title}, ${brief.gameType}, contraste fort, action lisible, aucune marque protégée, style original.`,
+    prompt: `Thumbnail ${brief.platform} pour ${brief.title}, ${brief.gameType}, contraste fort, action lisible, aucune marque protégée, style original, direction ${brief.visualStyle}.`,
     dataState: "example",
   },
   {
     id: "asset-ui",
     type: "ui",
     title: "HUD score et objectif",
-    prompt: `Interface HUD dark premium avec accent jaune Pixelrises, score, niveau actuel, objectif court, feedback victoire/défaite, responsive.`,
+    prompt: `Interface HUD dark premium avec accent jaune Pixelrises, score, niveau actuel, objectif court, feedback victoire/défaite, responsive, niveau qualité ${brief.qualityTier}.`,
     dataState: "example",
   },
   {
     id: "asset-environment",
     type: "environment",
     title: `Environnement ${brief.subGenre}`,
-    prompt: `Zone de jeu ${brief.subGenre}, lisible, testable, progression visuelle claire, obstacles ou objectifs adaptés à ${brief.targetAudience}.`,
+    prompt: `Zone de jeu ${brief.subGenre}, lisible, testable, progression visuelle claire, obstacles ou objectifs adaptés à ${brief.targetAudience}, carte ${brief.worldMap}.`,
     dataState: "example",
   },
   {
     id: "asset-reward",
     type: "reward",
     title: "Récompense non pay-to-win",
-    prompt: `Cosmetic symbolique pour ${brief.title}, récompense optionnelle, valorisante, sans avantage injuste.`,
+    prompt: `Cosmetic symbolique pour ${brief.title}, récompense optionnelle, valorisante, sans avantage injuste, cohérente avec ${brief.visualStyle}.`,
     dataState: "example",
   },
 ];
@@ -591,6 +621,7 @@ const buildImplementationSteps = (brief: Required<GameBuilderBriefInput>) => {
       "Ajouter Workspace/Checkpoints avec 5 parts nommées.",
       "Ajouter les scripts dans ServerScriptService.",
       "Créer StarterGui/HUD pour score et objectif.",
+      `Poser la direction artistique : ${brief.visualStyle}.`,
       "Playtest solo, puis test avec un autre compte si possible.",
     ];
   }
@@ -599,6 +630,7 @@ const buildImplementationSteps = (brief: Required<GameBuilderBriefInput>) => {
       "Créer une île UEFN vide.",
       "Placer Player Spawner, Timer, Score Manager, HUD Message et Trigger.",
       "Ajouter le Verse device si utilisé.",
+      `Prévoir les zones selon : ${brief.worldMap}.`,
       "Relier les devices et lancer une session.",
       "Ajuster score, timer et objectifs après playtest.",
     ];
@@ -608,12 +640,14 @@ const buildImplementationSteps = (brief: Required<GameBuilderBriefInput>) => {
       "Créer une copie du monde de test.",
       "Préparer behavior_pack et resource_pack si nécessaire.",
       "Remplir manifest.json avec UUIDs uniques.",
+      `Intégrer le rythme de progression : ${brief.progressionStyle}.`,
       "Ajouter fonctions ou commandes scoreboard.",
       "Importer et tester sur une copie avant partage.",
     ];
   }
   return [
     "Tester le prototype dans Pixelrises.",
+    `Respecter la boucle de gameplay : ${brief.gameplayLoopHint}.`,
     "Ajuster score cible, actions et niveaux.",
     "Exporter JSON ou Markdown.",
     "Transformer en composant web si besoin.",
@@ -625,7 +659,7 @@ const buildTestingChecklist = (brief: Required<GameBuilderBriefInput>) => [
   "Le joueur comprend la règle en moins de 10 secondes.",
   "Le score ou la progression change après chaque action.",
   "Le restart fonctionne sans bloquer la partie.",
-  "La difficulté augmente progressivement.",
+  `La difficulté augmente progressivement (${brief.difficultyTarget}).`,
   "Les récompenses restent éthiques et non pay-to-win.",
   `Le résultat est testé manuellement dans ${platformLabel(brief.platform)}.`,
   "Aucune publication automatique n'est déclenchée.",
@@ -691,7 +725,7 @@ export const buildGameProductionPackage = (
         ? `Score cible ${prototypeConfig?.scoreTarget ?? 100}, progression par actions et restart manuel.`
         : "Score ou progression préparé via scripts/devices/commands selon plateforme, test manuel requis.",
     rewardSystem: zones.map((zone) => zone.reward),
-    difficultyCurve: "Tutoriel court, montée progressive, défi final, feedback immédiat après chaque action.",
+    difficultyCurve: `${brief.progressionStyle}. Difficulté visée : ${brief.difficultyTarget}.`,
     scripts,
     assetPrompts: buildAssets(brief),
     implementationSteps: buildImplementationSteps(brief),
@@ -713,6 +747,7 @@ export const buildGameProductionPackage = (
       "Les scripts/snippets doivent être testés et adaptés dans l'éditeur officiel.",
       "Aucune API plateforme externe n'est appelée.",
       "Aucune marque, IP protégée ou jeu existant ne doit être copié.",
+      "Les trailers, pubs vidéo et assets marketing avancés passent par Creator AI / Video AI.",
     ],
     routingRoles:
       options.routedTasks?.map((task) => ({
@@ -724,7 +759,7 @@ export const buildGameProductionPackage = (
       })) ?? [],
     sourceSummary:
       options.sourceSummary ??
-      "Recherche live non activée : sources officielles préparées et logique Pixelrises utilisées en fallback honnête.",
+      `Recherche live non activée : sources officielles préparées et logique Pixelrises utilisées en fallback honnête. Qualité ${brief.qualityTier}, cible ${brief.prototypeTarget}.`,
     createdAt: new Date().toISOString(),
   };
 

@@ -274,6 +274,23 @@ const quickIdeas = [
   "Transforme mon idée en mini-jeu éducatif avec score.",
 ];
 
+const studentVisibleCommandIds: StudentIntent[] = [
+  "fiche",
+  "quiz",
+  "flashcards",
+  "slides",
+  "oral",
+  "resume",
+  "planning",
+  "interro",
+  "corriger",
+  "expliquer",
+  "methode",
+  "sources",
+  "recherche",
+  "agent",
+];
+
 const previewTabs: Array<{ id: StudentPreviewTab; label: string }> = [
   { id: "preview", label: "Aperçu" },
   { id: "structure", label: "Structure" },
@@ -1200,7 +1217,7 @@ export function StudentAIWorkspace({ space }: { space: AISpaceConfig }) {
               ) : null}
 
               <div className="mt-4 flex flex-wrap justify-center gap-2">
-                {studentCommands.map((command) => {
+                {studentCommands.filter((command) => studentVisibleCommandIds.includes(command.id)).map((command) => {
                   const Icon = command.icon;
                   return (
                     <button
